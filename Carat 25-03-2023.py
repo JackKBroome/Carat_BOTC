@@ -669,8 +669,7 @@ async def AddPlayer(ctx, GameNumber, member: discord.Member):
     Access = await authorize_st_command(ST, Server, ctx.author)
     if Access == 1:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(WorkingEmoji)
 
         await member.add_roles(GameRole)
         MemberName = member.display_name
@@ -679,10 +678,10 @@ async def AddPlayer(ctx, GameNumber, member: discord.Member):
                 "You have assigned the game role for game " + str(x) + " to " + str(MemberName))
         except:
             print("Error")
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
     else:
+        await ctx.message.add_reaction(DeniedEmoji)
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:

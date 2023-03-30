@@ -1,8 +1,8 @@
 # Import a Bunch of stuff, might have redundant areas
-import discord
+import nextcord
 import os
-from discord.ext import commands
-from discord.utils import get
+from nextcord.ext import commands
+from nextcord.utils import get
 from time import gmtime, strftime
 from dotenv import load_dotenv
 import asyncio
@@ -19,13 +19,13 @@ WorkingEmoji = '\U0001F504'
 CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
 
-intents = discord.Intents.default()
+intents = nextcord.Intents.default()
 intents.presences = True
 intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix=">", case_insensitive=True, intents=intents)
-bot.activity = discord.Game(">HelpMe or >help")
+bot.activity = nextcord.Game(">HelpMe or >help")
 
 
 # Output in terminal when bot turns on
@@ -35,7 +35,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    bot.add_view(SignupView()) #so it knows to listen for buttons on pre-existing signup forms
+    bot.add_view(SignupView())  # so it knows to listen for buttons on pre-existing signup forms
 
 
 async def get_server():
@@ -57,6 +57,32 @@ async def authorize_st_command(STRole, Server, author):
     if str(author.id) == "107209184147185664":
         Access = 1
     return Access
+
+
+async def update_signup_sheet(SignupMessage):
+    guild = bot.get_guild(BotCUGuildId)
+    NumberofFields = SignupMessage.embeds[0].to_dict()
+
+    x = NumberofFields["footer"]
+    x = str(x["text"])
+    Game = "game" + x
+    GameRole = get(guild.roles, name=Game)
+    # Update Message
+    y = len(NumberofFields["fields"])
+    RanBy = str(NumberofFields["description"])
+    Script = str(NumberofFields["title"])
+    embed = nextcord.Embed(title=Script, description=RanBy, color=0xff0000)
+    SortedPlayerList = GameRole.members
+    for i in range(y):
+        if (len(SortedPlayerList)) >= (i + 1):
+            name = SortedPlayerList[i].display_name
+            embed.add_field(name=str(i + 1) + ". " + str(name),
+                            value=f"{SortedPlayerList[i].mention} has signed up",
+                            inline=False)
+        else:
+            embed.add_field(name=str(i + 1) + ". ", value=" Awaiting Player", inline=False)
+    embed.set_footer(text=x)
+    await SignupMessage.edit(embed=embed)
 
 
 @bot.command()
@@ -273,15 +299,15 @@ async def ArchiveGame(ctx, GameNumber):
     await LogChannel.send(f"{ctx.author.mention} has run the ArchiveGame Command for Game {x}")
 
 
-class SignupView(discord.ui.View):
+class SignupView(nextcord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None) #for persistence
-        
-    @discord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=discord.ButtonStyle.green)
-    async def signup_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        super().__init__(timeout=None)  # for persistence
+
+    @nextcord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=nextcord.ButtonStyle.green)
+    async def signup_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         # Find which game the sign-up page relates to
         await interaction.response.send_message(content=f"{button.custom_id} has been selected!",
-                                                          ephemeral=True)
+                                                ephemeral=True)
         guild = bot.get_guild(BotCUGuildId)
         SignupMessage = interaction.message
         NumberofFields = SignupMessage.embeds[0].to_dict()
@@ -302,7 +328,6 @@ class SignupView(discord.ui.View):
         y = len(NumberofFields["fields"])
         z = len(GameRole.members)
 
-
         # Sign up command
         if GameRole in interaction.user.roles:
             await interaction.user.send("You are already signed up")
@@ -315,17 +340,18 @@ class SignupView(discord.ui.View):
         else:
             await interaction.user.add_roles(GameRole)
             await interaction.user.remove_roles(KibitzRole)
+            await update_signup_sheet(interaction.message)
             for st in STPlayers:
                 await st.send(
                     f"{interaction.user.display_name} ({interaction.user.name}) has signed up for Game {x}")
             await LogChannel.send(
                 f"{interaction.user.display_name} ({interaction.user.name}) has signed up for Game {x}")
 
-    @discord.ui.button(label="Leave Game", custom_id="Leave_Game_Command", style=discord.ButtonStyle.red)
-    async def leave_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @nextcord.ui.button(label="Leave Game", custom_id="Leave_Game_Command", style=nextcord.ButtonStyle.red)
+    async def leave_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         # Find which game the sign-up page relates to
         await interaction.response.send_message(content=f"{button.custom_id} has been selected!",
-                                                          ephemeral=True)
+                                                ephemeral=True)
         guild = bot.get_guild(BotCUGuildId)
         SignupMessage = interaction.message
         NumberofFields = SignupMessage.embeds[0].to_dict()
@@ -348,41 +374,18 @@ class SignupView(discord.ui.View):
             a = 1
         else:
             await interaction.user.remove_roles(GameRole)
+            await update_signup_sheet(interaction.message)
             for st in STPlayers:
                 await st.send(
                     f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {x}")
             await LogChannel.send(
                 f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {x}")
 
-    @discord.ui.button(label="Refresh List", custom_id="Refresh_Command", style=discord.ButtonStyle.gray)
-    async def refresh_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Find which game the sign-up page relates to
+    @nextcord.ui.button(label="Refresh List", custom_id="Refresh_Command", style=nextcord.ButtonStyle.gray)
+    async def refresh_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.response.send_message(content=f"{button.custom_id} has been selected!",
                                                 ephemeral=True)
-        guild = bot.get_guild(BotCUGuildId)
-        SignupMessage = interaction.message
-        NumberofFields = SignupMessage.embeds[0].to_dict()
-
-        x = NumberofFields["footer"]
-        x = str(x["text"])
-        Game = "game" + x
-        GameRole = get(guild.roles, name=Game)
-        # Update Message
-        y = len(NumberofFields["fields"])
-        RanBy = str(NumberofFields["description"])
-        Script = str(NumberofFields["title"])
-        embed = discord.Embed(title=Script, description=RanBy, color=0xff0000)
-        SortedPlayerList = GameRole.members
-        for i in range(y):
-            if (len(SortedPlayerList)) >= (i + 1):
-                name = SortedPlayerList[i].display_name
-                embed.add_field(name=str(i + 1) + ". " + str(name),
-                                value=f"{SortedPlayerList[i].mention} has signed up",
-                                inline=False)
-            else:
-                embed.add_field(name=str(i + 1) + ". ", value=" Awaiting Player", inline=False)
-        embed.set_footer(text=x)
-        await SignupMessage.edit(embed=embed)
+        await update_signup_sheet(interaction.message)
 
 
 @bot.command()
@@ -421,10 +424,10 @@ async def Signup(ctx, GameNumber, SignupLimit: int, Script: str):
         STname = ctx.author.display_name
 
         # Post Signup Page
-        embed = discord.Embed(title=str(Script), description="Ran by " + str(
+        embed = nextcord.Embed(title=str(Script), description="Ran by " + str(
             STname) + "\nPress \U0001F7E9 to sign up for the game\nPress \U0001F7E5 to remove yourself from the game "
                       "\nPress \U0001F504 if the list needs updating (if a command is used to assign roles)",
-                              color=0xff0000)
+                               color=0xff0000)
         for i in range(y):
             if (len(GameRole.members)) >= (i + 1):
                 name = GameRole.members[i].display_name
@@ -489,7 +492,8 @@ async def ClaimGrimoire(ctx, GameNumber):
         await ctx.message.add_reaction(emoji)
     else:
         try:
-            await ctx.message.author.send("This channel already has " + str(len(CurrentSTs)) + " STs. These users are: ")
+            await ctx.message.author.send(
+                "This channel already has " + str(len(CurrentSTs)) + " STs. These users are: ")
             await ctx.message.author.send("\n".join([ST.display_name for ST in CurrentSTs]))
         except:
             print("Error")
@@ -498,7 +502,7 @@ async def ClaimGrimoire(ctx, GameNumber):
 
 
 @bot.command()
-async def GiveGrimoire(ctx, GameNumber, member: discord.Member):
+async def GiveGrimoire(ctx, GameNumber, member: nextcord.Member):
     # x is Legacy from early days, changed to help >help command easier to read, could be updated
     x = GameNumber
 
@@ -568,7 +572,7 @@ async def DropGrimoire(ctx, GameNumber):
 
 
 @bot.command()
-async def ShareGrimoire(ctx, GameNumber, member: discord.Member):
+async def ShareGrimoire(ctx, GameNumber, member: nextcord.Member):
     # x is Legacy from early days, changed to help >help command easier to read, could be updated
     x = GameNumber
 
@@ -608,16 +612,20 @@ async def FindGrimoire(ctx):
     LogChannel, Server = await get_server()
 
     # Entire logic of this could be changed to numerate from 1 up until an error then x1 up until error, didn't think about that
+    # (actually not really because x4 doesn't exist, but one could write an exception for that)
     GameList = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "x1", "x2", "x3", "x5", "x6", "x7", "x8"]
     message = ""
     for j in GameList:
-        STRoleSTR = "st" + str(j)
-        ST = get(Server.roles, name=STRoleSTR)
-        CurrentSTs = ST.members
-        if CurrentSTs == []:
-            message += "There is currently no assigned ST for game " + str(j) + "\n"
-        else:
-            message += "Game " + str(j) + "'s ST is: " + ", ".join([ST.display_name for ST in CurrentSTs]) + "\n"
+        try:
+            STRoleSTR = "st" + str(j)
+            ST = get(Server.roles, name=STRoleSTR)
+            CurrentSTs = ST.members
+            if CurrentSTs == []:
+                message += "There is currently no assigned ST for game " + str(j) + "\n"
+            else:
+                message += f"Game {j}'s STs are: " + ", ".join([ST.display_name for ST in CurrentSTs]) + "\n"
+        except:
+            print(f"game {j} not found")
     await ctx.message.author.send(message)
     await LogChannel.send(f"{ctx.author.mention} has run the FindGrimoire Command")
 
@@ -661,7 +669,7 @@ async def ShowSignUps(ctx, GameNumber):
 
 
 @bot.command()
-async def AddPlayer(ctx, GameNumber, member: discord.Member):
+async def AddPlayer(ctx, GameNumber, member: nextcord.Member):
     x = GameNumber
 
     LogChannel, Server = await get_server()
@@ -695,7 +703,7 @@ async def AddPlayer(ctx, GameNumber, member: discord.Member):
 
 
 @bot.command()
-async def RemovePlayer(ctx, GameNumber, member: discord.Member):
+async def RemovePlayer(ctx, GameNumber, member: nextcord.Member):
     x = GameNumber
 
     LogChannel, Server = await get_server()
@@ -731,7 +739,7 @@ async def RemovePlayer(ctx, GameNumber, member: discord.Member):
 
 
 @bot.command()
-async def AddKibitz(ctx, GameNumber, member: discord.Member):
+async def AddKibitz(ctx, GameNumber, member: nextcord.Member):
     x = GameNumber
 
     LogChannel, Server = await get_server()
@@ -766,7 +774,7 @@ async def AddKibitz(ctx, GameNumber, member: discord.Member):
 
 
 @bot.command()
-async def RemoveKibitz(ctx, GameNumber, member: discord.Member):
+async def RemoveKibitz(ctx, GameNumber, member: nextcord.Member):
     x = GameNumber
 
     LogChannel, Server = await get_server()
@@ -826,9 +834,9 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
         await ctx.message.add_reaction(emoji)
         async for currentmessage in archivedchannel.history(limit=None, oldest_first=True):
             messagecontent = currentmessage.content
-            embed = discord.Embed(description=messagecontent)
+            embed = nextcord.Embed(description=messagecontent)
             embed.set_author(name=str(currentmessage.author) + " at " + str(currentmessage.created_at),
-                             icon_url=currentmessage.author.avatar_url)
+                             icon_url=currentmessage.author.display_avatar.url)
             attachmentlist = []
             for i in currentmessage.attachments:
                 attachmentlist.append(await i.to_file())
@@ -861,8 +869,8 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
 @bot.command()
 async def HelpMe(ctx):
     # Add ShowSignUps here
-    embed = discord.Embed(title="Unofficial Text Game Bot",
-                          description="A List of commands for both Storytellers & Moderators", color=0xe100ff)
+    embed = nextcord.Embed(title="Unofficial Text Game Bot",
+                           description="A List of commands for both Storytellers & Moderators", color=0xe100ff)
     embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
 
     embed.add_field(name=">OpenKibitz [game number] (Requires ST Role or Mod)",

@@ -35,6 +35,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+    bot.add_view(SignupView()) #so it knows to listen for buttons on pre-existing signup forms
 
 
 async def get_server():
@@ -273,6 +274,9 @@ async def ArchiveGame(ctx, GameNumber):
 
 
 class SignupView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None) #for persistence
+        
     @discord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=discord.ButtonStyle.green)
     async def signup_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Find which game the sign-up page relates to

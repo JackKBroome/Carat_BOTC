@@ -23,8 +23,13 @@ intents = discord.Intents.default()
 intents.presences = True
 intents.members = True
 intents.message_content = True
+allowedMentions = discord.AllowedMentions.all()
+allowedMentions.everyone = False
 
-bot = commands.Bot(command_prefix=">", case_insensitive=True, intents=intents)
+bot = commands.Bot(command_prefix=">",
+                   case_insensitive=True,
+                   intents=intents,
+                   allowed_mentions=allowedMentions)
 bot.activity = discord.Game(">HelpMe or >help")
 
 
@@ -45,20 +50,61 @@ async def get_server():
 
 
 async def authorize_st_command(STRole, Server, author):
-    Access = 0
     Doomsayer = Server.get_role(DoomsayerRoleID)
     # Doomsayer Access
     if Doomsayer in author.roles:
-        Access = 1
+        Access = True
     # stX Access
-    if STRole in author.roles:
-        Access = 1
+    elif STRole in author.roles:
+        Access = True
     # Jack B Access
-    if str(author.id) == "107209184147185664":
-        Access = 1
+    elif str(author.id) == "107209184147185664":
+        Access = True
+    else:
+        Access = False
     return Access
 
 
+@bot.command()
+async def CreateThreads(ctx, GameNumber):
+    LogChannel, Server = await get_server()
+    STRoleName = "st" + GameNumber
+    STRole = get(Server.roles, name=STRoleName)
+    Access = await authorize_st_command(STRole, Server, ctx.author)
+    if Access:
+        await ctx.message.add_reaction(WorkingEmoji)
+        PlayerRoleName = "game" + GameNumber
+        PlayerRole = get(Server.roles, name=PlayerRoleName)
+        GamesCategory = get(Server.categories, id=TextGamesCategoryID)
+
+        # find game channel
+        for channel in GamesCategory.channels:
+            if GameNumber in str(channel) and f"x{GameNumber}" not in str(channel):
+                GameChannel = channel
+        MentionSTs = " ".join([ST.mention for ST in STRole.members])
+
+        for player in PlayerRole.members:
+            thread = GameChannel.create_(
+                name=f"ST Thread {player.display_name}",
+                auto_archive_duration=4320,  # 3 days
+                type=discord.ChannelType.private_thread,
+                reason=f"preparing text game {GameNumber}"
+                )
+            thread.add_user()
+
+        await ctx.message.remove_reaction(WorkingEmoji)
+        await ctx.message.add_reaction(CompletedEmoji)
+
+        print("-= The CreateThreads command was used successfully by " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+    else:
+        await ctx.message.add_reaction(DeniedEmoji)
+        print("-= The Open Kibitz command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+
+    await LogChannel.send(f"{ctx.author.mention} has run the CreateThreads Command on Game {GameNumber}")
+    
+    
 @bot.command()
 async def OpenKibitz(ctx, GameNumber):
     # x is Legacy from early days, changed to help >help command easier to read, could be updated
@@ -70,7 +116,7 @@ async def OpenKibitz(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -111,7 +157,7 @@ async def CloseKibitz(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -155,7 +201,7 @@ async def EndGame(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -213,7 +259,7 @@ async def ArchiveGame(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -397,7 +443,7 @@ async def Signup(ctx, GameNumber, SignupLimit: int, Script: str):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
         # Gather member list & role information
@@ -459,7 +505,7 @@ async def ClaimGrimoire(ctx, GameNumber):
     LogChannel, Server = await get_server()
 
     # Check access
-    Access = 1
+    Access = True
     STRoleSTR = "st" + str(x)
     STRole = get(Server.roles, name=STRoleSTR)
     CurrentSTs = STRole.members
@@ -467,14 +513,14 @@ async def ClaimGrimoire(ctx, GameNumber):
 
     # stX Access
     if len(CurrentSTs) != 0:
-        Access = 0
+        Access = False
     # Doomsayer Access
     if Doomsayer in ctx.author.roles:
-        Access = 1
+        Access = True
     # Jack B Access
     if str(ctx.author.id) == "107209184147185664":
-        Access = 1
-    if Access == 1:
+        Access = True
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -508,7 +554,7 @@ async def GiveGrimoire(ctx, GameNumber, member: discord.Member):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -545,7 +591,7 @@ async def DropGrimoire(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -578,7 +624,7 @@ async def ShareGrimoire(ctx, GameNumber, member: discord.Member):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -671,7 +717,7 @@ async def AddPlayer(ctx, GameNumber, member: discord.Member):
     GameRoleSTR = "game" + str(x)
     GameRole = get(Server.roles, name=GameRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -706,7 +752,7 @@ async def RemovePlayer(ctx, GameNumber, member: discord.Member):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -742,7 +788,7 @@ async def AddKibitz(ctx, GameNumber, member: discord.Member):
     GameRole = get(Server.roles, name=GameRoleSTR)
 
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -777,7 +823,7 @@ async def RemoveKibitz(ctx, GameNumber, member: discord.Member):
     GameRole = get(Server.roles, name=GameRoleSTR)
 
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
         await member.remove_roles(GameRole)
@@ -811,16 +857,16 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
 
     LogChannel, UnofficialID = await get_server()
 
-    Access = 0
+    Access = False
 
     Doomsayer = UnofficialID.get_role(DoomsayerRoleID)
     # Doomsayer Access
     if Doomsayer in ctx.author.roles:
-        Access = 1
+        Access = True
     # Jack B & Ivy Access
     if str(ctx.author.id) == "107209184147185664" or str(ctx.author.id) == "183474450237358081":
-        Access = 1
-    if Access == 1:
+        Access = True
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)

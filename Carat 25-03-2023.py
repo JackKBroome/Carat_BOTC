@@ -110,15 +110,17 @@ async def CreateThreads(ctx, GameNumber):
         MentionSTs = " ".join([ST.mention for ST in STRole.members])
 
         for player in PlayerRole.members:
-            thread = GameChannel.create_(
+            thread = await GameChannel.create_thread(
                 name=f"ST Thread {player.display_name}",
                 auto_archive_duration=4320,  # 3 days
                 type=nextcord.ChannelType.private_thread,
                 reason=f"preparing text game {GameNumber}"
                 )
-            thread.add_user()
+            await thread.add_user(player)
+            for ST in STRole.members:
+                await thread.add_user(ST)
 
-        await ctx.message.remove_reaction(WorkingEmoji)
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
         await ctx.message.add_reaction(CompletedEmoji)
 
         print("-= The CreateThreads command was used successfully by " + str(ctx.author.name) + " at " + str(

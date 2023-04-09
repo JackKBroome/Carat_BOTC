@@ -20,10 +20,7 @@ CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
 MaxGameNumber = 15
 
-intents = nextcord.Intents.default()
-intents.presences = True
-intents.members = True
-intents.message_content = True
+intents = nextcord.Intents.all()
 allowedMentions = nextcord.AllowedMentions.all()
 allowedMentions.everyone = False
 
@@ -934,7 +931,7 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
         emoji = CompletedEmoji
         await ctx.message.add_reaction(emoji)
 
-        await LogChannel.send(f"{ctx.author.display_name} has run the OffSiteArchive Command")
+        await LogChannel.send(f"{ctx.author.display_name} has run the OffServerArchive Command")
         await ctx.message.author.send(f"Your Archive for {ctx.message.channel.name} is done.")
     else:
         print("-= The OffServerArchive command was stopped against " + str(ctx.author.name) + " at " + str(

@@ -18,14 +18,17 @@ LogChannelID = int(os.environ['LOG_CHANNEL_ID'])
 WorkingEmoji = '\U0001F504'
 CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
+MaxGameNumber = 15
 
-intents = nextcord.Intents.default()
-intents.presences = True
-intents.members = True
-intents.message_content = True
+intents = nextcord.Intents.all()
+allowedMentions = nextcord.AllowedMentions.all()
+allowedMentions.everyone = False
 
-bot = commands.Bot(command_prefix=">", case_insensitive=True, intents=intents)
-bot.activity = nextcord.Game(">HelpMe or >help")
+bot = commands.Bot(command_prefix=">",
+                   case_insensitive=True,
+                   intents=intents,
+                   allowed_mentions=allowedMentions,
+                   activity=nextcord.Game(">HelpMe or >help"))
 
 
 # Output in terminal when bot turns on
@@ -45,17 +48,18 @@ async def get_server():
 
 
 async def authorize_st_command(STRole, Server, author):
-    Access = 0
     Doomsayer = Server.get_role(DoomsayerRoleID)
     # Doomsayer Access
     if Doomsayer in author.roles:
-        Access = 1
+        Access = True
     # stX Access
-    if STRole in author.roles:
-        Access = 1
+    elif STRole in author.roles:
+        Access = True
     # Jack B Access
-    if str(author.id) == "107209184147185664":
-        Access = 1
+    elif str(author.id) == "107209184147185664":
+        Access = True
+    else:
+        Access = False
     return Access
 
 
@@ -86,6 +90,51 @@ async def update_signup_sheet(SignupMessage):
 
 
 @bot.command()
+async def CreateThreads(ctx, GameNumber):
+    LogChannel, Server = await get_server()
+    STRoleName = "st" + GameNumber
+    STRole = get(Server.roles, name=STRoleName)
+    Access = await authorize_st_command(STRole, Server, ctx.author)
+    if Access:
+        await ctx.message.add_reaction(WorkingEmoji)
+        PlayerRoleName = "game" + GameNumber
+        PlayerRole = get(Server.roles, name=PlayerRoleName)
+        GamesCategory = get(Server.categories, id=TextGamesCategoryID)
+
+        # find game channel
+        for channel in GamesCategory.channels:
+            if GameNumber in str(channel) and f"x{GameNumber}" not in str(channel):
+                GameChannel = channel
+
+        for player in PlayerRole.members:
+            thread = await GameChannel.create_thread(
+                name=f"ST Thread {player.display_name}",
+                auto_archive_duration=4320,  # 3 days
+                type=nextcord.ChannelType.private_thread,
+                reason=f"Preparing text game {GameNumber}"
+                )
+            await thread.add_user(player)
+            for ST in STRole.members:
+                await thread.add_user(ST)
+
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
+
+        print("-= The CreateThreads command was used successfully by " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+    else:
+        await ctx.message.add_reaction(DeniedEmoji)
+        try:
+            await ctx.message.author.send("You are not the current ST for game " + str(GameNumber))
+        except:
+            print(f"Could not DM {ctx.message.author}")
+        print("-= The CreateThreads command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+
+    await LogChannel.send(f"{ctx.author.mention} has run the CreateThreads Command on Game {GameNumber}")
+
+
+@bot.command()
 async def OpenKibitz(ctx, GameNumber):
     # x is Legacy from early days, changed to help >help command easier to read, could be updated
     x = GameNumber
@@ -96,7 +145,7 @@ async def OpenKibitz(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -116,10 +165,13 @@ async def OpenKibitz(ctx, GameNumber):
         await ctx.message.add_reaction(CompletedEmoji)
         print("-= The Open Kibitz command was used successfully by " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
-
     else:
         # React on Disapproval
         await ctx.message.add_reaction(DeniedEmoji)
+        try:
+            await ctx.message.author.send("You are not the current ST for game " + str(x))
+        except:
+            print(f"Could not DM {ctx.message.author}")
         print("-= The Open Kibitz command was stopped against " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
@@ -137,10 +189,9 @@ async def CloseKibitz(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(WorkingEmoji)
 
         # Change permission of Kibitz to allow Townsfolk to view
         TownsfolkRole = Server.default_role
@@ -154,16 +205,17 @@ async def CloseKibitz(ctx, GameNumber):
         await KibitzChannel.set_permissions(TownsfolkRole, view_channel=False)
 
         # React for completion
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
         print("-= The Close Kibitz command was used successfully by " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
-
     else:
         # React on Disapproval
-        emoji = DeniedEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(DeniedEmoji)
+        try:
+            await ctx.message.author.send("You are not the current ST for game " + str(x))
+        except:
+            print(f"Could not DM {ctx.message.author}")
         print("-= The Close Kibitz command was stopped against " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
@@ -181,10 +233,9 @@ async def EndGame(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(WorkingEmoji)
 
         # Gather member list & role information
         Kibitz = "kibitz" + str(x)
@@ -192,7 +243,7 @@ async def EndGame(ctx, GameNumber):
         Game = "game" + str(x)
         GameRole = get(Server.roles, name=Game)
         members = GameRole.members
-        members = members + KibitzRole.members
+        members += KibitzRole.members
 
         # Remove Kibitz from non-bot players
         for member in members:
@@ -212,16 +263,18 @@ async def EndGame(ctx, GameNumber):
         await KibitzChannel.set_permissions(TownsfolkRole, view_channel=True)
 
         # React for completion
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
         print("-= The EndGame command was used successfully by " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     else:
         # React on Disapproval
-        emoji = DeniedEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(DeniedEmoji)
+        try:
+            await ctx.message.author.send("You are not the current ST for game " + str(x))
+        except:
+            print(f"Could not DM {ctx.message.author}")
         print("-= The EndGame command was stopped against " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
@@ -239,16 +292,12 @@ async def ArchiveGame(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(WorkingEmoji)
 
-        # Gather member list & role information
         TownsfolkRole = Server.default_role
 
-        # Command
-        # Archived Games
         # Find Channel
         X = str(x)
         if X[0] == "x":
@@ -283,17 +332,19 @@ async def ArchiveGame(ctx, GameNumber):
         await KibitzChannel.set_permissions(TownsfolkRole, view_channel=False)
 
         # React for completion
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
-        print("-= The New Game command was used successfully by " + str(ctx.author.name) + " at " + str(
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
+        print("-= The ArchiveGame command was used successfully by " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     else:
         # React on Disapproval
-        emoji = DeniedEmoji
-        await ctx.message.add_reaction(emoji)
-        print("-= The New Game command was stopped against " + str(ctx.author.name) + " at " + str(
+        await ctx.message.add_reaction(DeniedEmoji)
+        try:
+            await ctx.message.author.send("You are not the current ST for game " + str(x))
+        except:
+            print(f"Could not DM {ctx.message.author}")
+        print("-= The ArchiveGame command was stopped against " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     await LogChannel.send(f"{ctx.author.mention} has run the ArchiveGame Command for Game {x}")
@@ -333,8 +384,8 @@ class SignupView(nextcord.ui.View):
             await interaction.user.send("You are already signed up")
         elif STRole in interaction.user.roles:
             await interaction.user.send("You are the Storyteller for this game and so cannot sign up for it")
-        elif interaction.user.bot == True:
-            a = 1
+        elif interaction.user.bot:
+            pass
         elif z >= y:
             await interaction.user.send("The game is currently full, please contact the Storyteller")
         else:
@@ -370,8 +421,8 @@ class SignupView(nextcord.ui.View):
         # Find the connected Game
         if GameRole not in interaction.user.roles:
             await interaction.user.send("You haven't signed up")
-        elif interaction.user.bot == True:
-            a = 1
+        elif interaction.user.bot:
+            pass
         else:
             await interaction.user.remove_roles(GameRole)
             await update_signup_sheet(interaction.message)
@@ -400,7 +451,7 @@ async def Signup(ctx, GameNumber, SignupLimit: int, Script: str):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
         # Gather member list & role information
@@ -411,7 +462,6 @@ async def Signup(ctx, GameNumber, SignupLimit: int, Script: str):
         X = str(x)
         if X[0] == "x":
             GameNumber = "x" + str(X[1])
-            KibitzChannelName = "experimental-kibitz-" + str(X[1])
         else:
             GameNumber = str(X[0])
 
@@ -448,6 +498,10 @@ async def Signup(ctx, GameNumber, SignupLimit: int, Script: str):
 
     else:
         await ctx.message.add_reaction(DeniedEmoji)
+        try:
+            await ctx.message.author.send("You are not the current ST for game " + str(x))
+        except:
+            print(f"Could not DM {ctx.message.author}")
         print("-= The SignUp command was stopped against " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
@@ -462,7 +516,7 @@ async def ClaimGrimoire(ctx, GameNumber):
     LogChannel, Server = await get_server()
 
     # Check access
-    Access = 1
+    Access = True
     STRoleSTR = "st" + str(x)
     STRole = get(Server.roles, name=STRoleSTR)
     CurrentSTs = STRole.members
@@ -470,33 +524,33 @@ async def ClaimGrimoire(ctx, GameNumber):
 
     # stX Access
     if len(CurrentSTs) != 0:
-        Access = 0
+        Access = False
     # Doomsayer Access
     if Doomsayer in ctx.author.roles:
-        Access = 1
+        Access = True
     # Jack B Access
     if str(ctx.author.id) == "107209184147185664":
-        Access = 1
-    if Access == 1:
+        Access = True
+    if Access:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(WorkingEmoji)
 
         await ctx.author.add_roles(STRole)
         try:
             await ctx.message.author.send("You are now the current ST for game " + str(x))
         except:
-            print("Error")
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
+            print(f"Could not DM {ctx.message.author}")
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
     else:
         try:
             await ctx.message.author.send(
                 "This channel already has " + str(len(CurrentSTs)) + " STs. These users are: ")
             await ctx.message.author.send("\n".join([ST.display_name for ST in CurrentSTs]))
+            print("-= The ClaimGrimoire command was stopped against " + str(ctx.author.name) + " at " + str(
+                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(f"{ctx.author.mention} has run the ClaimGrimoire Command  for game {x}")
 
@@ -512,10 +566,9 @@ async def GiveGrimoire(ctx, GameNumber, member: nextcord.Member):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(WorkingEmoji)
 
         await member.add_roles(ST)
         await ctx.message.author.remove_roles(ST)
@@ -524,15 +577,17 @@ async def GiveGrimoire(ctx, GameNumber, member: nextcord.Member):
             await ctx.message.author.send(
                 "You have assigned the current ST role for game " + str(x) + " to " + str(MemberName))
         except:
-            print("Error")
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
+            print(f"Could not DM {ctx.message.author}")
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
     else:
+        await ctx.message.add_reaction(DeniedEmoji)
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
+        print("-= The GiveGrimoire command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     await LogChannel.send(
         f"{ctx.author.mention} has run the GiveGrimoire Command on {member.display_name} for game {x}")
@@ -549,24 +604,25 @@ async def DropGrimoire(ctx, GameNumber):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.add_reaction(WorkingEmoji)
 
         await ctx.message.author.remove_roles(ST)
         try:
             await ctx.message.author.send("You have removed the current ST role from yourself for game " + str(x))
         except:
-            print("Error")
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
+            print(f"Could not DM {ctx.message.author}")
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
     else:
+        await ctx.message.remove_reaction(DeniedEmoji)
+        print("-= The DropGrimoire command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(f"{ctx.author.mention} has run the DropGrimoire Command for game {x}")
 
@@ -582,7 +638,7 @@ async def ShareGrimoire(ctx, GameNumber, member: nextcord.Member):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -593,15 +649,17 @@ async def ShareGrimoire(ctx, GameNumber, member: nextcord.Member):
             await ctx.message.author.send(
                 "You have assigned the current ST for game " + str(x) + " to " + str(MemberName))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(emoji, bot.user)
         emoji = CompletedEmoji
         await ctx.message.add_reaction(emoji)
     else:
+        print("-= The ShareGrimoire command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(
         f"{ctx.author.mention} has run the ShareGrimoire Command on {member.display_name} for game {x}")
@@ -611,16 +669,19 @@ async def ShareGrimoire(ctx, GameNumber, member: nextcord.Member):
 async def FindGrimoire(ctx):
     LogChannel, Server = await get_server()
 
-    # Entire logic of this could be changed to numerate from 1 up until an error then x1 up until error, didn't think about that
-    # (actually not really because x4 doesn't exist, but one could write an exception for that)
-    GameList = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "x1", "x2", "x3", "x5", "x6", "x7", "x8"]
+    # find existing games by getting all channel names in the text games category
+    # and checking which of 1 to [MaxGameNumber] and x1 to x[MaxGameNumber] appear in them
+    gameCategory = get(Server.categories, id=TextGamesCategoryID)
+    channelNamesString = " ".join([channel.name for channel in gameCategory.channels])
+    potentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
+    games = [x for x in potentialGames if x in channelNamesString]
     message = ""
-    for j in GameList:
+    for j in games:
         try:
             STRoleSTR = "st" + str(j)
             ST = get(Server.roles, name=STRoleSTR)
             CurrentSTs = ST.members
-            if CurrentSTs == []:
+            if not CurrentSTs:
                 message += "There is currently no assigned ST for game " + str(j) + "\n"
             else:
                 message += f"Game {j}'s STs are: " + ", ".join([ST.display_name for ST in CurrentSTs]) + "\n"
@@ -649,22 +710,22 @@ async def ShowSignUps(ctx, GameNumber):
     OutputString = f"Game {x} Players\nStoryteller:\n"
 
     for ST in STs:
-        OutputString = OutputString + ST.display_name + "\n"
+        OutputString += ST.display_name + "\n"
 
-    OutputString = OutputString + "\nPlayers:\n"
+    OutputString += "\nPlayers:\n"
 
     for player in GamePlayers:
-        OutputString = OutputString + player.display_name + "\n"
+        OutputString += player.display_name + "\n"
 
-    OutputString = OutputString + "\nKibitz members:\n"
+    OutputString += "\nKibitz members:\n"
 
     for user in Kibitzers:
-        OutputString = OutputString + user.display_name + "\n"
+        OutputString += user.display_name + "\n"
 
     try:
         await ctx.author.send(OutputString)
     except:
-        print("Error")
+        print(f"Could not DM {ctx.author}")
     await LogChannel.send(f"{ctx.author.mention} has run the ShowSignUps Command")
 
 
@@ -679,7 +740,7 @@ async def AddPlayer(ctx, GameNumber, member: nextcord.Member):
     GameRoleSTR = "game" + str(x)
     GameRole = get(Server.roles, name=GameRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -689,15 +750,17 @@ async def AddPlayer(ctx, GameNumber, member: nextcord.Member):
             await ctx.message.author.send(
                 "You have assigned the game role for game " + str(x) + " to " + str(MemberName))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
         await ctx.message.add_reaction(CompletedEmoji)
     else:
+        print("-= The AddPlayer command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         await ctx.message.add_reaction(DeniedEmoji)
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(f"{ctx.author.mention} has run the AddPlayer Command on {member.display_name} for game {x}")
 
@@ -714,7 +777,7 @@ async def RemovePlayer(ctx, GameNumber, member: nextcord.Member):
     STRoleSTR = "st" + str(x)
     ST = get(Server.roles, name=STRoleSTR)
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -724,15 +787,17 @@ async def RemovePlayer(ctx, GameNumber, member: nextcord.Member):
             await ctx.message.author.send(
                 "You have removed the game role for game " + str(x) + " to " + str(MemberName))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
         await ctx.message.add_reaction(CompletedEmoji)
     else:
+        print("-= The RemovePlayer command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         await ctx.message.add_reaction(DeniedEmoji)
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(
         f"{ctx.author.mention} has run the RemovePlayer Command on {member.display_name} for game {x}")
@@ -750,7 +815,7 @@ async def AddKibitz(ctx, GameNumber, member: nextcord.Member):
     GameRole = get(Server.roles, name=GameRoleSTR)
 
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
 
@@ -760,15 +825,17 @@ async def AddKibitz(ctx, GameNumber, member: nextcord.Member):
             await ctx.message.author.send(
                 "You have assigned the kibitz role for game " + str(x) + " to " + str(MemberName))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
         await ctx.message.add_reaction(CompletedEmoji)
     else:
+        print("-= The AddKibitz command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         await ctx.message.add_reaction(DeniedEmoji)
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(f"{ctx.author.mention} has run the AddKibitz Command on {member.display_name} for game {x}")
 
@@ -785,7 +852,7 @@ async def RemoveKibitz(ctx, GameNumber, member: nextcord.Member):
     GameRole = get(Server.roles, name=GameRoleSTR)
 
     Access = await authorize_st_command(ST, Server, ctx.author)
-    if Access == 1:
+    if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
         await member.remove_roles(GameRole)
@@ -794,15 +861,17 @@ async def RemoveKibitz(ctx, GameNumber, member: nextcord.Member):
             await ctx.message.author.send(
                 "You have removed the kibitz role for game " + str(x) + " to " + str(MemberName))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
         await ctx.message.add_reaction(CompletedEmoji)
     else:
+        print("-= The RemoveKibitz command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         await ctx.message.add_reaction(DeniedEmoji)
         try:
             await ctx.message.author.send("You are not the current ST for game " + str(x))
         except:
-            print("Error")
+            print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(
         f"{ctx.author.mention} has run the RemoveKibitz Command on {member.display_name} for game {x}")
@@ -819,16 +888,16 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
 
     LogChannel, UnofficialID = await get_server()
 
-    Access = 0
+    Access = False
 
     Doomsayer = UnofficialID.get_role(DoomsayerRoleID)
     # Doomsayer Access
     if Doomsayer in ctx.author.roles:
-        Access = 1
+        Access = True
     # Jack B & Ivy Access
     if str(ctx.author.id) == "107209184147185664" or str(ctx.author.id) == "183474450237358081":
-        Access = 1
-    if Access == 1:
+        Access = True
+    if Access:
         # React on Approval
         emoji = WorkingEmoji
         await ctx.message.add_reaction(emoji)
@@ -845,7 +914,7 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
                 async for user in i.users():
                     userlist.append(str(user.name))
                 reactors = ", ".join(userlist)
-                if len(embed.footer) != 0:
+                if len(embed.footer.text) != 0:
                     embed.set_footer(text=embed.footer.text + f" {i.emoji} - {reactors}, ")
                 else:
                     embed.set_footer(text=f"{i.emoji} - {reactors}, ")
@@ -862,8 +931,16 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
         emoji = CompletedEmoji
         await ctx.message.add_reaction(emoji)
 
-        await LogChannel.send(f"{ctx.author.display_name} has run the OffSiteArchive Command")
+        await LogChannel.send(f"{ctx.author.display_name} has run the OffServerArchive Command")
         await ctx.message.author.send(f"Your Archive for {ctx.message.channel.name} is done.")
+    else:
+        print("-= The OffServerArchive command was stopped against " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+        await ctx.message.add_reaction(DeniedEmoji)
+        try:
+            await ctx.message.author.send("You do not have permission to use this command")
+        except:
+            print(f"Could not DM {ctx.message.author}")
 
 
 @bot.command()
@@ -883,13 +960,16 @@ async def HelpMe(ctx):
                     value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">ArchiveGame 1" & #experimental-game-2 would be ">ArchiveGame x2". This command is to signal the start of a new game, it will archive the previous game channel & create a new & cleared channel to run a new game in. It will also change the viewing permission of the associated kibitz to only be viewed by "Kibitz?" role.',
                     inline=False)
     embed.add_field(name=">EndGame [game number] (Requires ST Role or Mod)",
-                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">NewGame 1" & #experimental-game-2 would be "!NewGame x2". This command is to signal the end of a text game. This command will remove "GameX" & "KibitzX" role from each player who had it, along with changing the viewing permissions of the Kibitz channel to allow the All Discord Users role to view it.',
+                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">NewGame 1" & #experimental-game-2 would be ">NewGame x2". This command is to signal the end of a text game. This command will remove "GameX" & "KibitzX" role from each player who had it, along with changing the viewing permissions of the Kibitz channel to allow the All Discord Users role to view it.',
                     inline=False)
     embed.add_field(name=">Signup [game number] [Player Count] [Script Name] (Requires ST Role or Mod)",
-                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the first brackets with your game number, the second with the number of players allowed in the game & finally the name of the script (Please note: If the script name is multiple words eg. Trouble Brewing, it will require speech marks around the script name eg "Trouble Brewing"), for example #text-only-game-1 would be ">Signup 1 10 BMR" & #experimental-game-2 would be >!Signup x2 9 Catfishing". This command is used to automate the signup board, it will post an embedded message in the correct channel that players can react to sign up to & react to remove themselves from the game. This updates in almost real time & requires no intervention from the storyteller. When a player is signed up their name will appear in the signup list & they will be assigned the "game?" role automatically.',
+                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the first brackets with your game number, the second with the number of players allowed in the game & finally the name of the script (Please note: If the script name is multiple words eg. Trouble Brewing, it will require speech marks around the script name eg "Trouble Brewing"), for example #text-only-game-1 would be ">Signup 1 10 BMR" & #experimental-game-2 would be >Signup x2 9 Catfishing". This command is used to automate the signup board, it will post an embedded message in the correct channel that players can react to sign up to & react to remove themselves from the game. This updates in almost real time & requires no intervention from the storyteller. When a player is signed up their name will appear in the signup list & they will be assigned the "game?" role automatically.',
                     inline=False)
-
-    embed.add_field(name=">FindGrimoire", value="Sends the user a DM showing which games currently do not have an ST.",
+    embed.add_field(name=">CreateThreads [game number] (Requires ST Role or Mod)",
+                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">CreateThreads 1" & #experimental-game-2 would be ">CreateThreads x2". This command is to assist in preparing a text game. This command will create a private thread in the game\'s channel for each player, named "ST Thread [Playername]", and add the player and all STs to it.',
+                    inline=False)
+    embed.add_field(name=">FindGrimoire",
+                    value="Sends the user a DM showing which games currently do not have an ST.",
                     inline=False)
     embed.add_field(name=">ClaimGrimoire [game number]",
                     value='This will assign you the "st?" role for the denoted game number, providing there is not currently a player with the "st?" role.',
@@ -914,6 +994,8 @@ async def HelpMe(ctx):
     embed.add_field(name=">RemoveKibitz [game number] [@Player]",
                     value='To run this command it requires that you have the "st?" role. It will remove the "kibitz?" role from the tagged player for the denoted game number.',
                     inline=False)
+    embed.add_field(name=">OffServerArchive [Server ID] [Channel ID]",
+                    value="A Mod-only command that archives the channel the message was sent in to the provided server and channel.")
     embed.add_field(name=">HelpMe",
                     value="Sends a direct message of this to the player who typed the command",
                     inline=False)

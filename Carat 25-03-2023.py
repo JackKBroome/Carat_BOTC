@@ -19,6 +19,7 @@ WorkingEmoji = '\U0001F504'
 CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
 MaxGameNumber = 15
+PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
 
 intents = nextcord.Intents.all()
 allowedMentions = nextcord.AllowedMentions.all()
@@ -141,10 +142,9 @@ async def OpenKibitz(ctx, GameNumber):
 
     LogChannel, Server = await get_server()
 
-    # Check permissions, granted the check is backwards but works
-    STRoleSTR = "st" + str(x)
-    ST = get(Server.roles, name=STRoleSTR)
-    Access = await authorize_st_command(ST, Server, ctx.author)
+    STRole = get(Server.roles, name="st" + str(x))
+    GameRole = get(Server.roles, name="game" + str(x))
+    Access = await authorize_st_command(STRole, Server, ctx.author)
     if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
@@ -159,6 +159,10 @@ async def OpenKibitz(ctx, GameNumber):
 
         KibitzChannel = get(Server.channels, name=KibitzChannelName)
         await KibitzChannel.set_permissions(TownsfolkRole, view_channel=True)
+        await ctx.channel.send(
+            f"{GameRole.mention} Kibitz is now being opened - remove your game? role to access it. " +
+            f"Remember to give your ST(s) any feedback you may have!\n" +
+            f"Feedback form: https://forms.gle/HqNfMv1pte8vo5j59")
 
         # React for completion
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
@@ -223,7 +227,7 @@ async def CloseKibitz(ctx, GameNumber):
 
 
 @bot.command()
-async def EndGame(ctx, GameNumber):
+async def EndGame(ctx: commands.Context, GameNumber):
     # x is Legacy from early days, changed to help >help command easier to read, could be updated
     x = GameNumber
 
@@ -242,6 +246,9 @@ async def EndGame(ctx, GameNumber):
         KibitzRole = get(Server.roles, name=Kibitz)
         Game = "game" + str(x)
         GameRole = get(Server.roles, name=Game)
+
+        await ctx.channel.send(f"{GameRole.mention} Kibitz is now being opened: Remember to give your ST(s) any feedback you may have!\n" +
+                               f"Feedback form: https://forms.gle/HqNfMv1pte8vo5j59")
         members = GameRole.members
         members += KibitzRole.members
 
@@ -673,8 +680,7 @@ async def FindGrimoire(ctx):
     # and checking which of 1 to [MaxGameNumber] and x1 to x[MaxGameNumber] appear in them
     gameCategory = get(Server.categories, id=TextGamesCategoryID)
     channelNamesString = " ".join([channel.name for channel in gameCategory.channels])
-    potentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
-    games = [x for x in potentialGames if x in channelNamesString]
+    games = [x for x in PotentialGames if x in channelNamesString]
     message = ""
     for j in games:
         try:
@@ -697,14 +703,11 @@ async def ShowSignUps(ctx, GameNumber):
 
     x = GameNumber
 
-    GameRoleSTR = "game" + str(x)
-    GameRole = get(Server.roles, name=GameRoleSTR)
+    GameRole = get(Server.roles, name="game" + str(x))
     GamePlayers = GameRole.members
-    KibitzSTR = "kibitz" + str(x)
-    KibitzRole = get(Server.roles, name=KibitzSTR)
+    KibitzRole = get(Server.roles, name="kibitz" + str(x))
     Kibitzers = KibitzRole.members
-    STSTR = "st" + str(x)
-    STRole = get(Server.roles, name=STSTR)
+    STRole = get(Server.roles, name="st" + str(x))
     STs = STRole.members
 
     OutputString = f"Game {x} Players\nStoryteller:\n"
@@ -730,25 +733,30 @@ async def ShowSignUps(ctx, GameNumber):
 
 
 @bot.command()
-async def AddPlayer(ctx, GameNumber, member: nextcord.Member):
+async def AddPlayer(ctx, GameNumber, players: commands.Greedy[nextcord.Member]):
+    if not len(players):
+        try:
+            await ctx.message.author.send("Usage: >AddPlayer [game number] [at least one user]")
+        except:
+            print(f"Could not DM {ctx.message.author}")
+        return
     x = GameNumber
 
     LogChannel, Server = await get_server()
 
-    STRoleSTR = "st" + str(x)
-    ST = get(Server.roles, name=STRoleSTR)
-    GameRoleSTR = "game" + str(x)
-    GameRole = get(Server.roles, name=GameRoleSTR)
-    Access = await authorize_st_command(ST, Server, ctx.author)
+    STRole = get(Server.roles, name="st" + str(x))
+    GameRole = get(Server.roles, name="game" + str(x))
+    PlayerNames = []
+    Access = await authorize_st_command(STRole, Server, ctx.author)
     if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
-
-        await member.add_roles(GameRole)
-        MemberName = member.display_name
+        for player in players:
+            await player.add_roles(GameRole)
+            PlayerNames.append(player.display_name)
         try:
             await ctx.message.author.send(
-                "You have assigned the game role for game " + str(x) + " to " + str(MemberName))
+                "You have assigned the game role for game " + str(x) + " to " + ", ".join(PlayerNames))
         except:
             print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
@@ -762,30 +770,35 @@ async def AddPlayer(ctx, GameNumber, member: nextcord.Member):
         except:
             print(f"Could not DM {ctx.message.author}")
 
-    await LogChannel.send(f"{ctx.author.mention} has run the AddPlayer Command on {member.display_name} for game {x}")
+    await LogChannel.send(f"{ctx.author.mention} has run the AddPlayer Command on {', '.join(PlayerNames)} for game {x}")
 
 
 @bot.command()
-async def RemovePlayer(ctx, GameNumber, member: nextcord.Member):
+async def RemovePlayer(ctx, GameNumber, players: commands.Greedy[nextcord.Member]):
+    if not len(players):
+        try:
+            await ctx.message.author.send("Usage: >RemovePlayer [game number] [at least one user]")
+        except:
+            print(f"Could not DM {ctx.message.author}")
+        return
     x = GameNumber
 
     LogChannel, Server = await get_server()
+    GameRole = get(ctx.guild.roles, name="game" + str(x))
 
-    GameRoleSTR = "game" + str(x)
-    GameRole = get(ctx.guild.roles, name=GameRoleSTR)
-
-    STRoleSTR = "st" + str(x)
-    ST = get(Server.roles, name=STRoleSTR)
-    Access = await authorize_st_command(ST, Server, ctx.author)
+    STRole = get(Server.roles, name="st" + str(x))
+    PlayerNames = []
+    Access = await authorize_st_command(STRole, Server, ctx.author)
     if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
-
-        await member.remove_roles(GameRole)
-        MemberName = member.display_name
+        for player in players:
+            await player.remove_roles(GameRole)
+            PlayerNames.append(player.display_name)
         try:
             await ctx.message.author.send(
-                "You have removed the game role for game " + str(x) + " to " + str(MemberName))
+                "You have removed the game role for game " + str(x) + " from " + ", ".join(PlayerNames)
+            )
         except:
             print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
@@ -800,30 +813,36 @@ async def RemovePlayer(ctx, GameNumber, member: nextcord.Member):
             print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(
-        f"{ctx.author.mention} has run the RemovePlayer Command on {member.display_name} for game {x}")
+        f"{ctx.author.mention} has run the RemovePlayer Command on {', '.join(PlayerNames)} for game {x}")
 
 
 @bot.command()
-async def AddKibitz(ctx, GameNumber, member: nextcord.Member):
+async def AddKibitz(ctx, GameNumber, watchers: commands.Greedy[nextcord.Member]):
+    if not len(watchers):
+        try:
+            await ctx.message.author.send("Usage: >AddKibitz [game number] [at least one user]")
+        except:
+            print(f"Could not DM {ctx.message.author}")
+        return
     x = GameNumber
 
     LogChannel, Server = await get_server()
 
-    STRoleSTR = "st" + str(x)
-    ST = get(Server.roles, name=STRoleSTR)
-    GameRoleSTR = "kibitz" + str(x)
-    GameRole = get(Server.roles, name=GameRoleSTR)
+    STRole = get(Server.roles, name="st" + str(x))
+    KibitzRole = get(Server.roles, name="kibitz" + str(x))
 
-    Access = await authorize_st_command(ST, Server, ctx.author)
+    MemberNames = []
+    Access = await authorize_st_command(STRole, Server, ctx.author)
     if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
-
-        await member.add_roles(GameRole)
-        MemberName = member.display_name
+        for watcher in watchers:
+            await watcher.add_roles(KibitzRole)
+            MemberNames.append(watcher.display_name)
         try:
             await ctx.message.author.send(
-                "You have assigned the kibitz role for game " + str(x) + " to " + str(MemberName))
+                "You have assigned the kibitz role for game " + str(x) + " to " + ", ".join(MemberNames)
+            )
         except:
             print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
@@ -837,29 +856,35 @@ async def AddKibitz(ctx, GameNumber, member: nextcord.Member):
         except:
             print(f"Could not DM {ctx.message.author}")
 
-    await LogChannel.send(f"{ctx.author.mention} has run the AddKibitz Command on {member.display_name} for game {x}")
+    await LogChannel.send(f"{ctx.author.mention} has run the AddKibitz Command on {', '.join(MemberNames)} for game {x}")
 
 
 @bot.command()
-async def RemoveKibitz(ctx, GameNumber, member: nextcord.Member):
+async def RemoveKibitz(ctx, GameNumber, watchers: commands.Greedy[nextcord.Member]):
+    if not len(watchers):
+        try:
+            await ctx.message.author.send("Usage: >RemoveKibitz [game number] [at least one user]")
+        except:
+            print(f"Could not DM {ctx.message.author}")
+        return
     x = GameNumber
 
     LogChannel, Server = await get_server()
 
-    STRoleSTR = "st" + str(x)
-    ST = get(Server.roles, name=STRoleSTR)
-    GameRoleSTR = "kibitz" + str(x)
-    GameRole = get(Server.roles, name=GameRoleSTR)
+    STRole = get(Server.roles, name="st" + str(x))
+    KibitzRole = get(Server.roles, name="kibitz" + str(x))
 
-    Access = await authorize_st_command(ST, Server, ctx.author)
+    Access = await authorize_st_command(STRole, Server, ctx.author)
+    WatcherNames = []
     if Access:
         # React on Approval
         await ctx.message.add_reaction(WorkingEmoji)
-        await member.remove_roles(GameRole)
-        MemberName = member.display_name
+        for watcher in watchers:
+            await watcher.remove_roles(KibitzRole)
+            WatcherNames.append(watcher.display_name)
         try:
             await ctx.message.author.send(
-                "You have removed the kibitz role for game " + str(x) + " to " + str(MemberName))
+                "You have removed the kibitz role for game " + str(x) + " to " + ", ".join(WatcherNames))
         except:
             print(f"Could not DM {ctx.message.author}")
         await ctx.message.remove_reaction(WorkingEmoji, bot.user)
@@ -874,7 +899,7 @@ async def RemoveKibitz(ctx, GameNumber, member: nextcord.Member):
             print(f"Could not DM {ctx.message.author}")
 
     await LogChannel.send(
-        f"{ctx.author.mention} has run the RemoveKibitz Command on {member.display_name} for game {x}")
+        f"{ctx.author.mention} has run the RemoveKibitz Command on {', '.join(WatcherNames)} for game {x}")
 
 
 @bot.command()
@@ -884,7 +909,7 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
     Server = bot.get_guild(int(ServerID))
     ArchiveChannel = get(Server.channels, id=int(ArchiveChannelID))
 
-    archivedchannel = ctx.message.channel
+    ChannelToArchive = ctx.message.channel
 
     LogChannel, UnofficialID = await get_server()
 
@@ -899,9 +924,8 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
         Access = True
     if Access:
         # React on Approval
-        emoji = WorkingEmoji
-        await ctx.message.add_reaction(emoji)
-        async for currentmessage in archivedchannel.history(limit=None, oldest_first=True):
+        await ctx.message.add_reaction(WorkingEmoji)
+        async for currentmessage in ChannelToArchive.history(limit=None, oldest_first=True):
             messagecontent = currentmessage.content
             embed = nextcord.Embed(description=messagecontent)
             embed.set_author(name=str(currentmessage.author) + " at " + str(currentmessage.created_at),
@@ -927,9 +951,8 @@ async def OffServerArchive(ctx, ServerID, ArchiveChannelID):
                     embed.set_footer(text="Error Attachment file was too large.")
                 await ArchiveChannel.send(embed=embed)
 
-        await ctx.message.remove_reaction(emoji, bot.user)
-        emoji = CompletedEmoji
-        await ctx.message.add_reaction(emoji)
+        await ctx.message.remove_reaction(WorkingEmoji, bot.user)
+        await ctx.message.add_reaction(CompletedEmoji)
 
         await LogChannel.send(f"{ctx.author.display_name} has run the OffServerArchive Command")
         await ctx.message.author.send(f"Your Archive for {ctx.message.channel.name} is done.")
@@ -951,7 +974,7 @@ async def HelpMe(ctx):
     embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
 
     embed.add_field(name=">OpenKibitz [game number] (Requires ST Role or Mod)",
-                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">OpenKibitz 1" & #experimental-game-2 would be ">Openkibitz x2". This command will change the viewing permission of the associated kibitz channel to be viewed by all players',
+                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">OpenKibitz 1" & #experimental-game-2 would be ">Openkibitz x2". This command will change the viewing permission of the associated kibitz channel to be viewed by all players. It will also send a message reminding players to give feedback for the ST and provide a link to do so.',
                     inline=False)
     embed.add_field(name=">CloseKibitz [game number] (Requires ST Role or Mod)",
                     value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">CloseKibitz 1" & #experimental-game-2 would be ">Closekibitz x2". This command will change the viewing permission of the associated kibitz channel to be viewed by only players with the KibitzX role',
@@ -960,7 +983,7 @@ async def HelpMe(ctx):
                     value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">ArchiveGame 1" & #experimental-game-2 would be ">ArchiveGame x2". This command is to signal the start of a new game, it will archive the previous game channel & create a new & cleared channel to run a new game in. It will also change the viewing permission of the associated kibitz to only be viewed by "Kibitz?" role.',
                     inline=False)
     embed.add_field(name=">EndGame [game number] (Requires ST Role or Mod)",
-                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">NewGame 1" & #experimental-game-2 would be ">NewGame x2". This command is to signal the end of a text game. This command will remove "GameX" & "KibitzX" role from each player who had it, along with changing the viewing permissions of the Kibitz channel to allow the All Discord Users role to view it.',
+                    value='To run this command it requires that you have the "st?" role. To run this command you should replace the brackets with your game number, for example #text-only-game-1 would be ">NewGame 1" & #experimental-game-2 would be ">NewGame x2". This command is to signal the end of a text game. This command will remove "GameX" & "KibitzX" role from each player who had it, along with changing the viewing permissions of the Kibitz channel to allow the All Discord Users role to view it. It will also send a message reminding players to give feedback for the ST and provide a link to do so.',
                     inline=False)
     embed.add_field(name=">Signup [game number] [Player Count] [Script Name] (Requires ST Role or Mod)",
                     value='To run this command it requires that you have the "st?" role. To run this command you should replace the first brackets with your game number, the second with the number of players allowed in the game & finally the name of the script (Please note: If the script name is multiple words eg. Trouble Brewing, it will require speech marks around the script name eg "Trouble Brewing"), for example #text-only-game-1 would be ">Signup 1 10 BMR" & #experimental-game-2 would be >Signup x2 9 Catfishing". This command is used to automate the signup board, it will post an embedded message in the correct channel that players can react to sign up to & react to remove themselves from the game. This updates in almost real time & requires no intervention from the storyteller. When a player is signed up their name will appear in the signup list & they will be assigned the "game?" role automatically.',
@@ -974,27 +997,28 @@ async def HelpMe(ctx):
     embed.add_field(name=">ClaimGrimoire [game number]",
                     value='This will assign you the "st?" role for the denoted game number, providing there is not currently a player with the "st?" role.',
                     inline=False)
-    embed.add_field(name=">GiveGrimoire [game number] [@Player]",
+    embed.add_field(name=">GiveGrimoire [game number] [@Player] (Requires ST Role or Mod)",
                     value='This will remove the "st?" role from you for the denoted game number & assign the "st?" role to the tagged player.',
                     inline=False)
-    embed.add_field(name=">DropGrimoire [game number]",
-                    value='This will remove the "st?" role from you for the denoted game number', inline=False)
-    embed.add_field(name=">ShareGrimoire [game number] [@Player]",
+    embed.add_field(name=">DropGrimoire [game number] (Requires ST Role or Mod)",
+                    value='This will remove the "st?" role from you for the denoted game number',
+                    inline=False)
+    embed.add_field(name=">ShareGrimoire [game number] [@Player] (Requires ST Role or Mod)",
                     value='This will assign the "st?" role to the tagged player for the denoted game number, this will allow multiple people to co-ST a game.',
                     inline=False)
-    embed.add_field(name=">AddPlayer [game number] [@Player]",
-                    value='To run this command it requires that you have the "st?" role. It will give the "game?" role to the tagged player for the denoted game number.',
+    embed.add_field(name=">AddPlayer [game number] [at least one user] (Requires ST Role or Mod)",
+                    value='To run this command it requires that you have the "st?" role. It will give the "game?" role to the given users for the denoted game number. You can give users by pinging them or providing their ID. Name can also work, but is error prone - avoid it',
                     inline=False)
-    embed.add_field(name=">RemovePlayer [game number] [@Player]",
-                    value='To run this command it requires that you have the "st?" role. It will remove the "game?" role from the tagged player for the denoted game number.',
+    embed.add_field(name=">RemovePlayer [game number] [at least one user] (Requires ST Role or Mod)",
+                    value='To run this command it requires that you have the "st?" role. It will remove the "game?" role from the given users for the denoted game number. You can give users by pinging them or providing their ID. Name can also work, but is error prone - avoid it',
                     inline=False)
-    embed.add_field(name=">AddKibitz [game number] [@Player]",
-                    value='To run this command it requires that you have the "st?" role. It will give the "kibitz?" role to the tagged player for the denoted game number.',
+    embed.add_field(name=">AddKibitz [game number] [at least one user] (Requires ST Role or Mod)",
+                    value='To run this command it requires that you have the "st?" role. It will give the "kibitz?" role to the given users for the denoted game number. You can give users by pinging them or providing their ID. Name can also work, but is error prone - avoid it',
                     inline=False)
-    embed.add_field(name=">RemoveKibitz [game number] [@Player]",
-                    value='To run this command it requires that you have the "st?" role. It will remove the "kibitz?" role from the tagged player for the denoted game number.',
+    embed.add_field(name=">RemoveKibitz [game number] [at least one user] (Requires ST Role or Mod)",
+                    value='To run this command it requires that you have the "st?" role. It will remove the "kibitz?" role from the given users for the denoted game number. You can give users by pinging them or providing their ID. Name can also work, but is error prone - avoid it',
                     inline=False)
-    embed.add_field(name=">OffServerArchive [Server ID] [Channel ID]",
+    embed.add_field(name=">OffServerArchive [Server ID] [Channel ID] (Requires Mod)",
                     value="A Mod-only command that archives the channel the message was sent in to the provided server and channel.")
     embed.add_field(name=">HelpMe",
                     value="Sends a direct message of this to the player who typed the command",

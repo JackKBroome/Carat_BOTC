@@ -13,6 +13,13 @@ CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
 
 
+def get_channel_type(channel_type):
+    if channel_type in ['experimental', 'Experimental', 'exp', 'Exp', 'x', 'X']:
+        return "Experimental"
+    else:
+        return "Regular"
+
+
 async def dm_user(user: nextcord.User, content: str) -> bool:
     try:
         await user.send(content)
@@ -41,6 +48,7 @@ class Helper:
         self.ArchiveCategory = get(self.Guild.categories, id=int(os.environ['ARCHIVE_CATEGORY_ID']))
         self.ModRole = get(self.Guild.roles, id=int(os.environ['DOOMSAYER_ROLE_ID']))
         self.LogChannel = get(self.Guild.channels, id=int(os.environ['LOG_CHANNEL_ID']))
+        self.QueueLocation = os.environ['QUEUE_FILE_LOCATION']
 
     def get_game_channel(self, number: str) -> nextcord.TextChannel:
         for channel in self.TextGamesCategory.channels:

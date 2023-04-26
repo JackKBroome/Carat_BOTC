@@ -90,7 +90,7 @@ class Other(commands.Cog):
 
     @commands.command()
     async def CreateThreads(self, ctx, game_number):
-        if await self.helper.authorize_st_command(ctx.author, game_number):
+        if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
 
             for player in self.helper.get_game_role(game_number).members:

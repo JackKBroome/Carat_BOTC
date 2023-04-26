@@ -28,7 +28,7 @@ async def deny_command(ctx: commands.Context, command_name: str):
         strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
 
-def start_processing(ctx):
+async def start_processing(ctx):
     await ctx.message.add_reaction(WorkingEmoji)
 
 

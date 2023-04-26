@@ -1,3 +1,5 @@
+from time import strftime, gmtime
+
 import nextcord
 from nextcord.ext import commands
 
@@ -18,13 +20,15 @@ class Grimoire(commands.Cog):
         st_role = self.helper.get_st_role(game_number)
 
         # stX Access
-        if len(st_role.members) == 0 or await self.helper.authorize_mod_command(ctx.author):
+        if len(st_role.members) == 0 or self.helper.authorize_mod_command(ctx.author):
             # React on Approval
             await utility.start_processing(ctx)
 
             await ctx.author.add_roles(st_role)
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
             await self.helper.finish_processing(ctx)
+            print("-= The ClaimGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
+                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
             await utility.dm_user(ctx.author,
                                   "This channel already has " + str(len(st_role.members)) + " STs. These users are:\n" +
@@ -38,7 +42,7 @@ class Grimoire(commands.Cog):
     async def GiveGrimoire(self, ctx, game_number, member: nextcord.Member):
         # Check for access
 
-        if await self.helper.authorize_st_command(ctx.author, game_number):
+        if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
             st_role = self.helper.get_st_role(game_number)
@@ -48,6 +52,8 @@ class Grimoire(commands.Cog):
                                   "You have assigned the current ST role for game " + str(game_number) +
                                   " to " + member.display_name)
             await self.helper.finish_processing(ctx)
+            print("-= The GiveGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
+                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + f" on {member.name}=-"))
         else:
             await utility.deny_command(ctx, "GiveGrimoire")
 
@@ -58,7 +64,7 @@ class Grimoire(commands.Cog):
     async def DropGrimoire(self, ctx: commands.Context, game_number):
         # Check for access
 
-        if await self.helper.authorize_st_command(ctx.author, game_number):
+        if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
 
@@ -68,6 +74,8 @@ class Grimoire(commands.Cog):
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
             await self.helper.finish_processing(ctx)
+            print("-= The DropGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
+                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
             await utility.deny_command(ctx, "DropGrimoire")
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
@@ -76,9 +84,9 @@ class Grimoire(commands.Cog):
 
     @commands.command()
     async def ShareGrimoire(self, ctx: commands.Context, game_number, member: nextcord.Member):
-        if await self.helper.authorize_st_command(ctx.author, game_number):
+        if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
-            utility.start_processing(ctx)
+            await utility.start_processing(ctx)
 
             await member.add_roles(self.helper.get_st_role(game_number))
 
@@ -88,6 +96,8 @@ class Grimoire(commands.Cog):
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
             await self.helper.finish_processing(ctx)
+            print("-= The ShareGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
+                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + f" on {member.name}=-"))
         else:
             await utility.deny_command(ctx, "ShareGrimoire")
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))

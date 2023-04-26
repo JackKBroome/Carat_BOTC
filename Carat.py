@@ -23,7 +23,6 @@ bot = commands.Bot(command_prefix=">",
                    intents=intents,
                    allowed_mentions=allowedMentions,
                    activity=nextcord.Game(">HelpMe or >help"))
-helper = Helper(bot)
 
 
 # Output in terminal when bot turns on
@@ -33,6 +32,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('Loading cogs')
+    helper = Helper(bot)
     bot.add_cog(Game(bot, helper))
     bot.add_cog(Grimoire(bot, helper))
     bot.add_cog(Other(bot, helper))

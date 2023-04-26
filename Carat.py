@@ -83,6 +83,13 @@ async def HelpMe(ctx):
     embed.add_field(name=">ShareGrimoire [game number] [@Player] (Requires ST Role or Mod)",
                     value='This will assign the "st?" role to the tagged player for the denoted game number, this will allow multiple people to co-ST a game.',
                     inline=False)
+    embed.set_footer(text="1/2")
+    await ctx.author.send(embed=embed)
+
+
+    embed = nextcord.Embed(title="Unofficial Text Game Bot",
+                           description="A List of commands for both Storytellers & Moderators", color=0xe100ff)
+    embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
     embed.add_field(name=">AddPlayer [game number] [at least one user] (Requires ST Role or Mod)",
                     value='To run this command it requires that you have the "st?" role. It will give the "game?" role to the given users for the denoted game number. You can give users by pinging them or providing their ID. Name can also work, but is error prone - avoid it',
                     inline=False)
@@ -101,7 +108,7 @@ async def HelpMe(ctx):
                     value="Sends a direct message of this to the player who typed the command",
                     inline=False)
     embed.set_footer(
-        text="Note: If you believe that there is an error with the bot, please let Jack or a moderator know in order to resolve it. Thank You!")
+        text="2/2 - Note: If you believe that there is an error with the bot, please let Jack or a moderator know in order to resolve it. Thank You!")
     await ctx.author.send(embed=embed)
 
 

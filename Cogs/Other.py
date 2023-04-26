@@ -67,10 +67,10 @@ class Other(commands.Cog):
                     async for user in i.users():
                         user_list.append(str(user.name))
                     reactors = ", ".join(user_list)
-                    if len(embed.footer.text) != 0:
-                        embed.set_footer(text=embed.footer.text + f" {i.emoji} - {reactors}, ")
-                    else:
+                    if not embed.footer.text or len(embed.footer.text) == 0:
                         embed.set_footer(text=f"{i.emoji} - {reactors}, ")
+                    else:
+                        embed.set_footer(text=embed.footer.text + f" {i.emoji} - {reactors}, ")
                 try:
                     await archive_channel.send(embed=embed, files=attachment_list)
                 except:
@@ -79,7 +79,7 @@ class Other(commands.Cog):
                     except:
                         embed.set_footer(text="Error Attachment file was too large.")
                     await archive_channel.send(embed=embed)
-
+            await archive_channel.create_thread(name="Chat about the game", type=nextcord.ChannelType.public_thread)
             await self.helper.finish_processing(ctx)
 
             await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")

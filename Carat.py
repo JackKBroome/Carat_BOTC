@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from nextcord.ext import commands
 
 from utility import Helper
+from Cogs.Queue import Queue
 from Cogs.Game import Game
 from Cogs.Grimoire import Grimoire
 from Cogs.Other import Other
@@ -36,7 +37,7 @@ async def on_ready():
     bot.add_cog(Game(bot, helper))
     bot.add_cog(Grimoire(bot, helper))
     bot.add_cog(Other(bot, helper))
-    # bot.add_cog(Queue(bot, helper))
+    bot.add_cog(Queue(bot, helper))
     bot.add_cog(Signup(bot, helper))
     bot.add_cog(Users(bot, helper))
     print('Ready')

@@ -1,4 +1,5 @@
 import json
+import os
 import typing
 from time import strftime, gmtime
 
@@ -16,21 +17,22 @@ class Queue(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot
         self.helper = helper
+        self.QueueLocation = os.path.join(self.helper.StorageLocation, "queue.json")
         try:
-            with open(self.helper.QueueLocation, 'r') as f:
+            with open(self.QueueLocation, 'r') as f:
                 self.queues = json.load(f)
         except OSError:
             self.queues = {"Regular": {}, "Experimental": {}}
-            with open(self.helper.QueueLocation, 'w') as f:
+            with open(self.QueueLocation, 'w') as f:
                 json.dump(self.queues, f)
 
     async def update_queue_message(self, queue: dict):
         channel = get(self.helper.Guild.channels, id=queue["ChannelId"])
         if "ThreadId" in queue:
             thread = get(channel.threads, id=queue["ThreadId"])
-            message = thread.fetch_message(queue["MessageId"])
+            message = await thread.fetch_message(queue["MessageId"])
         else:
-            message = channel.fetch_message(queue["MessageId"])
+            message = await channel.fetch_message(queue["MessageId"])
         embed = message.embeds[0]
         embed.clear_fields()
         for entry in queue["Entries"]:
@@ -51,8 +53,10 @@ class Queue(commands.Cog):
             embed = nextcord.Embed(title=channel_type + " storytelling queue", description="Use >Enqueue to join")
             if isinstance(ctx.channel, nextcord.Thread):
                 self.queues[channel_type]["ThreadId"] = ctx.channel.id
-                self.queues[channel_type]["ChannelId"] = ctx.channel.channel.id
+                self.queues[channel_type]["ChannelId"] = ctx.channel.parent.id
             elif isinstance(ctx.channel, nextcord.TextChannel):
+                # remove ThreadId in case the command was previously executed in a thread
+                self.queues[channel_type].pop("ThreadId", None)
                 self.queues[channel_type]["ChannelId"] = ctx.channel.id
             else:
                 await utility.dm_user('Please place the queue in a text channel or thread')
@@ -62,7 +66,7 @@ class Queue(commands.Cog):
             self.queues[channel_type]["MessageId"] = queue_message.id
             self.queues[channel_type]["Entries"] = []
 
-            with open(self.helper.QueueLocation, "w") as f:
+            with open(self.QueueLocation, "w") as f:
                 json.dump(self.queues, f)
             await self.helper.finish_processing(ctx)
             print("-= The InitQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
@@ -86,7 +90,7 @@ class Queue(commands.Cog):
             self.queues[channel_type]["Entries"].append(entry)
             await self.update_queue_message(self.queues[channel_type])
 
-            with open(self.helper.QueueLocation, "w") as f:
+            with open(self.QueueLocation, "w") as f:
                 json.dump(self.queues, f)
             await self.helper.finish_processing(ctx)
             print("-= The Enqueue command was used successfully by " + str(ctx.author.name) + " at " + str(
@@ -99,18 +103,114 @@ class Queue(commands.Cog):
 
     @commands.command()
     async def Dequeue(self, ctx: commands.Context):
-        pass
+        await utility.start_processing(ctx)
+        users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
+        users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
+        if ctx.author.id in users_in_regular_queue:
+            channel_type = "Regular"
+        elif ctx.author.id in users_in_exp_queue:
+            channel_type = "Experimental"
+        else:
+            await utility.dm_user(ctx.author, "You are not in a queue at the moment")
+            await self.helper.finish_processing(ctx)
+            return
+
+        self.queues[channel_type]["Entries"] = [e for e in self.queues[channel_type]["Entries"]
+                                                if e["ST"] != ctx.author.id]
+        await self.update_queue_message(self.queues[channel_type])
+        with open(self.QueueLocation, "w") as f:
+            json.dump(self.queues, f)
+
+        await self.helper.finish_processing(ctx)
+        print("-= The Dequeue command was used successfully by " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+
+        await self.helper.log(f"{ctx.author.mention} has run the Dequeue command")
 
     @commands.command()
     async def MoveDown(self, ctx: commands.Context, number_of_spots: typing.Optional[int] = 1):
-        pass
+        await utility.start_processing(ctx)
+        users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
+        users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
+        if ctx.author.id in users_in_regular_queue:
+            channel_type = "Regular"
+        elif ctx.author.id in users_in_exp_queue:
+            channel_type = "Experimental"
+        else:
+            await utility.dm_user(ctx.author, "You are not in a queue at the moment")
+            await self.helper.finish_processing(ctx)
+            return
+        for index, item in enumerate(self.queues[channel_type]["Entries"]):
+            if item["ST"] == ctx.author.id:
+                current_index = index
+        self.queues[channel_type]["Entries"].insert(current_index + number_of_spots,
+                                                    self.queues[channel_type]["Entries"].pop(current_index))
+
+        await self.update_queue_message(self.queues[channel_type])
+        with open(self.QueueLocation, "w") as f:
+            json.dump(self.queues, f)
+
+        await self.helper.finish_processing(ctx)
+        print("-= The MoveDown command was used successfully by " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     @commands.command()
     async def KickFromQueue(self, ctx: commands.Context, member: nextcord.Member):
         # mod command
-        pass
+        if self.helper.authorize_mod_command(ctx.author):
+            await utility.start_processing(ctx)
+            users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
+            users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
+            if member.id in users_in_regular_queue:
+                channel_type = "Regular"
+            elif member.id in users_in_exp_queue:
+                channel_type = "Experimental"
+            else:
+                await utility.dm_user(ctx.author, "The member is not in a queue at the moment")
+                await self.helper.finish_processing(ctx)
+                return
+
+            self.queues[channel_type]["Entries"] = [e for e in self.queues[channel_type]["Entries"]
+                                                    if e["ST"] != member.id]
+            await self.update_queue_message(self.queues[channel_type])
+            with open(self.QueueLocation, "w") as f:
+                json.dump(self.queues, f)
+
+            await self.helper.finish_processing(ctx)
+            print("-= The KickFromQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
+                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+        else:
+            await utility.deny_command(ctx, "KickFromQueue")
+            await utility.dm_user(ctx.author, "This command is restricted to moderators")
 
     @commands.command()
     async def MoveToSpot(self, ctx: commands.Context, member: nextcord.Member, spot: int):
         # mod command
-        pass
+        if self.helper.authorize_mod_command(ctx.author):
+            await utility.start_processing(ctx)
+            users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
+            users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
+            if member.id in users_in_regular_queue:
+                channel_type = "Regular"
+            elif member.id in users_in_exp_queue:
+                channel_type = "Experimental"
+            else:
+                await utility.dm_user(ctx.author, "The member is not in a queue at the moment")
+                await self.helper.finish_processing(ctx)
+                return
+            for index, item in enumerate(self.queues[channel_type]["Entries"]):
+                if item["ST"] == member.id:
+                    entry = self.queues[channel_type]["Entries"].pop(index)
+            self.queues[channel_type]["Entries"].insert(spot - 1, entry)
+
+            await self.update_queue_message(self.queues[channel_type])
+            with open(self.QueueLocation, "w") as f:
+                json.dump(self.queues, f)
+
+            await self.helper.finish_processing(ctx)
+            print("-= The MoveToSpot command was used successfully by " + str(ctx.author.name) + " at " + str(
+                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+        else:
+            await utility.deny_command(ctx, "MoveToSpot")
+            await utility.dm_user(ctx.author, "This command is restricted to moderators")
+

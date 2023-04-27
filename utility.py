@@ -48,7 +48,7 @@ class Helper:
         self.ArchiveCategory = get(self.Guild.categories, id=int(os.environ['ARCHIVE_CATEGORY_ID']))
         self.ModRole = get(self.Guild.roles, id=int(os.environ['DOOMSAYER_ROLE_ID']))
         self.LogChannel = get(self.Guild.channels, id=int(os.environ['LOG_CHANNEL_ID']))
-        self.QueueLocation = os.environ['QUEUE_FILE_LOCATION']
+        self.StorageLocation = os.environ['STORAGE_LOCATION']
 
     def get_game_channel(self, number: str) -> nextcord.TextChannel:
         for channel in self.TextGamesCategory.channels:

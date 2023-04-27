@@ -113,7 +113,7 @@ class SignupView(nextcord.ui.View):
             await self.update_signup_sheet(interaction.message)
             for st in st_role.members:
                 await utility.dm_user(st,
-                    f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
+                                      f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
             await self.helper.log(
                 f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
 

@@ -2,9 +2,9 @@ import os
 from time import gmtime, strftime
 
 import nextcord
+from dotenv import load_dotenv
 from nextcord.ext import commands
 from nextcord.utils import get
-from dotenv import load_dotenv
 
 OwnerID = 107209184147185664
 

@@ -1,5 +1,3 @@
-from time import strftime, gmtime
-
 import nextcord
 from nextcord.ext import commands
 

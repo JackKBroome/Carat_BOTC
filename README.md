@@ -1,5 +1,5 @@
 # Carat Discord Bot
-Carat Bot for BOTC Unofficial discord server written in nextcord, the python wrapper for the Discord API
+Carat Bot for BotC Unofficial discord server written in nextcord, the python wrapper for the Discord API
 
 ## Deployment instructions
 1. Download the necessary files (`Carat.py`, `utility.py`, the `Cogs` directory) and make sure they are arranged correctly (`Carat.py` and `utility.py`, and the `Cogs` directory all lying in the same directory)

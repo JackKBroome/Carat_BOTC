@@ -41,8 +41,36 @@ class Queue(commands.Cog):
             if "Notes" in entry:
                 entry_string += f"\nNotes: {entry['Notes']}"
             embed.add_field(name=user.display_name, value=entry_string, inline=False)
-
+        await self.helper.log(f"Queue updated - current entries: {queue['Entries']}"[:1000])
         await message.edit(embed=embed)
+
+    async def announce_free_channel(self, game_number, queue_position: int):
+        channel = self.helper.get_game_channel(game_number)
+        channel_type = "Experimental" if game_number[0] == "x" else "Regular"
+        if queue_position > len(self.queues[channel_type]["Entries"]):
+            return
+        next_entry = self.queues[channel_type]["Entries"][queue_position]
+        user = get(self.helper.Guild.members, id=next_entry["ST"])
+        if user:
+            content = f"{user.mention} This game channel has become free! You are next in the queue.\n" \
+                      f"You may claim the grimoire with >ClaimGrimoire {game_number} or the button below.\n" \
+                      f"If you are not currently able to run the game, use the button below to decline the grimoire " \
+                      f"and inform the next person in the queue"
+            await channel.send(content=content,
+                               view=FreeChannelNotificationView(self, self.helper, self.queues[channel_type]["Entries"],
+                                                                game_number, queue_position))
+        else:
+            await self.announce_free_channel(game_number, queue_position + 1)
+
+    async def user_leave_queue(self, user: nextcord.Member):
+        self.queues["Regular"]["Entries"] = [entry for entry in self.queues["Regular"]["Entries"]
+                                             if entry["ST"] != user.id]
+        self.queues["Experimental"]["Entries"] = [entry for entry in self.queues["Experimental"]["Entries"]
+                                                  if entry["ST"] != user.id]
+        await self.update_queue_message(self.queues["Regular"])
+        await self.update_queue_message(self.queues["Experimental"])
+        with open(self.QueueLocation, "w") as f:
+            json.dump(self.queues, f)
 
     @commands.command()
     async def InitQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter):
@@ -59,7 +87,7 @@ class Queue(commands.Cog):
                 self.queues[channel_type].pop("ThreadId", None)
                 self.queues[channel_type]["ChannelId"] = ctx.channel.id
             else:
-                await utility.dm_user('Please place the queue in a text channel or thread')
+                await utility.dm_user(ctx.author, 'Please place the queue in a text channel or thread')
                 return
 
             queue_message = await ctx.send(embed=embed)
@@ -214,3 +242,50 @@ class Queue(commands.Cog):
             await utility.deny_command(ctx, "MoveToSpot")
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
 
+
+class FreeChannelNotificationView(nextcord.ui.View):
+    def __init__(self, queue_cog: Queue, helper: utility.Helper, queue: list, game_number: str, queue_position: int):
+        super().__init__()
+        self.queue_cog = queue_cog
+        self.helper = helper
+        self.queue = queue
+        self.game_number = game_number
+        self.queue_position = queue_position
+        self.timeout = 172800  # two days
+
+    @nextcord.ui.button(label="Claim grimoire", custom_id="claim_grimoire", style=nextcord.ButtonStyle.green)
+    async def claim_grimoire_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        st_role = self.helper.get_st_role(self.game_number)
+        if st_role.members:
+            await interaction.send(
+                content=f"The grimoire has been claimed by "
+                        f"{', '.join([st.display_name for st in st_role.members])} "
+                        f"in the meantime. Try contacting them to clear this up.",
+                ephemeral=True)
+        else:
+            await interaction.user.add_roles(st_role)
+            await self.queue_cog.user_leave_queue(interaction.user)
+            await interaction.send(content="You have claimed the grimoire. Enjoy your game!", ephemeral=True)
+            await self.helper.log(
+                f"{interaction.user.mention} has claimed grimoire {self.game_number} through the queue announcement button")
+            self.clear_items()
+            self.stop()
+
+    @nextcord.ui.button(label="Decline grimoire", custom_id="decline_grimoire", style=nextcord.ButtonStyle.red)
+    async def decline_grimoire_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        await interaction.send(
+            content="You have declined the grimoire. "
+                    "Use >MoveDown if you don't want to be pinged the next time a channel becomes free.",
+            ephemeral=True)
+        await self.queue_cog.announce_free_channel(self.game_number, self.queue_position + 1)
+        self.clear_items()
+        self.stop()
+
+    async def interaction_check(self, interaction: nextcord.Interaction) -> bool:
+        return interaction.user.id == self.queue[self.queue_position]["ST"]
+
+    async def on_timeout(self) -> None:
+        game_channel = self.helper.get_game_channel(self.game_number)
+        st_role = self.helper.get_st_role(self.game_number)
+        if not st_role.members:
+            await game_channel.send("Previous queue entry timed out")

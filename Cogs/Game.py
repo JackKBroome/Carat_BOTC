@@ -71,7 +71,8 @@ class Game(commands.Cog):
             game_role = self.helper.get_game_role(game_number)
 
             await ctx.channel.send(
-                f"{game_role.mention} Kibitz is now being opened: Remember to give your ST(s) any feedback you may have!\n" +
+                f"{game_role.mention} Kibitz is now being opened. "
+                f"Remember to give your ST(s) any feedback you may have!\n" +
                 f"Feedback form: https://forms.gle/HqNfMv1pte8vo5j59"
             )
             members = game_role.members

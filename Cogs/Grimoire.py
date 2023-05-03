@@ -4,6 +4,7 @@ import nextcord
 from nextcord.ext import commands
 
 import utility
+from Cogs.Queue import Queue
 
 MaxGameNumber = 15
 PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
@@ -26,6 +27,17 @@ class Grimoire(commands.Cog):
 
             await ctx.author.add_roles(st_role)
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
+            queue: Queue | None = self.bot.get_cog('Queue')
+            if queue:
+                channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
+                users_in_queue = [entry["ST"] for entry in queue.queues[channel_type]["Entries"]]
+                if ctx.author.id not in users_in_queue:
+                    game_channel = self.helper.get_game_channel(game_number)
+                    await game_channel.send(f"{ctx.author.mention} Warning - you are taking a channel without having "
+                                            f"been in the appropriate text ST queue. If that's how it's supposed to "
+                                            f"be, carry on - otherwise you can drop the grimoire with `>DropGrimoire` "
+                                            f"and join the queue with `>Enqueue` (see `>HelpMe` for details)")
+                await queue.user_leave_queue(ctx.author)
             await self.helper.finish_processing(ctx)
             print("-= The ClaimGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
                 strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
@@ -67,12 +79,15 @@ class Grimoire(commands.Cog):
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
-
-            await ctx.author.remove_roles(self.helper.get_st_role(game_number))
+            st_role = self.helper.get_st_role(game_number)
+            await ctx.author.remove_roles(st_role)
             dm_content = "You have removed the current ST role from yourself for game " + str(game_number)
             dm_success = await utility.dm_user(ctx.author, dm_content)
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
+            queue = self.bot.get_cog('Queue')
+            if queue and not st_role.members:
+                await queue.announce_free_channel(game_number, 0)
             await self.helper.finish_processing(ctx)
             print("-= The DropGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
                 strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))

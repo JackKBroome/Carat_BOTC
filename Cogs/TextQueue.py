@@ -13,7 +13,7 @@ ChannelTypeParameter = typing.Literal[
     'regular', 'Regular', 'standard', 'Standard', 'normal', 'Normal', 'r', 'R', 'n', 'N', 'experimental', 'Experimental', 'exp', 'Exp', 'x', 'X']
 
 
-class Queue(commands.Cog):
+class TextQueue(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot
         self.helper = helper
@@ -78,7 +78,7 @@ class Queue(commands.Cog):
             await utility.start_processing(ctx)
             channel_type = utility.get_channel_type(channel_type)
 
-            embed = nextcord.Embed(title=channel_type + " storytelling queue", description="Use >Enqueue to join")
+            embed = nextcord.Embed(title=channel_type + " storytelling queue", description="Use >JoinTextQueue to join")
             if isinstance(ctx.channel, nextcord.Thread):
                 self.queues[channel_type]["ThreadId"] = ctx.channel.id
                 self.queues[channel_type]["ChannelId"] = ctx.channel.parent.id
@@ -105,7 +105,7 @@ class Queue(commands.Cog):
         await self.helper.log(f"{ctx.author.mention} has run the InitQueue command in {ctx.channel.mention}")
 
     @commands.command()
-    async def Enqueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter, script: str, availability: str,
+    async def JoinTextQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter, script: str, availability: str,
                       notes: typing.Optional[str]):
         channel_type = utility.get_channel_type(channel_type)
         users_in_queue = [entry["ST"]
@@ -121,16 +121,16 @@ class Queue(commands.Cog):
             with open(self.QueueLocation, "w") as f:
                 json.dump(self.queues, f)
             await self.helper.finish_processing(ctx)
-            print("-= The Enqueue command was used successfully by " + str(ctx.author.name) + " at " + str(
+            print("-= The JoinTextQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
                 strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "Enqueue")
+            await utility.deny_command(ctx, "JoinTextQueue")
             await utility.dm_user(ctx.author, "You may not join a text ST queue while you are already in one")
 
-        await self.helper.log(f"{ctx.author.mention} has run the Enqueue command")
+        await self.helper.log(f"{ctx.author.mention} has run the JoinTextQueue command")
 
     @commands.command()
-    async def Dequeue(self, ctx: commands.Context):
+    async def LeaveTextQueue(self, ctx: commands.Context):
         await utility.start_processing(ctx)
         users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
         users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
@@ -150,10 +150,10 @@ class Queue(commands.Cog):
             json.dump(self.queues, f)
 
         await self.helper.finish_processing(ctx)
-        print("-= The Dequeue command was used successfully by " + str(ctx.author.name) + " at " + str(
+        print("-= The LeaveTextQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
-        await self.helper.log(f"{ctx.author.mention} has run the Dequeue command")
+        await self.helper.log(f"{ctx.author.mention} has run the LeaveTextQueue command")
 
     @commands.command()
     async def MoveDown(self, ctx: commands.Context, number_of_spots: typing.Optional[int] = 1):
@@ -183,7 +183,7 @@ class Queue(commands.Cog):
             strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     @commands.command()
-    async def KickFromQueue(self, ctx: commands.Context, member: nextcord.Member):
+    async def RemoveFromQueue(self, ctx: commands.Context, member: nextcord.Member):
         # mod command
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
@@ -205,10 +205,10 @@ class Queue(commands.Cog):
                 json.dump(self.queues, f)
 
             await self.helper.finish_processing(ctx)
-            print("-= The KickFromQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
+            print("-= The RemoveFromQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
                 strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "KickFromQueue")
+            await utility.deny_command(ctx, "RemoveFromQueue")
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
 
     @commands.command()
@@ -244,7 +244,7 @@ class Queue(commands.Cog):
 
 
 class FreeChannelNotificationView(nextcord.ui.View):
-    def __init__(self, queue_cog: Queue, helper: utility.Helper, queue: list, game_number: str, queue_position: int):
+    def __init__(self, queue_cog: TextQueue, helper: utility.Helper, queue: list, game_number: str, queue_position: int):
         super().__init__()
         self.queue_cog = queue_cog
         self.helper = helper

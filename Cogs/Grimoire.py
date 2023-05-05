@@ -4,7 +4,7 @@ import nextcord
 from nextcord.ext import commands
 
 import utility
-from Cogs.Queue import Queue
+from Cogs.TextQueue import TextQueue
 
 MaxGameNumber = 15
 PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
@@ -27,7 +27,7 @@ class Grimoire(commands.Cog):
 
             await ctx.author.add_roles(st_role)
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
-            queue: Queue | None = self.bot.get_cog('Queue')
+            queue: TextQueue | None = self.bot.get_cog('Queue')
             if queue:
                 channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
                 users_in_queue = [entry["ST"] for entry in queue.queues[channel_type]["Entries"]]
@@ -36,7 +36,7 @@ class Grimoire(commands.Cog):
                     await game_channel.send(f"{ctx.author.mention} Warning - you are taking a channel without having "
                                             f"been in the appropriate text ST queue. If that's how it's supposed to "
                                             f"be, carry on - otherwise you can drop the grimoire with `>DropGrimoire` "
-                                            f"and join the queue with `>Enqueue` (see `>HelpMe` for details)")
+                                            f"and join the queue with `>JoinTextQueue` (see `>HelpMe` for details)")
                 await queue.user_leave_queue(ctx.author)
             await self.helper.finish_processing(ctx)
             print("-= The ClaimGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(

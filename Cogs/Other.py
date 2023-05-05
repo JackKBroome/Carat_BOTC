@@ -130,16 +130,16 @@ class Other(commands.Cog):
                                value='Grants you the ST role of the given game, unless it is already occupied\n' +
                                      'Usage examples: `>ClaimGrimoire 1`, `>ClaimGrimoire x3`',
                                inline=False)
-        anyone_embed.add_field(name=">Enqueue [channel type] [script name] [availability] [notes (optional)]",
+        anyone_embed.add_field(name=">JoinTextQueue [channel type] [script name] [availability] [notes (optional)]",
                                value="Adds you to the queue for the given channel type (regular/experimental), "
                                      "listing the provided information, unless you are already in either of the "
                                      "queues. Do not join a queue if you are currently storytelling. Note that if a "
                                      "parameter contains spaces, you have to surround it with quotes.\n" +
-                                     'Usage examples: `>Enqueue regular "Trouble Brewing" "anytime after june"`, '
-                                     '`>Enqueue Exp "Oops All Amnesiacs" "between 07-13 and 07-30" "Let me know '
-                                     'beforehand if you\'re interested"`',
+                                     'Usage examples: `>JoinTextQueue regular "Trouble Brewing" "anytime after june"`, '
+                                     '`>JoinTextQueue Exp "Oops All Amnesiacs" "in July, between the 13th and 30th" '
+                                     '"Let me know beforehand if you\'re interested"`',
                                inline=False)
-        anyone_embed.add_field(name=">Dequeue",
+        anyone_embed.add_field(name=">LeaveTextQueue",
                                value="Removes you from the queue you are in currently - careful, you won't be able to "
                                      "regain your spot.",
                                inline=False)
@@ -205,7 +205,7 @@ class Other(commands.Cog):
                            value='Removes the ST role for the game from you and gives it to the given user. You can '
                                  'provide a user by ID, mention/ping, or nickname, though giving the nickname may '
                                  'find the wrong user.\n' +
-                                 'Usage examples: `>GiveGrimoire 1 @Daddy Ben`, `>GiveGrimoire x3 107209184147185664`',
+                                 'Usage examples: `>GiveGrimoire 1 @Daddy_Ben`, `>GiveGrimoire x3 107209184147185664`',
                            inline=False)
         st_embed.add_field(name=">DropGrimoire [game number]",
                            value='Removes the ST role for the game from you\n' +
@@ -215,7 +215,7 @@ class Other(commands.Cog):
                            value='Gives the ST role for the game to the given user without removing it from you. Use '
                                  'if you want to co-ST a game.You can provide a user by ID, mention/ping, '
                                  'or nickname, though giving the nickname may find the wrong user.\n' +
-                                 'Usage examples: `>ShareGrimoire 1 @Daddy Ben`, `>ShareGrimoire x3 108309184147185664`',
+                                 'Usage examples: `>ShareGrimoire 1 @Daddy_Ben`, `>ShareGrimoire x3 108309184147185664`',
                            inline=False)
         st_embed.add_field(name=">AddPlayer [game number] [at least one user]",
                            value='Gives the appropriate game role to the given users. You can provide a user by ID, '
@@ -250,7 +250,7 @@ class Other(commands.Cog):
                                   "queue/queue message, but all previous entries of that queue will be lost in the "
                                   "process.",
                             inline=False)
-        mod_embed.add_field(name=">KickFromQueue [user]",
+        mod_embed.add_field(name=">RemoveFromQueue [user]",
                             value="Removes the given user from either queue. You can provide a user by ID, "
                                   "mention/ping, or nickname, though giving the nickname may find the wrong user.",
                             inline=False)

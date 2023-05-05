@@ -101,6 +101,7 @@ class Other(commands.Cog):
                     type=nextcord.ChannelType.private_thread,
                     reason=f"Preparing text game {game_number}"
                 )
+                thread.invitable = False
 
                 await thread.add_user(player)
                 for st in self.helper.get_st_role(game_number).members:

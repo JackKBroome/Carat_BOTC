@@ -119,7 +119,7 @@ class Game(commands.Cog):
             await game_channel.edit(category=archive_category, name=str(game_channel_name) + " Archived on " + str(
                 strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
 
-            await new_channel.edit(position=game_position, name=f"text-game-{game_number}")
+            await new_channel.edit(position=game_position, name=f"text-game-{game_number}", topic="")
 
             kibitz_channel = self.helper.get_kibitz_channel(game_number)
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=False)

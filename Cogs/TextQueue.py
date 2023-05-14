@@ -17,13 +17,13 @@ class TextQueue(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot
         self.helper = helper
-        self.QueueLocation = os.path.join(self.helper.StorageLocation, "queue.json")
+        self.QueueStorage = os.path.join(self.helper.StorageLocation, "queue.json")
         try:
-            with open(self.QueueLocation, 'r') as f:
+            with open(self.QueueStorage, 'r') as f:
                 self.queues = json.load(f)
         except OSError:
             self.queues = {"Regular": {}, "Experimental": {}}
-            with open(self.QueueLocation, 'w') as f:
+            with open(self.QueueStorage, 'w') as f:
                 json.dump(self.queues, f)
 
     async def update_queue_message(self, queue: dict):
@@ -69,7 +69,7 @@ class TextQueue(commands.Cog):
                                                   if entry["ST"] != user.id]
         await self.update_queue_message(self.queues["Regular"])
         await self.update_queue_message(self.queues["Experimental"])
-        with open(self.QueueLocation, "w") as f:
+        with open(self.QueueStorage, "w") as f:
             json.dump(self.queues, f)
 
     @commands.command()
@@ -94,7 +94,7 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["MessageId"] = queue_message.id
             self.queues[channel_type]["Entries"] = []
 
-            with open(self.QueueLocation, "w") as f:
+            with open(self.QueueStorage, "w") as f:
                 json.dump(self.queues, f)
             await self.helper.finish_processing(ctx)
             print("-= The InitQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
@@ -118,7 +118,7 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["Entries"].append(entry)
             await self.update_queue_message(self.queues[channel_type])
 
-            with open(self.QueueLocation, "w") as f:
+            with open(self.QueueStorage, "w") as f:
                 json.dump(self.queues, f)
             await self.helper.finish_processing(ctx)
             print("-= The JoinTextQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
@@ -146,7 +146,7 @@ class TextQueue(commands.Cog):
         self.queues[channel_type]["Entries"] = [e for e in self.queues[channel_type]["Entries"]
                                                 if e["ST"] != ctx.author.id]
         await self.update_queue_message(self.queues[channel_type])
-        with open(self.QueueLocation, "w") as f:
+        with open(self.QueueStorage, "w") as f:
             json.dump(self.queues, f)
 
         await self.helper.finish_processing(ctx)
@@ -175,7 +175,7 @@ class TextQueue(commands.Cog):
                                                     self.queues[channel_type]["Entries"].pop(current_index))
 
         await self.update_queue_message(self.queues[channel_type])
-        with open(self.QueueLocation, "w") as f:
+        with open(self.QueueStorage, "w") as f:
             json.dump(self.queues, f)
 
         await self.helper.finish_processing(ctx)
@@ -201,7 +201,7 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["Entries"] = [e for e in self.queues[channel_type]["Entries"]
                                                     if e["ST"] != member.id]
             await self.update_queue_message(self.queues[channel_type])
-            with open(self.QueueLocation, "w") as f:
+            with open(self.QueueStorage, "w") as f:
                 json.dump(self.queues, f)
 
             await self.helper.finish_processing(ctx)
@@ -232,7 +232,7 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["Entries"].insert(spot - 1, entry)
 
             await self.update_queue_message(self.queues[channel_type])
-            with open(self.QueueLocation, "w") as f:
+            with open(self.QueueStorage, "w") as f:
                 json.dump(self.queues, f)
 
             await self.helper.finish_processing(ctx)

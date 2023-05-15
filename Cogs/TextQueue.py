@@ -1,6 +1,6 @@
 import json
 import os
-import typing
+from typing import Literal, Optional
 from time import strftime, gmtime
 
 import nextcord
@@ -9,7 +9,7 @@ from nextcord.utils import get
 
 import utility
 
-ChannelTypeParameter = typing.Literal[
+ChannelTypeParameter = Literal[
     'regular', 'Regular', 'standard', 'Standard', 'normal', 'Normal', 'r', 'R', 'n', 'N', 'experimental', 'Experimental', 'exp', 'Exp', 'x', 'X']
 
 
@@ -18,13 +18,13 @@ class TextQueue(commands.Cog):
         self.bot = bot
         self.helper = helper
         self.QueueStorage = os.path.join(self.helper.StorageLocation, "queue.json")
-        try:
-            with open(self.QueueStorage, 'r') as f:
-                self.queues = json.load(f)
-        except OSError:
+        if not os.path.exists(self.QueueStorage):
             self.queues = {"Regular": {}, "Experimental": {}}
             with open(self.QueueStorage, 'w') as f:
                 json.dump(self.queues, f)
+        else:
+            with open(self.QueueStorage, 'r') as f:
+                self.queues = json.load(f)
 
     async def update_queue_message(self, queue: dict):
         channel = get(self.helper.Guild.channels, id=queue["ChannelId"])
@@ -106,7 +106,7 @@ class TextQueue(commands.Cog):
 
     @commands.command()
     async def JoinTextQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter, script: str, availability: str,
-                      notes: typing.Optional[str]):
+                      notes: Optional[str]):
         channel_type = utility.get_channel_type(channel_type)
         users_in_queue = [entry["ST"]
                           for entry in self.queues["Regular"]["Entries"] + self.queues["Experimental"]["Entries"]]
@@ -156,7 +156,7 @@ class TextQueue(commands.Cog):
         await self.helper.log(f"{ctx.author.mention} has run the LeaveTextQueue command")
 
     @commands.command()
-    async def MoveDown(self, ctx: commands.Context, number_of_spots: typing.Optional[int] = 1):
+    async def MoveDown(self, ctx: commands.Context, number_of_spots: Optional[int] = 1):
         await utility.start_processing(ctx)
         users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
         users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]

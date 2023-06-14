@@ -1,8 +1,10 @@
 from time import strftime, gmtime
+from typing import Optional
 
 from nextcord.ext import commands
 
 import utility
+from Cogs.Votes import Votes
 
 
 class Game(commands.Cog):
@@ -61,7 +63,6 @@ class Game(commands.Cog):
 
     @commands.command()
     async def EndGame(self, ctx: commands.Context, game_number):
-
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
@@ -78,11 +79,16 @@ class Game(commands.Cog):
             members = game_role.members
             members += kibitz_role.members
 
-            # Remove Kibitz from non-bot players
+            # Remove roles from non-bot players
             for member in members:
                 if str(member.bot) == "False":
                     await member.remove_roles(kibitz_role)
                     await member.remove_roles(game_role)
+
+            votes: Optional[Votes] = self.bot.get_cog("Votes")
+            if votes and game_number in votes.town_squares:
+                votes.town_squares.pop(game_number)
+                votes.update_storage()
 
             # Change permission of Kibitz to allow Townsfolk to view
             townsfolk_role = self.helper.Guild.default_role

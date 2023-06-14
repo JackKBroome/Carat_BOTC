@@ -1,10 +1,12 @@
 from time import strftime, gmtime
+from typing import Optional
 
 import nextcord
 from nextcord.ext import commands
 
 import utility
 from Cogs.TextQueue import TextQueue
+from Cogs.Votes import Votes, Player
 
 MaxGameNumber = 15
 PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
@@ -27,7 +29,7 @@ class Grimoire(commands.Cog):
 
             await ctx.author.add_roles(st_role)
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
-            queue: TextQueue | None = self.bot.get_cog('Queue')
+            queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue:
                 channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
                 users_in_queue = [entry["ST"] for entry in queue.queues[channel_type]["Entries"]]
@@ -85,7 +87,7 @@ class Grimoire(commands.Cog):
             dm_success = await utility.dm_user(ctx.author, dm_content)
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
-            queue = self.bot.get_cog('Queue')
+            queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue and not st_role.members:
                 await queue.announce_free_channel(game_number, 0)
             await self.helper.finish_processing(ctx)
@@ -98,15 +100,16 @@ class Grimoire(commands.Cog):
         await self.helper.log(f"{ctx.author.mention} has run the DropGrimoire Command for game {game_number}")
 
     @commands.command()
-    async def ShareGrimoire(self, ctx: commands.Context, game_number, member: nextcord.Member):
+    async def ShareGrimoire(self, ctx: commands.Context, game_number: str, member: nextcord.Member):
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
 
             await member.add_roles(self.helper.get_st_role(game_number))
-
-            dm_content = "You have assigned the current ST for game " + str(game_number) + " to " + \
-                         str(member.display_name)
+            votes: Optional[Votes] = self.bot.get_cog('Votes')
+            if game_number in votes.town_squares:
+                votes.town_squares[game_number].sts.append(Player(member.id, member.display_name))
+            dm_content = f"You have assigned the ST role for game {game_number} to {member.display_name}"
             dm_success = await utility.dm_user(ctx.author, dm_content)
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)

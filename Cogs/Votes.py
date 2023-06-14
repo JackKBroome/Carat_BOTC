@@ -1,13 +1,14 @@
 import json
 import os
-from time import strftime, gmtime
+from dataclasses import dataclass, field
+from math import ceil
+from time import gmtime
 from typing import List, Optional, Dict, Union, Callable
 
 import nextcord
+from dataclasses_json import dataclass_json
 from nextcord.ext import commands
 from nextcord.utils import get, utcnow, format_dt
-from dataclasses import dataclass, field
-from dataclasses_json import dataclass_json
 
 import utility
 
@@ -54,13 +55,16 @@ class TownSquare:
     nomination_thread: int = None
     log_thread: int = None
     organ_grinder: bool = False
+    player_noms_allowed: bool = True
 
 
 def format_nom_message(game_role: nextcord.Role, town_square: TownSquare, nom: Nomination, organ_grinder: bool) -> (
         str, nextcord.Embed):
+    votes_needed = ceil(len([player for player in town_square.players if not player.dead]) / 2)
     content = f"{game_role.mention} {nom.nominator.alias} has nominated {nom.nominee.alias}.\n" \
               f"Accusation: {nom.accusation}\n" \
-              f"Defense: {nom.defense}"
+              f"Defense: {nom.defense}" \
+              f"{votes_needed} votes \n" \
     # TODO: add votes necessary for block, timeout
     embed = nextcord.Embed(title=Votes,
                            color=0xff0000)
@@ -125,12 +129,14 @@ class Votes(commands.Cog):
 
     def get_game_participant(self, game_number: str, identifier: str) -> Union[nextcord.Member, None]:
         participants = self.town_squares[game_number].players + self.town_squares[game_number].sts
+        # handle explicit mentions
         if identifier[:2] == "<@" and identifier[-1] == ">":
             member = get(self.helper.Guild.members, id=int(identifier[2:-1]))
             if member and member.id in [p.id for p in participants]:
                 return member
             else:
                 return None
+        # check alternatives for identifying the player
         alias_matches = self.try_get_matching_player(participants, identifier, lambda p: p.alias)
         display_names = {p: get(self.helper.Guild.members, id=p.id).display_name for p in participants}
         display_name_matches = self.try_get_matching_player(participants, identifier, lambda p: display_names[p])
@@ -430,10 +436,24 @@ class Votes(commands.Cog):
     @commands.command()
     async def SetAlias(self, ctx: commands.Context, game_number: str, alias: str):
         game_role = self.helper.get_game_role(game_number)
+        st_role = self.helper.get_st_role(game_number)
         if game_role in ctx.author.roles:
-            player = next(p for p in self.town_squares[game_number].players if p.id == ctx.author.id)
+            player = next((p for p in self.town_squares[game_number].players if p.id == ctx.author.id), None)
+            if not player:
+                await utility.deny_command(ctx, "SetAlias")
+                await utility.dm_user(ctx.author, "You are not included in the town square. Ask the ST to correct this.")
+                return
             player.alias = alias
+        elif st_role in ctx.author.roles:
+            st = next((st for st in self.town_squares[game_number].sts if st.id == ctx.author.id), None)
+            if not st:
+                await utility.deny_command(ctx, "SetAlias")
+                await utility.dm_user(ctx.author, "Something went wrong and you are not included in the townsquare. "
+                                                  "Try dropping and re-adding the grimoire")
+                # TODO: update TS in ShareGrimoire
+                return
             self.update_storage()
+            await self.log(game_number, f"{ctx.author.name} has set their alias to {alias}")
         else:
             await utility.deny_command(ctx, "SetAlias")
             await utility.dm_user(ctx.author, "You must be a player to set your alias. "

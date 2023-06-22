@@ -2,6 +2,7 @@ import typing
 from time import strftime, gmtime
 
 import nextcord
+from nextcord import InvalidArgument
 from nextcord.ext import commands
 from nextcord.utils import get
 
@@ -74,11 +75,8 @@ class Other(commands.Cog):
                         embed.set_footer(text=embed.footer.text + f" {i.emoji} - {reactors}, ")
                 try:
                     await archive_channel.send(embed=embed, files=attachment_list)
-                except:
-                    try:
-                        embed.set_footer(text=embed.footer.text + "/nError Attachment file was too large.")
-                    except:
-                        embed.set_footer(text="Error Attachment file was too large.")
+                except InvalidArgument:
+                    embed.set_footer(text=embed.footer.text + "\nError: Attachment file was too large.")
                     await archive_channel.send(embed=embed)
             await archive_channel.create_thread(name="Chat about the game", type=nextcord.ChannelType.public_thread)
             await self.helper.finish_processing(ctx)

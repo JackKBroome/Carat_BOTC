@@ -1,5 +1,6 @@
 import os
 from time import gmtime, strftime
+from typing import Union
 
 import nextcord
 from dotenv import load_dotenv
@@ -20,12 +21,15 @@ def get_channel_type(channel_type):
         return "Regular"
 
 
-async def dm_user(user: nextcord.User, content: str) -> bool:
+async def dm_user(user: Union[nextcord.User, nextcord.Member], content: str) -> bool:
     try:
         await user.send(content)
         return True
     except nextcord.Forbidden:
         print(f"Could not DM {user} due to lack of permission")
+        return False
+    except Exception as e:
+        print(f"Could not DM {user} due to unknown error: {e}")
         return False
 
 

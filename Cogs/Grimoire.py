@@ -132,14 +132,13 @@ class Grimoire(commands.Cog):
         games = [x for x in PotentialGames if x in channel_names_string]
         message = ""
         for j in games:
-            try:
-                current_sts = self.helper.get_st_role(j).members
-                if not current_sts:
-                    message += "There is currently no assigned ST for game " + str(j) + "\n"
-                else:
-                    message += f"Game {j}'s STs are: " + ", ".join([st.display_name for st in current_sts]) + "\n"
-            except:
+            st_role = self.helper.get_st_role(j)
+            if not st_role:
                 print(f"game {j} not found")
+            elif not st_role.members:
+                message += "There is currently no assigned ST for game " + str(j) + "\n"
+            else:
+                message += f"Game {j}'s STs are: " + ", ".join([st.display_name for st in st_role.members]) + "\n"
         dm_success = await utility.dm_user(ctx.author, message)
         if not dm_success:
             await ctx.send(message)

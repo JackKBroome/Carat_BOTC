@@ -129,7 +129,7 @@ def reordered_players(nom: Nomination, town_square: TownSquare) -> List[Player]:
     return town_square.players[last_vote_index + 1:] + town_square.players[:last_vote_index + 1]
 
 
-# TODO: check all relevant commands include log/update state correctly, handle next() exceptions, verify nom existence etc
+# TODO: check all relevant commands include log/update state correctly
 class Townsquare(commands.Cog):
     bot: commands.Bot
     helper: utility.Helper
@@ -273,6 +273,7 @@ class Townsquare(commands.Cog):
             for st in self.helper.get_st_role(game_number).members:
                 await log_thread.add_user(st)
             self.town_squares[game_number].log_thread = log_thread.id
+            await self.log(game_number, f"Town square created: {self.town_squares[game_number]}")
             self.update_storage()
             await self.helper.finish_processing(ctx)
         else:
@@ -409,6 +410,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "AddAccusation")
             await utility.dm_user(ctx.author, "You must be the ST or nominator to use this command")
+        await self.helper.log(f"{ctx.author.mention} has run the AddAccusation command in game {game_number}")
 
     @commands.command()
     async def AddDefense(self, ctx: commands.Context, game_number: str, defense: str,
@@ -438,6 +440,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "AddDefense")
             await utility.dm_user(ctx.author, "You must be the ST or nominee to use this command")
+        await self.helper.log(f"{ctx.author.mention} has run the AddDefense command in game {game_number}")
 
     @commands.command()
     async def SetDeadline(self, ctx: commands.Context, game_number: str, nominee_identifier: str, time_in_h: float):
@@ -463,6 +466,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "SetDeadline")
             await utility.dm_user(ctx.author, "You must be the ST to use this command")
+        await self.helper.log(f"{ctx.author.mention} has run the SetDeadline command in game {game_number}")
 
     @commands.command()
     async def SetDefaultDeadline(self, ctx: commands.Context, game_number: str, hours: int):
@@ -478,6 +482,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "SetDefaultDeadline")
             await utility.dm_user(ctx.author, "You must be the ST to use this command")
+        await self.helper.log(f"{ctx.author.mention} has run the SetDefaultDeadline command in game {game_number}")
 
     @commands.command()
     async def Vote(self, ctx: commands.Context, game_number: str, nominee_identifier: str, vote: str):
@@ -523,6 +528,7 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx, "Vote")
             await utility.dm_user(ctx.author, "You must be a player to vote. "
                                               "If you are, the ST may have to add you to the town square.")
+        await self.helper.log(f"{ctx.author.mention} has run the Vote command on the {nominee.display_name} nomination in game {game_number}")
 
     @commands.command()
     async def PrivateVote(self, ctx: commands.Context, game_number: str, nominee_identifier: str, vote: str):
@@ -563,6 +569,7 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx, "PrivateVote")
             await utility.dm_user(ctx.author, "You must be a player to vote. "
                                               "If you are, the ST may have to add you to the town square.")
+        await self.helper.log(f"{ctx.author.mention} has run the PrivateVote command in game {game_number}")
 
     @commands.command()
     async def RemovePrivateVote(self, ctx: commands.Context, game_number: str, nominee_identifier: str):
@@ -570,7 +577,11 @@ class Townsquare(commands.Cog):
         if game_role in ctx.author.roles:
             await utility.start_processing(ctx)
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "RemovePrivateVote")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id), None)
             voter = next((p for p in self.town_squares[game_number].players if p.id == ctx.author.id), None)
             if not nom:
                 await utility.deny_command(ctx, "RemovePrivateVote")
@@ -596,6 +607,7 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx, "RemovePrivateVote")
             await utility.dm_user(ctx.author, "You must be a player to vote. "
                                               "If you are, the ST may have to add you to the town square.")
+        await self.helper.log(f"{ctx.author.mention} has run the RemovePrivateVote command in game {game_number}")
 
     @commands.command()
     async def CountVotes(self, ctx: commands.Context, game_number: str, nominee_identifier: str,
@@ -719,7 +731,11 @@ class Townsquare(commands.Cog):
                 await utility.deny_command(ctx, "ToggleMarkedDead")
                 await utility.dm_user(ctx.author, f"Could not find player with identifier {player_identifier}")
                 return
-            player = next(p for p in self.town_squares[game_number].players if p.id == player_user.id)
+            player = next((p for p in self.town_squares[game_number].players if p.id == player_user.id), None)
+            if not player:
+                await utility.deny_command(ctx, "ToggleMarkedDead")
+                await utility.dm_user(ctx.author, f"{player_user.display_name} is not included in the town square.")
+                return
             player.dead = not player.dead
             self.update_storage()
             await self.helper.finish_processing(ctx)
@@ -740,7 +756,11 @@ class Townsquare(commands.Cog):
                 await utility.deny_command(ctx, "ToggleCanVote")
                 await utility.dm_user(ctx.author, f"Could not find player with identifier {player_identifier}")
                 return
-            player = next(p for p in self.town_squares[game_number].players if p.id == player_user.id)
+            player = next((p for p in self.town_squares[game_number].players if p.id == player_user.id), None)
+            if not player:
+                await utility.deny_command(ctx, "ToggleCanVote")
+                await utility.dm_user(ctx.author, f"{player_user.display_name} is not included in the town square.")
+                return
             player.can_vote = not player.can_vote
             self.update_storage()
             await self.helper.finish_processing(ctx)

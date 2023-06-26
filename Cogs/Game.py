@@ -4,7 +4,7 @@ from typing import Optional
 from nextcord.ext import commands
 
 import utility
-from Cogs.Votes import Votes
+from Cogs.Townsquare import Townsquare
 
 
 class Game(commands.Cog):
@@ -85,7 +85,7 @@ class Game(commands.Cog):
                     await member.remove_roles(kibitz_role)
                     await member.remove_roles(game_role)
 
-            votes: Optional[Votes] = self.bot.get_cog("Votes")
+            votes: Optional[Townsquare] = self.bot.get_cog("Townsquare")
             if votes and game_number in votes.town_squares:
                 votes.town_squares.pop(game_number)
                 votes.update_storage()

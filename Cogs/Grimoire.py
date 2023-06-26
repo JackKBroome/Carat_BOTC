@@ -6,7 +6,7 @@ from nextcord.ext import commands
 
 import utility
 from Cogs.TextQueue import TextQueue
-from Cogs.Votes import Votes, Player
+from Cogs.Townsquare import Townsquare, Player
 
 MaxGameNumber = 15
 PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
@@ -106,7 +106,7 @@ class Grimoire(commands.Cog):
             await utility.start_processing(ctx)
 
             await member.add_roles(self.helper.get_st_role(game_number))
-            votes: Optional[Votes] = self.bot.get_cog('Votes')
+            votes: Optional[Townsquare] = self.bot.get_cog('Townsquare')
             if game_number in votes.town_squares:
                 votes.town_squares[game_number].sts.append(Player(member.id, member.display_name))
             dm_content = f"You have assigned the ST role for game {game_number} to {member.display_name}"

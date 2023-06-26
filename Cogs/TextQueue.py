@@ -47,7 +47,8 @@ class TextQueue(commands.Cog):
     async def announce_free_channel(self, game_number, queue_position: int):
         channel = self.helper.get_game_channel(game_number)
         channel_type = "Experimental" if game_number[0] == "x" else "Regular"
-        if queue_position > len(self.queues[channel_type]["Entries"]):
+        if queue_position >= len(self.queues[channel_type]["Entries"]):
+            await channel.send("There are no further entries in the queue.")
             return
         next_entry = self.queues[channel_type]["Entries"][queue_position]
         user = get(self.helper.Guild.members, id=next_entry["ST"])

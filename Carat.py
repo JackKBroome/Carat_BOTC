@@ -10,7 +10,7 @@ from Cogs.Other import Other
 from Cogs.TextQueue import TextQueue
 from Cogs.Signup import Signup
 from Cogs.Users import Users
-from Cogs.Votes import Votes
+from Cogs.Townsquare import Townsquare
 from utility import Helper
 
 load_dotenv()
@@ -41,9 +41,10 @@ async def on_ready():
     bot.add_cog(TextQueue(bot, helper))
     bot.add_cog(Signup(bot, helper))
     bot.add_cog(Users(bot, helper))
-    bot.add_cog(Votes(bot, helper))
+    votes_cog = Townsquare(bot, helper)
+    await votes_cog.load_emoji()
+    bot.add_cog(votes_cog)
     print('Ready')
     print('------')
-
 
 bot.run(token)

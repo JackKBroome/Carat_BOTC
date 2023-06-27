@@ -7,7 +7,6 @@ from typing import List, Optional, Dict, Union, Callable, Literal
 
 import nextcord
 from dataclasses_json import dataclass_json
-from dateutil.parser import parse, ParserError
 from nextcord.ext import commands
 from nextcord.utils import get, utcnow, format_dt
 
@@ -312,7 +311,8 @@ class Townsquare(commands.Cog):
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             game_channel = self.helper.get_game_channel(game_number)
-            thread = await game_channel.create_thread(name=name if name else "Nominations", auto_archive_duration=4320, type=nextcord.ChannelType.public_thread)
+            thread = await game_channel.create_thread(name=name if name else "Nominations", auto_archive_duration=4320,
+                                                      type=nextcord.ChannelType.public_thread)
             self.town_squares[game_number].nomination_thread = thread.id
             self.update_storage()
             await self.helper.finish_processing(ctx)
@@ -326,7 +326,6 @@ class Townsquare(commands.Cog):
                        nominee_identifier: str, nominator_identifier: Optional[str]):
 
         game_role = self.helper.get_game_role(game_number)
-        st_role = self.helper.get_st_role(game_number)
         # check permission
         can_nominate = self.helper.authorize_st_command(ctx.author, game_number) or game_role in ctx.author.roles
         nominee = self.get_game_participant(game_number, nominee_identifier)
@@ -334,7 +333,8 @@ class Townsquare(commands.Cog):
         if not can_nominate:
             await utility.deny_command(ctx, "Nominate")
             await utility.dm_user(ctx.author, "You must participate in the game to nominate!")
-        elif not self.helper.authorize_st_command(ctx.author, game_number) and nominator and nominator.id != ctx.author.id:
+        elif not self.helper.authorize_st_command(ctx.author,
+                                                  game_number) and nominator and nominator.id != ctx.author.id:
             await utility.deny_command(ctx, "Nominate")
             await utility.dm_user(ctx.author, "You may not nominate in the name of others")
         elif nominator_identifier and not nominator:
@@ -343,7 +343,8 @@ class Townsquare(commands.Cog):
         elif not nominee:  # Atheist allows ST to be nominated
             await utility.deny_command(ctx, "Nominate")
             await utility.dm_user(ctx.author, "The nominee must be a game participant")
-        elif any(nominee.id == nom.nominee.id and not nom.finished for nom in self.town_squares[game_number].nominations):
+        elif any(nominee.id == nom.nominee.id and not nom.finished for nom in
+                 self.town_squares[game_number].nominations):
             await utility.deny_command(ctx, "Nominate")
             await utility.dm_user(ctx.author, "That player has already been nominated")
         else:
@@ -352,14 +353,16 @@ class Townsquare(commands.Cog):
             converted_nominee = next((p for p in participants if p.id == nominee.id), None)
             if not converted_nominee:
                 await utility.deny_command(ctx, "Nominate")
-                await utility.dm_user(ctx.author, "The Nominee is not included in the town square. Ask an ST to fix this.")
+                await utility.dm_user(ctx.author,
+                                      "The Nominee is not included in the town square. Ask an ST to fix this.")
             if not nominator_identifier:
                 converted_nominator = next((p for p in participants if p.id == ctx.author.id), None)
             else:
                 converted_nominator = next((p for p in participants if p.id == nominator.id), None)
             if not converted_nominator:
                 await utility.deny_command(ctx, "Nominate")
-                await utility.dm_user(ctx.author, "The Nominator is not included in the town square. Ask an ST to fix this.")
+                await utility.dm_user(ctx.author,
+                                      "The Nominator is not included in the town square. Ask an ST to fix this.")
             votes = {}
             for player in self.town_squares[game_number].players:
                 votes[player.id] = Vote(not_voted_yet)
@@ -392,7 +395,11 @@ class Townsquare(commands.Cog):
         await utility.start_processing(ctx)
         if nominee_identifier:
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "AddAccusation")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id), None)
         else:
             nom = next((n for n in self.town_squares[game_number].nominations
                         if n.nominator.id == ctx.author.id), None)
@@ -423,7 +430,11 @@ class Townsquare(commands.Cog):
         await utility.start_processing(ctx)
         if nominee_identifier:
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "AddDefense")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id), None)
         else:
             nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == ctx.author.id), None)
         if not nom:
@@ -452,7 +463,11 @@ class Townsquare(commands.Cog):
                 await utility.dm_user(ctx.author, "Deadline must be in the future")
                 return
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "SetDeadline")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id), None)
             if not nom:
                 await utility.deny_command(ctx, "SetDeadline")
                 await utility.dm_user(ctx.author, f"No relevant nomination found for nominee {nominee_identifier}")
@@ -489,12 +504,17 @@ class Townsquare(commands.Cog):
         game_role = self.helper.get_game_role(game_number)
         if len(vote) > 400:
             await utility.deny_command(ctx, "Vote")
-            await utility.dm_user(ctx.author, "Your vote is too long. Consider simplifying your condition. If that is somehow impossible, just let the ST know.")
+            await utility.dm_user(ctx.author,
+                                  "Your vote is too long. Consider simplifying your condition. If that is somehow impossible, just let the ST know.")
             return
         if game_role in ctx.author.roles:
             await utility.start_processing(ctx)
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "Vote")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id), None)
             voter = next((p for p in self.town_squares[game_number].players if p.id == ctx.author.id), None)
             if not nom:
                 await utility.deny_command(ctx, "Vote")
@@ -528,7 +548,8 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx, "Vote")
             await utility.dm_user(ctx.author, "You must be a player to vote. "
                                               "If you are, the ST may have to add you to the town square.")
-        await self.helper.log(f"{ctx.author.mention} has run the Vote command on the {nominee.display_name} nomination in game {game_number}")
+        await self.helper.log(
+            f"{ctx.author.mention} has run the Vote command in game {game_number}")
 
     @commands.command()
     async def PrivateVote(self, ctx: commands.Context, game_number: str, nominee_identifier: str, vote: str):
@@ -536,7 +557,11 @@ class Townsquare(commands.Cog):
         if game_role in ctx.author.roles:
             await utility.start_processing(ctx)
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "PrivateVote")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id), None)
             voter = next((p for p in self.town_squares[game_number].players if p.id == ctx.author.id), None)
             if not nom:
                 await utility.deny_command(ctx, "PrivateVote")
@@ -621,7 +646,11 @@ class Townsquare(commands.Cog):
                                       'added at the end')
                 return
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "CountVotes")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id and not n.finished), None)
             if not nom:
                 await utility.deny_command(ctx, "CountVotes")
                 await utility.dm_user(ctx.author, f"No relevant nomination found for nominee {nominee_identifier}")
@@ -636,13 +665,16 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx, "CountVotes")
             await utility.dm_user(ctx.author, "You must be the Storyteller to count the votes for a nomination")
 
-
     @commands.command()
     async def CloseNomination(self, ctx: commands.Context, game_number: str, nominee_identifier: str):
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             nominee = self.get_game_participant(game_number, nominee_identifier)
-            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee == nominee), None)
+            if not nominee:
+                await utility.deny_command(ctx, "CloseNomination")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {nominee_identifier}")
+                return
+            nom = next((n for n in self.town_squares[game_number].nominations if n.nominee.id == nominee.id and not n.finished), None)
             if not nom:
                 await utility.deny_command(ctx, "CloseNomination")
                 await utility.dm_user(ctx.author, f"No relevant nomination found for nominee {nominee_identifier}")
@@ -660,6 +692,9 @@ class Townsquare(commands.Cog):
     async def SetAlias(self, ctx: commands.Context, game_number: str, alias: str):
         game_role = self.helper.get_game_role(game_number)
         st_role = self.helper.get_st_role(game_number)
+        if len(alias) > 100 or (alias.startswith("<@") and alias[-1] == ">"):
+            await utility.deny_command(ctx, "SetAlias")
+            await utility.dm_user(ctx.author, f"not an allowed alias: {alias}"[:2000])
         if game_role in ctx.author.roles:
             await utility.start_processing(ctx)
             player = next((p for p in self.town_squares[game_number].players if p.id == ctx.author.id), None)
@@ -754,7 +789,7 @@ class Townsquare(commands.Cog):
             player_user = self.get_game_participant(game_number, player_identifier)
             if not player_user:
                 await utility.deny_command(ctx, "ToggleCanVote")
-                await utility.dm_user(ctx.author, f"Could not find player with identifier {player_identifier}")
+                await utility.dm_user(ctx.author, f"Could not clearly identify any player from {player_identifier}")
                 return
             player = next((p for p in self.town_squares[game_number].players if p.id == player_user.id), None)
             if not player:

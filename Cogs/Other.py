@@ -120,13 +120,17 @@ class Other(commands.Cog):
     # Future task: shorten this, add information for the >help command for each command. Nextcord has built-ins for these things, I'm pretty sure
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):
-        # Add ShowSignUps here
+        await utility.start_processing(ctx)
         anyone_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                       description="Commands that can be executed by anyone", color=0xe100ff)
         anyone_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
 
         anyone_embed.add_field(name=">FindGrimoire",
                                value="Sends the user a DM listing all games and whether they currently have an ST.",
+                               inline=False)
+        anyone_embed.add_field(name=">ShowSignups [game_number]",
+                               value="Sends the user a DM listing the STs, players, and kibitz members of the game\n"
+                                     "Usage examples: >ShowSignups 1, >ShowSignups x3",
                                inline=False)
         anyone_embed.add_field(name=">ClaimGrimoire [game number]",
                                value='Grants you the ST role of the given game, unless it is already occupied\n' +
@@ -244,89 +248,89 @@ class Other(commands.Cog):
         st_embed.set_footer(text="2/4")
 
         ts_embed = nextcord.Embed(title="Unofficial Text Game Bot",
-                                     description="Commands related to the town square", color=0xe100ff)
+                                  description="Commands related to the town square", color=0xe100ff)
         ts_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
         ts_embed.add_field(name=">SetupTownSquare [game_number] [players]",
-                              value="Creates the town square for the given game, with the given players. Ping them in order of seating.\n"
-                                    "Usage example: `>SetupTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gabe @Hannah`",
-                              inline=False)
+                           value="Creates the town square for the given game, with the given players. Ping them in order of seating.\n"
+                                 "Usage example: `>SetupTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gabe @Hannah`",
+                           inline=False)
 
         ts_embed.add_field(name=">UpdateTownSquare [game_number] [players]",
-                              value="Updates the town square for the given game, with the given players. Ping them in order of seating."
-                                    "The difference to rerunning SetupTownSquare is that the latter will lose information like aliases, "
-                                    "spent deadvotes, and nominations. UpdateTownSquare will not.\n"
-                                    "Usage example: `>UpdateTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gideon @Hannah`",
-                              inline=False)
+                           value="Updates the town square for the given game, with the given players. Ping them in order of seating."
+                                 "The difference to rerunning SetupTownSquare is that the latter will lose information like aliases, "
+                                 "spent deadvotes, and nominations. UpdateTownSquare will not.\n"
+                                 "Usage example: `>UpdateTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gideon @Hannah`",
+                           inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",
-                              value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'
-                                    'Usage example: `>CreateNomThread x1`, `>CreateNomThread "D2 Nominations"`',
-                              inline=False)
+                           value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'
+                                 'Usage example: `>CreateNomThread x1`, `>CreateNomThread "D2 Nominations"`',
+                           inline=False)
 
         ts_embed.add_field(name=">Nominate [game_number] [nominee] [nominator]",
-                              value="Create a nomination for the given nominee. If you are a ST, provide the nominator. "
-                                    "If you are a player, leave the nominator out or give yourself. In either case, you don't need to ping, a name should work.\n"
-                                    "Usage examples: `>Nominate x1 Alex Ben`, >Nominate 3 Alex`",
-                              inline=False)
+                           value="Create a nomination for the given nominee. If you are a ST, provide the nominator. "
+                                 "If you are a player, leave the nominator out or give yourself. In either case, you don't need to ping, a name should work.\n"
+                                 "Usage examples: `>Nominate x1 Alex Ben`, >Nominate 3 Alex`",
+                           inline=False)
         ts_embed.add_field(name=">AddAccusation [game_number] [accusation] [nominee_identifier]",
-                              value='Add an accusation to the nomination of the given nominee. You don\'t need to ping, a name should work. You must be the nominator or a storyteller for this.\n'
-                                    'Usage examples: `>AddAccusation x1 Alex "In a doubleclaim"`, >AddAccusation 3 Alex "I think they would be a great Undertaker test"`',
-                              inline=False)
+                           value='Add an accusation to the nomination of the given nominee. You don\'t need to ping, a name should work. You must be the nominator or a storyteller for this.\n'
+                                 'Usage examples: `>AddAccusation x1 Alex "In a doubleclaim"`, >AddAccusation 3 Alex "I think they would be a great Undertaker test"`',
+                           inline=False)
         ts_embed.add_field(name=">AddDefense [game_number] [defense] [nominee_identifier]",
-                              value='Add a defense to your nomination or that of the given nominee. You must be a storyteller for the latter.\n'
-                                    'Usage examples: `>AddDefense x1 "I\'m good I promise"`, >AddDefense 3 "This is fine"`',
-                              inline=False)
+                           value='Add a defense to your nomination or that of the given nominee. You must be a storyteller for the latter.\n'
+                                 'Usage examples: `>AddDefense x1 "I\'m good I promise"`, >AddDefense 3 "This is fine"`',
+                           inline=False)
         ts_embed.add_field(name=">SetDeadline [game_number] [nominee_identifier] [hours]",
-                              value='Set the deadline for the nomination of a given nominee to the given number of hours from now. You must be a storyteller for this.\n'
-                                    'Usage examples: `>SetDeadline x1 Alex 1`, `>SetDeadline 3 Alex 24`',
-                              inline=False)
+                           value='Set the deadline for the nomination of a given nominee to the given number of hours from now. You must be a storyteller for this.\n'
+                                 'Usage examples: `>SetDeadline x1 Alex 1`, `>SetDeadline 3 Alex 24`',
+                           inline=False)
         ts_embed.add_field(name=">SetDefaultDeadline [game_number] [hours]",
-                              value='Set the default nomination duration for the game to the given number of hours. You must be a storyteller for this.\n'
-                                    'Usage examples: `>SetDefaultDeadline x1 36`, `>SetDefaultDeadline 3 24`',
-                              inline=False)
+                           value='Set the default nomination duration for the game to the given number of hours. You must be a storyteller for this.\n'
+                                 'Usage examples: `>SetDefaultDeadline x1 36`, `>SetDefaultDeadline 3 24`',
+                           inline=False)
         ts_embed.add_field(name=">Vote [game_number] [nominee_identifier] [vote]",
-                              value='Set your vote for the given nominee. You don\'t need to ping, a name should work. '
-                                    'Your vote can be anything (but should be something the ST can unambiguously interpret as yes or no when they count it).'
-                                    'You can change your vote until it is counted by the storyteller.\n'
-                                    'Usage examples: `>Vote x1 Alex yes`, `>Vote 3 Alex "no unless nobody is on the block"`',
-                              inline=False)
+                           value='Set your vote for the given nominee. You don\'t need to ping, a name should work. '
+                                 'Your vote can be anything (but should be something the ST can unambiguously interpret as yes or no when they count it).'
+                                 'You can change your vote until it is counted by the storyteller.\n'
+                                 'Usage examples: `>Vote x1 Alex yes`, `>Vote 3 Alex "no unless nobody is on the block"`',
+                           inline=False)
         ts_embed.add_field(name=">PrivateVote [game_number] [nominee_identifier] [vote]",
-                              value='Same as >Vote, but your vote will be hidden from other players. They will still see '
-                                    'whether you voted yes or no after your vote is counted. A private vote will always override any public vote, even later ones. '
-                                    'If you want your public vote to be counted instead, you can change your private vote accordingly or use >RemovePrivateVote.\n'
-                                    'Usage examples: `>PrivateVote x1 Alex yes`, `>PrivateVote 3 Alex "drop my hand if there aren\'t enough votes yet"`',
-                              inline=False)
+                           value='Same as >Vote, but your vote will be hidden from other players. They will still see '
+                                 'whether you voted yes or no after your vote is counted. A private vote will always override any public vote, even later ones. '
+                                 'If you want your public vote to be counted instead, you can change your private vote accordingly or use >RemovePrivateVote.\n'
+                                 'Usage examples: `>PrivateVote x1 Alex yes`, `>PrivateVote 3 Alex "drop my hand if there aren\'t enough votes yet"`',
+                           inline=False)
         ts_embed.add_field(name=">RemovePrivateVote [game_number] [nominee_identifier]",
-                              value='Removes your private vote for the given nominee, so that your public vote is counted instead.\n'
-                                    'Usage examples: `>RemovePrivateVote x1 Alex`, `>RemovePrivateVote 3 Alex`',
-                                inline=False)
+                           value='Removes your private vote for the given nominee, so that your public vote is counted instead.\n'
+                                 'Usage examples: `>RemovePrivateVote x1 Alex`, `>RemovePrivateVote 3 Alex`',
+                           inline=False)
         ts_embed.add_field(name=">CountVotes [game_number] [nominee_identifier]",
-                              value='Begins counting the votes for the given nominee. You must be a storyteller for this.\n'
-                                    'Usage examples: `>CountVotes x1 Alex`, `>CountVotes 3 Alex`',
-                              inline=False)
+                           value='Begins counting the votes for the given nominee. You must be a storyteller for this.\n'
+                                 'Usage examples: `>CountVotes x1 Alex`, `>CountVotes 3 Alex`',
+                           inline=False)
         ts_embed.add_field(name=">CloseNomination [game_number] [nominee_identifier]",
-                              value='Marks the nomination for the given nominee as closed. You must be a storyteller for this.\n',
-                              inline=False)
+                           value='Marks the nomination for the given nominee as closed. You must be a storyteller for this.\n',
+                           inline=False)
         ts_embed.add_field(name=">SetAlias [game_number] [alias]",
-                              value='Set your preferred alias for the given game. This will be used anytime '
-                                    'the bot refers to you. By default set to your username. Can be used by players and storytellers.\n'
-                                    'Usage examples: `>SetAlias x1 "Alex"`, `>SetAlias 3 "Alex"`',
-                              inline=False)
+                           value='Set your preferred alias for the given game. This will be used anytime '
+                                 'the bot refers to you. By default set to your username. Can be used by players and storytellers.\n'
+                                 'Usage examples: `>SetAlias x1 "Alex"`, `>SetAlias 3 "Alex"`',
+                           inline=False)
         ts_embed.add_field(name=">ToggleOrganGrinder [game_number]",
-                              value='Activates or deactivates Organ Grinder for the display of nominations in the game. You must be a storyteller for this.\n'
-                                    'Usage examples: `>ToggleOrganGrinder x1`, `>ToggleOrganGrinder 3`',
-                              inline=False)
+                           value='Activates or deactivates Organ Grinder for the display of nominations in the game. You must be a storyteller for this.\n'
+                                 'Usage examples: `>ToggleOrganGrinder x1`, `>ToggleOrganGrinder 3`',
+                           inline=False)
         ts_embed.add_field(name=">TogglePlayerNoms [game_number]",
-                              value='Activates or deactivates the ability of players to nominate directly. You must be a storyteller for this.\n'
-                                    'Usage examples: `>TogglePlayerNoms x1`, `>TogglePlayerNoms 3`',
-                              inline=False)
+                           value='Activates or deactivates the ability of players to nominate directly. You must be a storyteller for this.\n'
+                                 'Usage examples: `>TogglePlayerNoms x1`, `>TogglePlayerNoms 3`',
+                           inline=False)
         ts_embed.add_field(name=">ToggleMarkedDead [game_number] [player_identifier]",
-                              value="Marks the given player as dead or alive for display on nominations. You must be a storyteller for this.\n"
-                                    "Usage examples: `>ToggleMarkedDead x1 Alex`, `>ToggleMarkedDead 3 Alex`",
-                              inline=False)
+                           value="Marks the given player as dead or alive for display on nominations. You must be a storyteller for this.\n"
+                                 "Usage examples: `>ToggleMarkedDead x1 Alex`, `>ToggleMarkedDead 3 Alex`",
+                           inline=False)
         ts_embed.add_field(name=">ToggleCanVote [game_number] [player_identifier]",
-                              value="Allows or disallows the given player to vote. You must be a storyteller for this.\n"
-                                    "Usage examples: `>ToggleCanVote x1 Alex`, `>ToggleCanVote 3 Alex`",
-                              inline=False)
+                           value="Allows or disallows the given player to vote. You must be a storyteller for this.\n"
+                                 "Usage examples: `>ToggleCanVote x1 Alex`, `>ToggleCanVote 3 Alex`",
+                           inline=False)
         ts_embed.set_footer(text="3/4")
 
         mod_embed = nextcord.Embed(title="Unofficial Text Game Bot",
@@ -373,9 +377,11 @@ class Other(commands.Cog):
                 await ctx.author.send(embed=st_embed)
                 await ctx.author.send(embed=ts_embed)
             else:
-                await ctx.author.send('Use `all`, `anyone`, `st`, `townsquare`, `mod` or `no-mod` to filter the help message. '
-                                      'Default is `no-mod`.')
+                await ctx.author.send(
+                    'Use `all`, `anyone`, `st`, `townsquare`, `mod` or `no-mod` to filter the help message. '
+                    'Default is `no-mod`.')
             await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a "
                                   "moderator know in order to resolve it. Thank you!")
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")
+        await self.helper.finish_processing(ctx)

@@ -33,14 +33,18 @@ async def dm_user(user: Union[nextcord.User, nextcord.Member], content: str) -> 
         return False
 
 
-async def deny_command(ctx: commands.Context, command_name: str):
+async def deny_command(ctx: commands.Context):
     await ctx.message.add_reaction(DeniedEmoji)
-    print(f"-= The {command_name} command was stopped against " + str(ctx.author.name) + " at " + str(
+    print(f"-= The {ctx.command.name} command was stopped against " + str(ctx.author.name) + " at " + str(
         strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
 
 async def start_processing(ctx):
     await ctx.message.add_reaction(WorkingEmoji)
+
+
+def is_mention(string: str) -> bool:
+    return string.startswith("<@") and string.endswith(">") and string[2:-1].isdigit()
 
 
 class Helper:
@@ -89,6 +93,8 @@ class Helper:
     async def finish_processing(self, ctx):
         await ctx.message.remove_reaction(WorkingEmoji, self.bot.user)
         await ctx.message.add_reaction(CompletedEmoji)
+        print(f"-= The {ctx.command.name} command was used successfully by " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     async def log(self, log_string: str):
         await self.LogChannel.send(log_string)

@@ -86,7 +86,7 @@ class Other(commands.Cog):
             await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")
             await utility.dm_user(ctx.author, f"Your Archive for {ctx.message.channel.name} is done.")
         else:
-            await utility.deny_command(ctx, "OffServerArchive")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You do not have permission to use this command")
 
     @commands.command()
@@ -108,12 +108,9 @@ class Other(commands.Cog):
                     await thread.add_user(st)
 
             await self.helper.finish_processing(ctx)
-
-            print("-= The CreateThreads command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
-            await utility.deny_command(ctx, "CreateThreads")
+            await utility.deny_command(ctx)
 
         await self.helper.log(f"{ctx.author.mention} has run the CreateThreads Command on Game {game_number}")
 
@@ -278,6 +275,10 @@ class Other(commands.Cog):
         ts_embed.add_field(name=">AddDefense [game_number] [defense] [nominee_identifier]",
                            value='Add a defense to your nomination or that of the given nominee. You must be a storyteller for the latter.\n'
                                  'Usage examples: `>AddDefense x1 "I\'m good I promise"`, >AddDefense 3 "This is fine"`',
+                           inline=False)
+        ts_embed.add_field(name=">SetVoteThreshold [game_number] [threshold]",
+                           value='Set the vote threshold to put a player on the block to the given number. You must be a storyteller for this.\n'
+                                 'Usage examples: `>SetVoteThreshold x1 4`, `>SetVoteThreshold 3 5`',
                            inline=False)
         ts_embed.add_field(name=">SetDeadline [game_number] [nominee_identifier] [hours]",
                            value='Set the deadline for the nomination of a given nominee to the given number of hours from now. You must be a storyteller for this.\n'

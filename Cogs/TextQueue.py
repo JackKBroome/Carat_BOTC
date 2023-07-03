@@ -100,10 +100,8 @@ class TextQueue(commands.Cog):
 
             await self.update_storage()
             await self.helper.finish_processing(ctx)
-            print("-= The InitQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "InitQueue")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the InitQueue command in {ctx.channel.mention}")
 
@@ -123,10 +121,8 @@ class TextQueue(commands.Cog):
 
             await self.update_storage()
             await self.helper.finish_processing(ctx)
-            print("-= The JoinTextQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "JoinTextQueue")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You may not join a text ST queue while you are already in one")
 
         await self.helper.log(f"{ctx.author.mention} has run the JoinTextQueue command")
@@ -151,8 +147,6 @@ class TextQueue(commands.Cog):
         await self.update_storage()
 
         await self.helper.finish_processing(ctx)
-        print("-= The LeaveTextQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
         await self.helper.log(f"{ctx.author.mention} has run the LeaveTextQueue command")
 
@@ -179,8 +173,6 @@ class TextQueue(commands.Cog):
         await self.update_storage()
 
         await self.helper.finish_processing(ctx)
-        print("-= The MoveDown command was used successfully by " + str(ctx.author.name) + " at " + str(
-            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     @commands.command()
     async def RemoveFromQueue(self, ctx: commands.Context, member: nextcord.Member):
@@ -204,10 +196,8 @@ class TextQueue(commands.Cog):
             await self.update_storage()
 
             await self.helper.finish_processing(ctx)
-            print("-= The RemoveFromQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "RemoveFromQueue")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
 
     @commands.command()
@@ -234,10 +224,8 @@ class TextQueue(commands.Cog):
             await self.update_storage()
 
             await self.helper.finish_processing(ctx)
-            print("-= The MoveToSpot command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "MoveToSpot")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
 
 

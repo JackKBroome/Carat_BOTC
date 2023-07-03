@@ -41,14 +41,12 @@ class Grimoire(commands.Cog):
                                             f"and join the queue with `>JoinTextQueue` (see `>HelpMe` for details)")
                 await queue.user_leave_queue(ctx.author)
             await self.helper.finish_processing(ctx)
-            print("-= The ClaimGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
             await utility.dm_user(ctx.author,
                                   "This channel already has " + str(len(st_role.members)) + " STs. These users are:\n" +
                                   "\n".join([ST.display_name for ST in st_role.members])
                                   )
-            await utility.deny_command(ctx, "ClaimGrimoire")
+            await utility.deny_command(ctx)
 
         await self.helper.log(f"{ctx.author.mention} has run the ClaimGrimoire Command  for game {game_number}")
 
@@ -66,10 +64,8 @@ class Grimoire(commands.Cog):
                                   "You have assigned the current ST role for game " + str(game_number) +
                                   " to " + member.display_name)
             await self.helper.finish_processing(ctx)
-            print("-= The GiveGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + f" on {member.name}=-"))
         else:
-            await utility.deny_command(ctx, "GiveGrimoire")
+            await utility.deny_command(ctx)
 
         await self.helper.log(
             f"{ctx.author.mention} has run the GiveGrimoire Command on {member.display_name} for game {game_number}")
@@ -91,10 +87,8 @@ class Grimoire(commands.Cog):
             if queue and not st_role.members:
                 await queue.announce_free_channel(game_number, 0)
             await self.helper.finish_processing(ctx)
-            print("-= The DropGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "DropGrimoire")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(f"{ctx.author.mention} has run the DropGrimoire Command for game {game_number}")
@@ -106,18 +100,16 @@ class Grimoire(commands.Cog):
             await utility.start_processing(ctx)
 
             await member.add_roles(self.helper.get_st_role(game_number))
-            votes: Optional[Townsquare] = self.bot.get_cog('Townsquare')
-            if game_number in votes.town_squares:
-                votes.town_squares[game_number].sts.append(Player(member.id, member.display_name))
+            townsquare: Optional[Townsquare] = self.bot.get_cog('Townsquare')
+            if townsquare and game_number in townsquare.town_squares:
+                townsquare.town_squares[game_number].sts.append(Player(member.id, member.display_name))
             dm_content = f"You have assigned the ST role for game {game_number} to {member.display_name}"
             dm_success = await utility.dm_user(ctx.author, dm_content)
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
             await self.helper.finish_processing(ctx)
-            print("-= The ShareGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + f" on {member.name}=-"))
         else:
-            await utility.deny_command(ctx, "ShareGrimoire")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(

@@ -4,6 +4,7 @@ import nextcord
 from dotenv import load_dotenv
 from nextcord.ext import commands
 
+import utility
 from Cogs.Game import Game
 from Cogs.Grimoire import Grimoire
 from Cogs.Other import Other
@@ -27,7 +28,7 @@ bot = commands.Bot(command_prefix=">",
                    activity=nextcord.Game(">HelpMe or >help"))
 
 
-# Output in terminal when bot turns on
+# load cogs and print ready message
 @bot.event
 async def on_ready():
     print('Logged in as')
@@ -46,5 +47,17 @@ async def on_ready():
     bot.add_cog(votes_cog)
     print('Ready')
     print('------')
+
+
+@bot.event
+async def on_command_error(ctx: commands.Context, error):
+    if isinstance(error, commands.CommandNotFound):
+        await utility.dm_user(ctx.author, "Command not found. Use >help for a list of commands, "
+                                          "or >HelpMe for a list of commands with explanations.")
+    if isinstance(error, commands.UserInputError):
+        await utility.dm_user(ctx.author, f"There was an issue with your input. Usage:{ctx.command.help}.")
+    else:
+        print("An error occurred: " + str(error))
+
 
 bot.run(token)

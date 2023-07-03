@@ -30,11 +30,9 @@ class Game(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The OpenKibitz command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
             # React on Disapproval
-            await utility.deny_command(ctx, "OpenKibitz")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(f"{ctx.author.mention} has run the OpenKibitz Command on Game {game_number}")
@@ -53,10 +51,8 @@ class Game(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The CloseKibitz command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "CloseKibitz")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the CloseKibitz Command on Game {game_number}")
@@ -85,10 +81,10 @@ class Game(commands.Cog):
                     await member.remove_roles(kibitz_role)
                     await member.remove_roles(game_role)
 
-            votes: Optional[Townsquare] = self.bot.get_cog("Townsquare")
-            if votes and game_number in votes.town_squares:
-                votes.town_squares.pop(game_number)
-                votes.update_storage()
+            townsquare: Optional[Townsquare] = self.bot.get_cog("Townsquare")
+            if townsquare and game_number in townsquare.town_squares:
+                townsquare.town_squares.pop(game_number)
+                townsquare.update_storage()
 
             # Change permission of Kibitz to allow Townsfolk to view
             townsfolk_role = self.helper.Guild.default_role
@@ -97,12 +93,10 @@ class Game(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The EndGame command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
         else:
             # React on Disapproval
-            await utility.deny_command(ctx, "EndGame")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the EndGame Command on Game {game_number}")
@@ -132,11 +126,9 @@ class Game(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The ArchiveGame command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
         else:
-            await utility.deny_command(ctx, "ArchiveGame")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the ArchiveGame Command for Game {game_number}")

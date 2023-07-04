@@ -1,5 +1,4 @@
 import typing
-from time import strftime, gmtime
 
 import nextcord
 from nextcord import InvalidArgument
@@ -41,7 +40,6 @@ class Other(commands.Cog):
         if not dm_success:
             await ctx.send(content=output_string, reference=ctx.message)
         await self.helper.finish_processing(ctx)
-        await self.helper.log(f"{ctx.author.mention} has run the ShowSignUps Command")
 
     @commands.command()
     async def OffServerArchive(self, ctx, archive_server_id: int, archive_channel_id: int):

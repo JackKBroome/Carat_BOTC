@@ -249,7 +249,8 @@ class Townsquare(commands.Cog):
     async def cog_check(self, ctx: commands.Context) -> bool:
         if ctx.command.name == "SetupTownSquare":
             return True
-        elif ctx.message.content.split(" ")[1] not in self.town_squares:
+        args = ctx.message.content.split(" ")
+        if len(args) < 2 or args[1] not in self.town_squares:
             await utility.dm_user(ctx.author, "No town square for this game exists.")
             await utility.deny_command(ctx)
             return False

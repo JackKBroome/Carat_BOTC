@@ -55,7 +55,8 @@ async def on_command_error(ctx: commands.Context, error):
         await utility.dm_user(ctx.author, "Command not found. Use >help for a list of commands, "
                                           "or >HelpMe for a list of commands with explanations.")
     if isinstance(error, commands.UserInputError):
-        await utility.dm_user(ctx.author, f"There was an issue with your input. Usage:{ctx.command.help}.")
+        await utility.dm_user(ctx.author, f"There was an issue with your input. Usage: "
+                                          f"`>{ctx.command.name} {ctx.command.signature}`.")
     else:
         print("An error occurred: " + str(error))
 

@@ -39,11 +39,9 @@ class Signup(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The SignUp command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
         else:
-            await utility.deny_command(ctx, "Signup")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(f"{ctx.author.mention} has run the Signups Command  for game {game_number}")

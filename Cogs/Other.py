@@ -268,7 +268,7 @@ class Other(commands.Cog):
                            inline=False)
         ts_embed.add_field(name=">AddAccusation [game_number] [accusation] [nominee_identifier]",
                            value='Add an accusation to the nomination of the given nominee. You don\'t need to ping, a name should work. You must be the nominator or a storyteller for this.\n'
-                                 'Usage examples: `>AddAccusation x1 Alex "In a doubleclaim"`, >AddAccusation 3 Alex "I think they would be a great Undertaker test"`',
+                                 'Usage examples: `>AddAccusation x1 "In a doubleclaim" Alex`, >AddAccusation 3 "I think they would be a great Undertaker test"`',
                            inline=False)
         ts_embed.add_field(name=">AddDefense [game_number] [defense] [nominee_identifier]",
                            value='Add a defense to your nomination or that of the given nominee. You must be a storyteller for the latter.\n'
@@ -380,7 +380,8 @@ class Other(commands.Cog):
                     'Use `all`, `anyone`, `st`, `townsquare`, `mod` or `no-mod` to filter the help message. '
                     'Default is `no-mod`.')
             await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a "
-                                  "moderator know in order to resolve it. Thank you!")
+                                  "moderator know, or open an issue at https://github.com/JackKBroome/Carat_BOTC/issues"
+                                  "\nThank you!")
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")
         await self.helper.finish_processing(ctx)

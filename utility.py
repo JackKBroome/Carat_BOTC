@@ -60,8 +60,10 @@ class Helper:
 
     def get_game_channel(self, number: str) -> nextcord.TextChannel:
         for channel in self.TextGamesCategory.channels:
-            if number in channel.name and "x" + number not in channel.name:
+            if number in channel.name and "x" + number not in channel.name and "1" + number not in channel.name and \
+                    (not number.startswith("x") or "x1" + number[1:] not in channel.name):
                 return channel
+        return None
 
     def get_kibitz_channel(self, number: str) -> nextcord.TextChannel:
         if number[0] == "x":

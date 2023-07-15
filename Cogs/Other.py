@@ -1,9 +1,11 @@
+import asyncio
+import datetime
 import typing
 
 import nextcord
 from nextcord import InvalidArgument
 from nextcord.ext import commands
-from nextcord.utils import get
+from nextcord.utils import get, utcnow, format_dt
 
 import utility
 
@@ -86,6 +88,51 @@ class Other(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You do not have permission to use this command")
+
+    @commands.command()
+    async def SetReminders(self, ctx, *args):
+        if len(args) < 2:
+            await utility.deny_command(ctx)
+            await utility.dm_user(ctx.author, "At least game number and one reminder time are required")
+            return
+        game_number = args[0]
+        game_channel = self.helper.get_game_channel(game_number)
+        if not game_channel:
+            await utility.deny_command(ctx)
+            await utility.dm_user(ctx.author, "The first argument must be a valid game number")
+            return
+        game_role = self.helper.get_game_role(game_number)
+        event = "Whispers close"
+        try:
+            times = [float(time) for time in args[1:]]
+        except ValueError:
+            event = args[1]
+            try:
+                times = [float(time) for time in args[2:]]
+            except ValueError as e:
+                await utility.deny_command(ctx)
+                await utility.dm_user(ctx.author, e.args[0])  # looks like: "could not convert string to float: 'bla'"
+                return
+            if len(times) == 0:
+                await utility.deny_command(ctx)
+                await utility.dm_user(ctx.author, "At least one reminder time is required")
+                return
+        if not self.helper.authorize_st_command(ctx.author, game_number):
+            await utility.deny_command(ctx)
+            await utility.dm_user(ctx.author, "You must be an ST to use this command")
+            return
+        await utility.start_processing(ctx)
+        times.sort()
+        end_of_countdown = utcnow() + datetime.timedelta(hours=times[-1])
+        deltas = [times[0]] + [second - first for first, second in zip(times, times[1:])]
+        await self.helper.finish_processing(ctx)
+        await self.helper.log(f"{ctx.author.mention} has run the SetReminders command for game {game_number}")
+
+        for wait_time in deltas[:-1]:
+            await asyncio.sleep(wait_time * 3600)  # hours to seconds
+            await game_channel.send(content=game_role.mention + " " + event + " " + format_dt(end_of_countdown, "R"))
+        await asyncio.sleep(deltas[-1] * 3600)
+        await game_channel.send(content=game_role.mention + " " + event)
 
     @commands.command()
     async def CreateThreads(self, ctx, game_number):
@@ -201,6 +248,13 @@ class Other(commands.Cog):
                            value='Creates a private thread in the game\'s channel for each player, named "ST Thread ['
                                  'player name]", and adds the player and all STs to it.\n' +
                                  'Usage examples: `>CreateThreads 1`, `>CreateThreads x3`',
+                           inline=False)
+        st_embed.add_field(name=">SetReminders [game number] [event] [times]",
+                           value='At the given times, sends reminders to the players how long they have until the event'
+                                 ' occurs. The event argument is optional and defaults to "Whispers close". '
+                                 'Times must be given in hours from the current time. You can give any number of times.'
+                                 'The event is assumed to occur at the last given time.\n'
+                                 'Usage examples: `>SetReminders 1 "Votes on Alice close" 24`, `>SetReminders x3 12 18 23 24`',
                            inline=False)
         st_embed.add_field(name=">GiveGrimoire [game number] [User]",
                            value='Removes the ST role for the game from you and gives it to the given user. You can '

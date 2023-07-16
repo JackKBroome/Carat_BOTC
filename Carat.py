@@ -3,6 +3,7 @@ import os
 import nextcord
 from dotenv import load_dotenv
 from nextcord.ext import commands
+from nextcord.ext.commands import DefaultHelpCommand
 
 import utility
 from Cogs.Game import Game
@@ -25,7 +26,8 @@ bot = commands.Bot(command_prefix=">",
                    case_insensitive=True,
                    intents=intents,
                    allowed_mentions=allowedMentions,
-                   activity=nextcord.Game(">HelpMe or >help"))
+                   activity=nextcord.Game(">HelpMe or >help"),
+                   help_command=DefaultHelpCommand(verify_checks=False))
 
 
 # load cogs and print ready message
@@ -59,6 +61,5 @@ async def on_command_error(ctx: commands.Context, error):
                                           f"`>{ctx.command.name} {ctx.command.signature}`.")
     else:
         print("An error occurred: " + str(error))
-
 
 bot.run(token)

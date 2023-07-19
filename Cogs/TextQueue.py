@@ -1,6 +1,6 @@
 import json
 import os
-import typing
+from typing import Literal, Optional
 from time import strftime, gmtime
 
 import nextcord
@@ -9,7 +9,7 @@ from nextcord.utils import get
 
 import utility
 
-ChannelTypeParameter = typing.Literal[
+ChannelTypeParameter = Literal[
     'regular', 'Regular', 'standard', 'Standard', 'normal', 'Normal', 'r', 'R', 'n', 'N', 'experimental', 'Experimental', 'exp', 'Exp', 'x', 'X']
 
 
@@ -17,14 +17,14 @@ class TextQueue(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot
         self.helper = helper
-        self.QueueLocation = os.path.join(self.helper.StorageLocation, "queue.json")
-        try:
-            with open(self.QueueLocation, 'r') as f:
-                self.queues = json.load(f)
-        except OSError:
+        self.QueueStorage = os.path.join(self.helper.StorageLocation, "queue.json")
+        if not os.path.exists(self.QueueStorage):
             self.queues = {"Regular": {}, "Experimental": {}}
-            with open(self.QueueLocation, 'w') as f:
+            with open(self.QueueStorage, 'w') as f:
                 json.dump(self.queues, f)
+        else:
+            with open(self.QueueStorage, 'r') as f:
+                self.queues = json.load(f)
 
     async def update_queue_message(self, queue: dict):
         channel = get(self.helper.Guild.channels, id=queue["ChannelId"])
@@ -47,7 +47,8 @@ class TextQueue(commands.Cog):
     async def announce_free_channel(self, game_number, queue_position: int):
         channel = self.helper.get_game_channel(game_number)
         channel_type = "Experimental" if game_number[0] == "x" else "Regular"
-        if queue_position > len(self.queues[channel_type]["Entries"]):
+        if queue_position >= len(self.queues[channel_type]["Entries"]):
+            await channel.send("There are no further entries in the queue.")
             return
         next_entry = self.queues[channel_type]["Entries"][queue_position]
         user = get(self.helper.Guild.members, id=next_entry["ST"])
@@ -55,7 +56,7 @@ class TextQueue(commands.Cog):
             content = f"{user.mention} This game channel has become free! You are next in the queue.\n" \
                       f"You may claim the grimoire with >ClaimGrimoire {game_number} or the button below.\n" \
                       f"If you are not currently able to run the game, use the button below to decline the grimoire " \
-                      f"and inform the next person in the queue"
+                      f"and inform the next person in the queue."
             await channel.send(content=content,
                                view=FreeChannelNotificationView(self, self.helper, self.queues[channel_type]["Entries"],
                                                                 game_number, queue_position))
@@ -69,7 +70,10 @@ class TextQueue(commands.Cog):
                                                   if entry["ST"] != user.id]
         await self.update_queue_message(self.queues["Regular"])
         await self.update_queue_message(self.queues["Experimental"])
-        with open(self.QueueLocation, "w") as f:
+        await self.update_storage()
+
+    async def update_storage(self):
+        with open(self.QueueStorage, "w") as f:
             json.dump(self.queues, f)
 
     @commands.command()
@@ -94,19 +98,16 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["MessageId"] = queue_message.id
             self.queues[channel_type]["Entries"] = []
 
-            with open(self.QueueLocation, "w") as f:
-                json.dump(self.queues, f)
+            await self.update_storage()
             await self.helper.finish_processing(ctx)
-            print("-= The InitQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "InitQueue")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the InitQueue command in {ctx.channel.mention}")
 
     @commands.command()
-    async def JoinTextQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter, script: str, availability: str,
-                      notes: typing.Optional[str]):
+    async def JoinTextQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter, script: str,
+                            availability: str, notes: Optional[str]):
         channel_type = utility.get_channel_type(channel_type)
         users_in_queue = [entry["ST"]
                           for entry in self.queues["Regular"]["Entries"] + self.queues["Experimental"]["Entries"]]
@@ -118,13 +119,10 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["Entries"].append(entry)
             await self.update_queue_message(self.queues[channel_type])
 
-            with open(self.QueueLocation, "w") as f:
-                json.dump(self.queues, f)
+            await self.update_storage()
             await self.helper.finish_processing(ctx)
-            print("-= The JoinTextQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "JoinTextQueue")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You may not join a text ST queue while you are already in one")
 
         await self.helper.log(f"{ctx.author.mention} has run the JoinTextQueue command")
@@ -146,17 +144,14 @@ class TextQueue(commands.Cog):
         self.queues[channel_type]["Entries"] = [e for e in self.queues[channel_type]["Entries"]
                                                 if e["ST"] != ctx.author.id]
         await self.update_queue_message(self.queues[channel_type])
-        with open(self.QueueLocation, "w") as f:
-            json.dump(self.queues, f)
+        await self.update_storage()
 
         await self.helper.finish_processing(ctx)
-        print("-= The LeaveTextQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
         await self.helper.log(f"{ctx.author.mention} has run the LeaveTextQueue command")
 
     @commands.command()
-    async def MoveDown(self, ctx: commands.Context, number_of_spots: typing.Optional[int] = 1):
+    async def MoveDown(self, ctx: commands.Context, number_of_spots: Optional[int] = 1):
         await utility.start_processing(ctx)
         users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
         users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
@@ -168,19 +163,16 @@ class TextQueue(commands.Cog):
             await utility.dm_user(ctx.author, "You are not in a queue at the moment")
             await self.helper.finish_processing(ctx)
             return
-        for index, item in enumerate(self.queues[channel_type]["Entries"]):
-            if item["ST"] == ctx.author.id:
+        for index, entry in enumerate(self.queues[channel_type]["Entries"]):
+            if entry["ST"] == ctx.author.id:
                 current_index = index
         self.queues[channel_type]["Entries"].insert(current_index + number_of_spots,
                                                     self.queues[channel_type]["Entries"].pop(current_index))
 
         await self.update_queue_message(self.queues[channel_type])
-        with open(self.QueueLocation, "w") as f:
-            json.dump(self.queues, f)
+        await self.update_storage()
 
         await self.helper.finish_processing(ctx)
-        print("-= The MoveDown command was used successfully by " + str(ctx.author.name) + " at " + str(
-            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     @commands.command()
     async def RemoveFromQueue(self, ctx: commands.Context, member: nextcord.Member):
@@ -201,14 +193,11 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["Entries"] = [e for e in self.queues[channel_type]["Entries"]
                                                     if e["ST"] != member.id]
             await self.update_queue_message(self.queues[channel_type])
-            with open(self.QueueLocation, "w") as f:
-                json.dump(self.queues, f)
+            await self.update_storage()
 
             await self.helper.finish_processing(ctx)
-            print("-= The RemoveFromQueue command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "RemoveFromQueue")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
 
     @commands.command()
@@ -232,14 +221,11 @@ class TextQueue(commands.Cog):
             self.queues[channel_type]["Entries"].insert(spot - 1, entry)
 
             await self.update_queue_message(self.queues[channel_type])
-            with open(self.QueueLocation, "w") as f:
-                json.dump(self.queues, f)
+            await self.update_storage()
 
             await self.helper.finish_processing(ctx)
-            print("-= The MoveToSpot command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "MoveToSpot")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
 
 

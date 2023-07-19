@@ -1,8 +1,10 @@
 from time import strftime, gmtime
+from typing import Optional
 
 from nextcord.ext import commands
 
 import utility
+from Cogs.Townsquare import Townsquare
 
 
 class Game(commands.Cog):
@@ -28,11 +30,9 @@ class Game(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The OpenKibitz command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
             # React on Disapproval
-            await utility.deny_command(ctx, "OpenKibitz")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(f"{ctx.author.mention} has run the OpenKibitz Command on Game {game_number}")
@@ -51,17 +51,14 @@ class Game(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The CloseKibitz command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "CloseKibitz")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the CloseKibitz Command on Game {game_number}")
 
     @commands.command()
     async def EndGame(self, ctx: commands.Context, game_number):
-
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
@@ -78,11 +75,16 @@ class Game(commands.Cog):
             members = game_role.members
             members += kibitz_role.members
 
-            # Remove Kibitz from non-bot players
+            # Remove roles from non-bot players
             for member in members:
                 if str(member.bot) == "False":
                     await member.remove_roles(kibitz_role)
                     await member.remove_roles(game_role)
+
+            townsquare: Optional[Townsquare] = self.bot.get_cog("Townsquare")
+            if townsquare and game_number in townsquare.town_squares:
+                townsquare.town_squares.pop(game_number)
+                townsquare.update_storage()
 
             # Change permission of Kibitz to allow Townsfolk to view
             townsfolk_role = self.helper.Guild.default_role
@@ -91,12 +93,10 @@ class Game(commands.Cog):
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The EndGame command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
         else:
             # React on Disapproval
-            await utility.deny_command(ctx, "EndGame")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the EndGame Command on Game {game_number}")
@@ -119,18 +119,16 @@ class Game(commands.Cog):
             await game_channel.edit(category=archive_category, name=str(game_channel_name) + " Archived on " + str(
                 strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
 
-            await new_channel.edit(position=game_position, name=f"text-game-{game_number}")
+            await new_channel.edit(position=game_position, name=f"text-game-{game_number}", topic="")
 
             kibitz_channel = self.helper.get_kibitz_channel(game_number)
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=False)
 
             # React for completion
             await self.helper.finish_processing(ctx)
-            print("-= The ArchiveGame command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
         else:
-            await utility.deny_command(ctx, "ArchiveGame")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the ArchiveGame Command for Game {game_number}")

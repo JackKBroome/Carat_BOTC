@@ -1,10 +1,12 @@
 from time import strftime, gmtime
+from typing import Optional
 
 import nextcord
 from nextcord.ext import commands
 
 import utility
 from Cogs.TextQueue import TextQueue
+from Cogs.Townsquare import Townsquare, Player
 
 MaxGameNumber = 15
 PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
@@ -27,7 +29,7 @@ class Grimoire(commands.Cog):
 
             await ctx.author.add_roles(st_role)
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
-            queue: TextQueue | None = self.bot.get_cog('Queue')
+            queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue:
                 channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
                 users_in_queue = [entry["ST"] for entry in queue.queues[channel_type]["Entries"]]
@@ -39,14 +41,12 @@ class Grimoire(commands.Cog):
                                             f"and join the queue with `>JoinTextQueue` (see `>HelpMe` for details)")
                 await queue.user_leave_queue(ctx.author)
             await self.helper.finish_processing(ctx)
-            print("-= The ClaimGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
             await utility.dm_user(ctx.author,
                                   "This channel already has " + str(len(st_role.members)) + " STs. These users are:\n" +
                                   "\n".join([ST.display_name for ST in st_role.members])
                                   )
-            await utility.deny_command(ctx, "ClaimGrimoire")
+            await utility.deny_command(ctx)
 
         await self.helper.log(f"{ctx.author.mention} has run the ClaimGrimoire Command  for game {game_number}")
 
@@ -64,10 +64,8 @@ class Grimoire(commands.Cog):
                                   "You have assigned the current ST role for game " + str(game_number) +
                                   " to " + member.display_name)
             await self.helper.finish_processing(ctx)
-            print("-= The GiveGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + f" on {member.name}=-"))
         else:
-            await utility.deny_command(ctx, "GiveGrimoire")
+            await utility.deny_command(ctx)
 
         await self.helper.log(
             f"{ctx.author.mention} has run the GiveGrimoire Command on {member.display_name} for game {game_number}")
@@ -85,36 +83,33 @@ class Grimoire(commands.Cog):
             dm_success = await utility.dm_user(ctx.author, dm_content)
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
-            queue = self.bot.get_cog('Queue')
+            queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue and not st_role.members:
                 await queue.announce_free_channel(game_number, 0)
             await self.helper.finish_processing(ctx)
-            print("-= The DropGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
         else:
-            await utility.deny_command(ctx, "DropGrimoire")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(f"{ctx.author.mention} has run the DropGrimoire Command for game {game_number}")
 
     @commands.command()
-    async def ShareGrimoire(self, ctx: commands.Context, game_number, member: nextcord.Member):
+    async def ShareGrimoire(self, ctx: commands.Context, game_number: str, member: nextcord.Member):
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
 
             await member.add_roles(self.helper.get_st_role(game_number))
-
-            dm_content = "You have assigned the current ST for game " + str(game_number) + " to " + \
-                         str(member.display_name)
+            townsquare: Optional[Townsquare] = self.bot.get_cog('Townsquare')
+            if townsquare and game_number in townsquare.town_squares:
+                townsquare.town_squares[game_number].sts.append(Player(member.id, member.display_name))
+            dm_content = f"You have assigned the ST role for game {game_number} to {member.display_name}"
             dm_success = await utility.dm_user(ctx.author, dm_content)
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
             await self.helper.finish_processing(ctx)
-            print("-= The ShareGrimoire command was used successfully by " + str(ctx.author.name) + " at " + str(
-                strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + f" on {member.name}=-"))
         else:
-            await utility.deny_command(ctx, "ShareGrimoire")
+            await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
@@ -129,14 +124,13 @@ class Grimoire(commands.Cog):
         games = [x for x in PotentialGames if x in channel_names_string]
         message = ""
         for j in games:
-            try:
-                current_sts = self.helper.get_st_role(j).members
-                if not current_sts:
-                    message += "There is currently no assigned ST for game " + str(j) + "\n"
-                else:
-                    message += f"Game {j}'s STs are: " + ", ".join([st.display_name for st in current_sts]) + "\n"
-            except:
+            st_role = self.helper.get_st_role(j)
+            if not st_role:
                 print(f"game {j} not found")
+            elif not st_role.members:
+                message += "There is currently no assigned ST for game " + str(j) + "\n"
+            else:
+                message += f"Game {j}'s STs are: " + ", ".join([st.display_name for st in st_role.members]) + "\n"
         dm_success = await utility.dm_user(ctx.author, message)
         if not dm_success:
             await ctx.send(message)

@@ -1,5 +1,6 @@
 import os
 from time import gmtime, strftime
+from typing import Union
 
 import nextcord
 from dotenv import load_dotenv
@@ -20,23 +21,30 @@ def get_channel_type(channel_type):
         return "Regular"
 
 
-async def dm_user(user: nextcord.User, content: str) -> bool:
+async def dm_user(user: Union[nextcord.User, nextcord.Member], content: str) -> bool:
     try:
         await user.send(content)
         return True
     except nextcord.Forbidden:
         print(f"Could not DM {user} due to lack of permission")
         return False
+    except Exception as e:
+        print(f"Could not DM {user} due to unknown error: {e}")
+        return False
 
 
-async def deny_command(ctx: commands.Context, command_name: str):
+async def deny_command(ctx: commands.Context):
     await ctx.message.add_reaction(DeniedEmoji)
-    print(f"-= The {command_name} command was stopped against " + str(ctx.author.name) + " at " + str(
+    print(f"-= The {ctx.command.name} command was stopped against " + str(ctx.author.name) + " at " + str(
         strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
 
 async def start_processing(ctx):
     await ctx.message.add_reaction(WorkingEmoji)
+
+
+def is_mention(string: str) -> bool:
+    return string.startswith("<@") and string.endswith(">") and string[2:-1].isdigit()
 
 
 class Helper:
@@ -85,6 +93,8 @@ class Helper:
     async def finish_processing(self, ctx):
         await ctx.message.remove_reaction(WorkingEmoji, self.bot.user)
         await ctx.message.add_reaction(CompletedEmoji)
+        print(f"-= The {ctx.command.name} command was used successfully by " + str(ctx.author.name) + " at " + str(
+            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     async def log(self, log_string: str):
         await self.LogChannel.send(log_string)

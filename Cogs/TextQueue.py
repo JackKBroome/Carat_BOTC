@@ -1,7 +1,6 @@
 import json
 import os
 from typing import Literal, Optional
-from time import strftime, gmtime
 
 import nextcord
 from nextcord.ext import commands
@@ -78,6 +77,9 @@ class TextQueue(commands.Cog):
 
     @commands.command()
     async def InitQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter):
+        """Initializes an ST queue for either regular or experimental games in the channel or thread the command was used in.
+        Can be reused to create a new queue and queue message for either channel type, but all previous entries of that
+        queue will be lost."""
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             channel_type = utility.get_channel_type(channel_type)
@@ -108,6 +110,11 @@ class TextQueue(commands.Cog):
     @commands.command()
     async def JoinTextQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter, script: str,
                             availability: str, notes: Optional[str]):
+        """Adds you to the queue for the given channel type (regular/experimental).
+        The queue entry will list the provided information.
+        You may not join either queue while you have an entry in either queue.
+        Do not join a queue if you are currently storytelling, unless you are just a co-ST.
+        Note that if a parameter contains spaces, you have to surround it with quotes."""
         channel_type = utility.get_channel_type(channel_type)
         users_in_queue = [entry["ST"]
                           for entry in self.queues["Regular"]["Entries"] + self.queues["Experimental"]["Entries"]]
@@ -129,6 +136,8 @@ class TextQueue(commands.Cog):
 
     @commands.command()
     async def LeaveTextQueue(self, ctx: commands.Context):
+        """Removes you from the queue you are in currently.
+        Note that rejoining will put you at the end, not where you were before."""
         await utility.start_processing(ctx)
         users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
         users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
@@ -152,6 +161,9 @@ class TextQueue(commands.Cog):
 
     @commands.command()
     async def MoveDown(self, ctx: commands.Context, number_of_spots: Optional[int] = 1):
+        """Moves you down the given number of spaces in your queue.
+        Use if you can't run the game yet but don't want to be pinged every time a channel becomes free.
+        Note that you cannot move yourself back up, though you can ask a mod to fix things if you make a mistake"""
         await utility.start_processing(ctx)
         users_in_regular_queue = [entry["ST"] for entry in self.queues["Regular"]["Entries"]]
         users_in_exp_queue = [entry["ST"] for entry in self.queues["Experimental"]["Entries"]]
@@ -176,6 +188,8 @@ class TextQueue(commands.Cog):
 
     @commands.command()
     async def RemoveFromQueue(self, ctx: commands.Context, member: nextcord.Member):
+        """Removes the given user from either queue.
+        You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
         # mod command
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
@@ -202,6 +216,8 @@ class TextQueue(commands.Cog):
 
     @commands.command()
     async def MoveToSpot(self, ctx: commands.Context, member: nextcord.Member, spot: int):
+        """Moves the queue entry of the given user to the given spot in their queue, 1 being the top.
+        You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
         # mod command
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)

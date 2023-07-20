@@ -13,7 +13,36 @@ class Signup(commands.Cog):
         self.helper = helper
 
     @commands.command()
+    async def ShowSignUps(self, ctx: commands.Context, game_number: str):
+        """Sends a DM listing the STs, players, and kibitz members of the game."""
+        await utility.start_processing(ctx)
+        st_role = self.helper.get_st_role(game_number)
+        st_names = [st.display_name for st in st_role.members]
+        player_role = self.helper.get_game_role(game_number)
+        player_names = [player.display_name for player in player_role.members]
+        kibitz_role = self.helper.get_kibitz_role(game_number)
+        kibitz_names = [kibitzer.display_name for kibitzer in kibitz_role.members]
+
+        output_string = f"Game {game_number} Players\n" \
+                        f"Storyteller:\n"
+        output_string += "\n".join(st_names)
+
+        output_string += "\nPlayers:\n"
+        output_string += "\n".join(player_names)
+
+        output_string += "\nKibitz members:\n"
+        output_string += "\n".join(kibitz_names)
+
+        dm_success = await utility.dm_user(ctx.author, output_string)
+        if not dm_success:
+            await ctx.send(content=output_string, reference=ctx.message)
+        await self.helper.finish_processing(ctx)
+
+    @commands.command()
     async def Signup(self, ctx: commands.Context, game_number: str, signup_limit: int, script: str):
+        """Posts a message listing the signed up players in the appropriate game channel, with buttons that players can use to sign up or leave the game.
+        If players are added or removed in other ways, may need to be updated explicitly with the appropriate button to
+         reflect those changes. Note that if a parameter contains spaces, you have to surround it with quotes."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)

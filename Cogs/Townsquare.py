@@ -275,6 +275,10 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def SetupTownSquare(self, ctx: commands.Context, game_number: str, players: commands.Greedy[nextcord.Member]):
+        """Creates the town square for the given game, with the given players.
+        Ping them in order of seating.
+        Overwrites information like nominations and votes if a town square existed already.
+        Use UpdateTownSquare if that is not what you want."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             player_list = [Player(p.id, p.display_name) for p in players]
@@ -299,6 +303,9 @@ class Townsquare(commands.Cog):
     @commands.command()
     async def UpdateTownSquare(self, ctx: commands.Context, game_number: str,
                                players: commands.Greedy[nextcord.Member]):
+        """Updates the town square for the given game, with the given players.
+        Ping them in order of seating.The difference to rerunning SetupTownSquare is that the latter will
+        lose information like aliases, spent deadvotes, and nominations. UpdateTownSquare will not."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             new_player_list = [self.reuse_or_convert_player(p, game_number) for p in players]
@@ -320,6 +327,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def CreateNomThread(self, ctx: commands.Context, game_number: str, name: Optional[str]):
+        """Creates a thread for nominations to be run in.
+        The name of the thread is optional, with `Nominations` as default."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             game_channel = self.helper.get_game_channel(game_number)
@@ -336,7 +345,9 @@ class Townsquare(commands.Cog):
     @commands.command()
     async def Nominate(self, ctx: commands.Context, game_number: str,
                        nominee_identifier: str, nominator_identifier: Optional[str]):
-
+        """Create a nomination for the given nominee.
+        If you are a ST, provide the nominator. If you are a player, leave the nominator out or give yourself.
+        In either case, you don't need to ping, a name should work."""
         game_role = self.helper.get_game_role(game_number)
         # check permission
         can_nominate = self.helper.authorize_st_command(ctx.author, game_number) or game_role in ctx.author.roles
@@ -399,6 +410,8 @@ class Townsquare(commands.Cog):
     @commands.command()
     async def AddAccusation(self, ctx: commands.Context, game_number: str, accusation: str,
                             nominee_identifier: Optional[str]):
+        """Add an accusation to the nomination of the given nominee.
+        You don't need to ping, a name should work. You must be the nominator or a storyteller for this."""
         if len(accusation) > 900:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "Your accusation is too long. Consider posting it in public and "
@@ -435,6 +448,8 @@ class Townsquare(commands.Cog):
     @commands.command()
     async def AddDefense(self, ctx: commands.Context, game_number: str, defense: str,
                          nominee_identifier: Optional[str]):
+        """Add a defense to your nomination or that of the given nominee.
+        You must be a storyteller for the latter."""
         if len(defense) > 900:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "Your defense is too long. Consider posting it in public and "
@@ -470,6 +485,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def SetVoteThreshold(self, ctx: commands.Context, game_number: str, target: int):
+        """Set the vote threshold to put a player on the block to the given number.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             if target < 0:
@@ -484,6 +501,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def SetDeadline(self, ctx: commands.Context, game_number: str, nominee_identifier: str, time_in_h: float):
+        """Set the deadline for the nomination of a given nominee to the given number of hours from now.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             time = datetime.timedelta(hours=time_in_h)
@@ -515,6 +534,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def SetDefaultDeadline(self, ctx: commands.Context, game_number: str, hours: int):
+        """Set the default nomination duration for the game to the given number of hours.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             if hours < 0:
@@ -531,6 +552,10 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def Vote(self, ctx: commands.Context, game_number: str, nominee_identifier: str, vote: str):
+        """Set your vote for the given nominee.
+        You don't need to ping, a name should work.
+        Your vote can be anything, but should be something the ST can unambiguously interpret as yes or no when they count it.
+        You can change your vote until it is counted by the storyteller."""
         game_role = self.helper.get_game_role(game_number)
         if len(vote) > 400:
             await utility.deny_command(ctx)
@@ -584,6 +609,10 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def PrivateVote(self, ctx: commands.Context, game_number: str, nominee_identifier: str, vote: str):
+        """Same as >Vote, but your vote will be hidden from other players.
+        They will still see whether you voted yes or no after your vote is counted. A private vote will always override
+        any public vote, even later ones. If you want your public vote to be counted instead,
+        you can change your private vote accordingly or use >RemovePrivateVote."""
         game_role = self.helper.get_game_role(game_number)
         if game_role in ctx.author.roles:
             await utility.start_processing(ctx)
@@ -630,6 +659,7 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def RemovePrivateVote(self, ctx: commands.Context, game_number: str, nominee_identifier: str):
+        """Removes your private vote for the given nominee, so that your public vote is counted instead."""
         game_role = self.helper.get_game_role(game_number)
         if game_role in ctx.author.roles:
             await utility.start_processing(ctx)
@@ -670,6 +700,8 @@ class Townsquare(commands.Cog):
     @commands.command()
     async def CountVotes(self, ctx: commands.Context, game_number: str, nominee_identifier: str,
                          override: Optional[Literal["public"]] = None):
+        """Begins counting the votes for the given nominee.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             if not override and (ctx.channel in self.helper.TextGamesCategory.channels or
@@ -704,6 +736,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def CloseNomination(self, ctx: commands.Context, game_number: str, nominee_identifier: str):
+        """Marks the nomination for the given nominee as closed.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             nominee = self.get_game_participant(game_number, nominee_identifier)
@@ -728,6 +762,9 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def SetAlias(self, ctx: commands.Context, game_number: str, alias: str):
+        """Set your preferred alias for the given game.
+        This will be used anytime the bot refers to you. The default is your username.
+        Can be used by players and storytellers."""
         game_role = self.helper.get_game_role(game_number)
         st_role = self.helper.get_st_role(game_number)
         if len(alias) > 100 or utility.is_mention(alias):
@@ -765,6 +802,9 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def ToggleOrganGrinder(self, ctx: commands.Context, game_number: str):
+        """Activates or deactivates Organ Grinder for the display of nominations in the game.
+        Finished nominations are not updated.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             self.town_squares[game_number].organ_grinder = not self.town_squares[game_number].organ_grinder
@@ -781,6 +821,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def TogglePlayerNoms(self, ctx: commands.Context, game_number: str):
+        """Activates or deactivates the ability of players to nominate directly.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             if game_number not in self.town_squares:
@@ -799,6 +841,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def ToggleMarkedDead(self, ctx: commands.Context, game_number: str, player_identifier: str):
+        """Marks the given player as dead or alive for display on nominations.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             player_user = self.get_game_participant(game_number, player_identifier)
@@ -824,6 +868,8 @@ class Townsquare(commands.Cog):
 
     @commands.command()
     async def ToggleCanVote(self, ctx: commands.Context, game_number: str, player_identifier: str):
+        """Allows or disallows the given player to vote.
+        You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             player_user = self.get_game_participant(game_number, player_identifier)

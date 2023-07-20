@@ -11,6 +11,8 @@ class Users(commands.Cog):
 
     @commands.command()
     async def AddPlayer(self, ctx, game_number, players: commands.Greedy[nextcord.Member]):
+        """Gives the appropriate game role to the given users.
+        You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
         if not len(players):
             await utility.dm_user(ctx.author, "Usage: >AddPlayer [game number] [at least one user]")
             return
@@ -34,6 +36,8 @@ class Users(commands.Cog):
 
     @commands.command()
     async def RemovePlayer(self, ctx, game_number, players: commands.Greedy[nextcord.Member]):
+        """Removes the appropriate game role from the given users.
+        You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
         if not len(players):
             await utility.dm_user(ctx.author, "Usage: >RemovePlayer [game number] [at least one user]")
             return
@@ -58,6 +62,8 @@ class Users(commands.Cog):
 
     @commands.command()
     async def AddKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
+        """Gives the appropriate kibitz role to the given users.
+        You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
         if not len(kibitzers):
             await utility.dm_user(ctx.author, "Usage: >AddKibitz [game number] [at least one user]")
             return
@@ -84,6 +90,8 @@ class Users(commands.Cog):
 
     @commands.command()
     async def RemoveKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
+        """Removes the appropriate kibitz role from the given users.
+        You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
         if not len(kibitzers):
             await utility.dm_user(ctx.author, "Usage: >RemoveKibitz [game number] [at least one user]")
             return

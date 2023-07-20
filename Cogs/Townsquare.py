@@ -912,7 +912,7 @@ class CountVoteView(nextcord.ui.View):
         self.player_list = reordered_players(self.nom, self.cog.town_squares[game_number])
         self.game_number = game_number
         self.emoji = emoji
-        self.timeout = 86400
+        self.timeout = 86400  # 24h
 
     # executed when a button is clicked, if it returns False no callback function is called
     async def interaction_check(self, interaction: nextcord.Interaction):

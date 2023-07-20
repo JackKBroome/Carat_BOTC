@@ -182,6 +182,10 @@ class Other(commands.Cog):
                                      '`>JoinTextQueue Exp "Oops All Amnesiacs" "in July, between the 13th and 30th" '
                                      '"Let me know beforehand if you\'re interested"`',
                                inline=False)
+        anyone_embed.add_field(name=">EditEntry [script name] [availability] [notes (optional)]",
+                               value="Edits your queue entry. You cannot change the channel type. "
+                                     "You have to give availability and script even if they have not changed."
+                                     'Usage examples: `>EditEntry "Trouble Brewing" "after June 20"`')
         anyone_embed.add_field(name=">LeaveTextQueue",
                                value="Removes you from the queue you are in currently - careful, you won't be able to "
                                      "regain your spot.",

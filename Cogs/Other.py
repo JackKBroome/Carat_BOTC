@@ -67,7 +67,7 @@ class Other(commands.Cog):
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You do not have permission to use this command")
 
-    @commands.command()
+    @commands.command(usage="<game_number> [event] [times]...")
     async def SetReminders(self, ctx, *args):
         """At the given times, sends reminders to the players how long they have until the event occurs.
         The event argument is optional and defaults to "Whispers close". Times must be given in hours from the

@@ -1,4 +1,3 @@
-from time import strftime, gmtime
 from typing import Optional
 
 import nextcord
@@ -32,7 +31,7 @@ class Grimoire(commands.Cog):
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue:
                 channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
-                users_in_queue = [entry["ST"] for entry in queue.queues[channel_type]["Entries"]]
+                users_in_queue = [entry.st for entry in queue.queues[channel_type].entries]
                 if ctx.author.id not in users_in_queue:
                     game_channel = self.helper.get_game_channel(game_number)
                     await game_channel.send(f"{ctx.author.mention} Warning - you are taking a channel without having "

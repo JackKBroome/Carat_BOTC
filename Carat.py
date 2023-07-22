@@ -1,9 +1,10 @@
 import os
+import traceback
 
 import nextcord
 from dotenv import load_dotenv
 from nextcord.ext import commands
-from nextcord.ext.commands import DefaultHelpCommand
+from nextcord.ext.commands import DefaultHelpCommand, CommandError
 
 import utility
 from Cogs.Game import Game
@@ -52,7 +53,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_command_error(ctx: commands.Context, error):
+async def on_command_error(ctx: commands.Context, error: CommandError):
     if isinstance(error, commands.CommandNotFound):
         await utility.dm_user(ctx.author, "Command not found. Use >help for a list of commands, "
                                           "or >HelpMe for a list of commands with explanations.")
@@ -61,5 +62,6 @@ async def on_command_error(ctx: commands.Context, error):
                                           f"`>{ctx.command.name} {ctx.command.signature}`.")
     else:
         print("An error occurred: " + str(error))
+        traceback.print_exception(type(error), error, error.__traceback__)
 
 bot.run(token)

@@ -20,7 +20,6 @@ voted_no_emoji = '\U0000274C'  # ❌
 clock_emoji = '\U0001f566'  # 🕦
 
 
-# Future task: rework TextQueue to use dataclasses as well? Much prefer them now that I've worked with them tbh
 @dataclass_json
 @dataclass
 class Player:
@@ -132,7 +131,6 @@ def reordered_players(nom: Nomination, town_square: TownSquare) -> List[Player]:
     return town_square.players[last_vote_index + 1:] + town_square.players[:last_vote_index + 1]
 
 
-# TODO: check all relevant commands include log/update state correctly
 class Townsquare(commands.Cog):
     bot: commands.Bot
     helper: utility.Helper
@@ -340,13 +338,13 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the storyteller for this game")
-        await self.helper.log(f"{ctx.author.mention} has run the SetNomThread command for game {game_number}")
+        await self.helper.log(f"{ctx.author.mention} has run the CreateNomThread command for game {game_number}")
 
     @commands.command()
     async def Nominate(self, ctx: commands.Context, game_number: str,
                        nominee_identifier: str, nominator_identifier: Optional[str]):
         """Create a nomination for the given nominee.
-        If you are a ST, provide the nominator. If you are a player, leave the nominator out or give yourself.
+        If you are an ST, provide the nominator. If you are a player, leave the nominator out or give yourself.
         In either case, you don't need to ping, a name should work."""
         game_role = self.helper.get_game_role(game_number)
         # check permission
@@ -498,6 +496,8 @@ class Townsquare(commands.Cog):
                 await self.update_nom_message(game_number, nom)
             self.update_storage()
             await self.helper.finish_processing(ctx)
+            await self.log(game_number, f"{ctx.author} has set the vote threshold to {target}")
+        await self.helper.log(f"{ctx.author.mention} has run the SetVoteThreshold command in game {game_number}")
 
     @commands.command()
     async def SetDeadline(self, ctx: commands.Context, game_number: str, nominee_identifier: str, time_in_h: float):
@@ -559,8 +559,8 @@ class Townsquare(commands.Cog):
         game_role = self.helper.get_game_role(game_number)
         if len(vote) > 400:
             await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author,
-                                  "Your vote is too long. Consider simplifying your condition. If that is somehow impossible, just let the ST know.")
+            await utility.dm_user(ctx.author, "Your vote is too long. Consider simplifying your condition. If that is "
+                                              "somehow impossible, just let the ST know.")
             return
         if game_role in ctx.author.roles:
             await utility.start_processing(ctx)
@@ -604,8 +604,7 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be a player to vote. "
                                               "If you are, the ST may have to add you to the town square.")
-        await self.helper.log(
-            f"{ctx.author.mention} has run the Vote command in game {game_number}")
+        await self.helper.log(f"{ctx.author.mention} has run the Vote command in game {game_number}")
 
     @commands.command()
     async def PrivateVote(self, ctx: commands.Context, game_number: str, nominee_identifier: str, vote: str):
@@ -733,6 +732,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the Storyteller to count the votes for a nomination")
+        await self.helper.log(f"{ctx.author.mention} has run the CountVotes command in game {game_number}")
 
     @commands.command()
     async def CloseNomination(self, ctx: commands.Context, game_number: str, nominee_identifier: str):
@@ -759,6 +759,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the Storyteller to close a nomination")
+        await self.helper.log(f"{ctx.author.mention} has run the CloseNomination command in game {game_number}")
 
     @commands.command()
     async def SetAlias(self, ctx: commands.Context, game_number: str, alias: str):
@@ -799,6 +800,8 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be a player to set your alias. "
                                               "If you are, the ST may have to add you to the town square.")
+        await self.helper.log(f"{ctx.author.mention} has run the SetAlias command in game {game_number}")
+
 
     @commands.command()
     async def ToggleOrganGrinder(self, ctx: commands.Context, game_number: str):
@@ -818,6 +821,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the Storyteller to toggle the Organ Grinder")
+        await self.helper.log(f"{ctx.author.mention} has run the ToggleOrganGrinder command for game {game_number}")
 
     @commands.command()
     async def TogglePlayerNoms(self, ctx: commands.Context, game_number: str):
@@ -838,6 +842,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the Storyteller to toggle player nominations")
+        await self.helper.log(f"{ctx.author.mention} has run the TogglePlayerNoms command for game {game_number}")
 
     @commands.command()
     async def ToggleMarkedDead(self, ctx: commands.Context, game_number: str, player_identifier: str):
@@ -865,6 +870,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the Storyteller to mark a player as dead")
+        await self.helper.log(f"{ctx.author.mention} has run the ToggleMarkedDead command in game {game_number}")
 
     @commands.command()
     async def ToggleCanVote(self, ctx: commands.Context, game_number: str, player_identifier: str):
@@ -892,6 +898,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the Storyteller to toggle a player's voting ability")
+        await self.helper.log(f"{ctx.author.mention} has run the ToggleCanVote command in game {game_number}")
 
 
 class CountVoteView(nextcord.ui.View):

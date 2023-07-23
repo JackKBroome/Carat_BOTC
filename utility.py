@@ -1,6 +1,6 @@
 import os
 from time import gmtime, strftime
-from typing import Union
+from typing import Union, Optional
 
 import nextcord
 from dotenv import load_dotenv
@@ -58,10 +58,12 @@ class Helper:
         self.LogChannel = get(self.Guild.channels, id=int(os.environ['LOG_CHANNEL_ID']))
         self.StorageLocation = os.environ['STORAGE_LOCATION']
 
-    def get_game_channel(self, number: str) -> nextcord.TextChannel:
+    def get_game_channel(self, number: str) -> Optional[nextcord.TextChannel]:
         for channel in self.TextGamesCategory.channels:
-            if number in channel.name and "x" + number not in channel.name:
+            if number in channel.name and "x" + number not in channel.name and "1" + number not in channel.name and \
+                    (not number.startswith("x") or "x1" + number[1:] not in channel.name):
                 return channel
+        return None
 
     def get_kibitz_channel(self, number: str) -> nextcord.TextChannel:
         if number[0] == "x":

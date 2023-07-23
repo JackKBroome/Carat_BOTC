@@ -14,8 +14,11 @@ class Game(commands.Cog):
 
     @commands.command()
     async def OpenKibitz(self, ctx, game_number):
+        """Makes the kibitz channel to the game visible to the public.
+        Players will still need to remove their game role to see it. Use after the game has concluded.
+        Will also send a message reminding players to give feedback for the ST and provide a link to do so.
+        In most cases, EndGame may be the more appropriate command."""
         if self.helper.authorize_st_command(ctx.author, game_number):
-            # React on Approval
             await utility.start_processing(ctx)
 
             # Change permission of Kibitz to allow Townsfolk to view
@@ -39,6 +42,9 @@ class Game(commands.Cog):
 
     @commands.command()
     async def CloseKibitz(self, ctx, game_number):
+        """Makes the kibitz channel to the game hidden from the public.
+        This is typically already the case when you claim a grimoire, but might not be in some cases. Make sure none of
+         your players have the kibitz role, as they could still see the channel in that case."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
@@ -59,6 +65,10 @@ class Game(commands.Cog):
 
     @commands.command()
     async def EndGame(self, ctx: commands.Context, game_number):
+        """Opens Kibitz to the public and cleans up after the game.
+        This includes removing the game role from players and the kibitz role from kibitzers, sending a message
+        reminding players to give feedback for the ST with a link to do so,
+        and resetting the town square if there is one."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
@@ -103,6 +113,10 @@ class Game(commands.Cog):
 
     @commands.command()
     async def ArchiveGame(self, ctx, game_number):
+        """Moves the game channel to the archive and creates a new empty channel for the next game.
+        Also makes the kibitz channel hidden from the public. Use after post-game discussion has concluded.
+        Do not remove the game number from the channel name until after archiving.
+        You will still be able to do so afterward."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)

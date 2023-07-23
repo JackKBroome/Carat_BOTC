@@ -1,4 +1,3 @@
-from time import strftime, gmtime
 from typing import Optional
 
 import nextcord
@@ -19,10 +18,10 @@ class Grimoire(commands.Cog):
 
     @commands.command()
     async def ClaimGrimoire(self, ctx: commands.Context, game_number: str):
-
+        """Grants you the ST role of the given game.
+        Also removes you from the relevant queue. Fails if there is already an ST for that game."""
         st_role = self.helper.get_st_role(game_number)
 
-        # stX Access
         if len(st_role.members) == 0 or self.helper.authorize_mod_command(ctx.author):
             # React on Approval
             await utility.start_processing(ctx)
@@ -32,7 +31,7 @@ class Grimoire(commands.Cog):
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue:
                 channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
-                users_in_queue = [entry["ST"] for entry in queue.queues[channel_type]["Entries"]]
+                users_in_queue = [entry.st for entry in queue.queues[channel_type].entries]
                 if ctx.author.id not in users_in_queue:
                     game_channel = self.helper.get_game_channel(game_number)
                     await game_channel.send(f"{ctx.author.mention} Warning - you are taking a channel without having "
@@ -52,10 +51,9 @@ class Grimoire(commands.Cog):
 
     @commands.command()
     async def GiveGrimoire(self, ctx, game_number, member: nextcord.Member):
-        # Check for access
-
+        """Removes the ST role for the game from you and gives it to the given user.
+        You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
         if self.helper.authorize_st_command(ctx.author, game_number):
-            # React on Approval
             await utility.start_processing(ctx)
             st_role = self.helper.get_st_role(game_number)
             await member.add_roles(st_role)
@@ -72,7 +70,8 @@ class Grimoire(commands.Cog):
 
     @commands.command()
     async def DropGrimoire(self, ctx: commands.Context, game_number):
-        # Check for access
+        """Removes the ST role for the game from you.
+        Also announces the free channel if there is no other ST."""
 
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
@@ -95,8 +94,10 @@ class Grimoire(commands.Cog):
 
     @commands.command()
     async def ShareGrimoire(self, ctx: commands.Context, game_number: str, member: nextcord.Member):
+        """Gives the ST role for the game to the given user without removing it from you.
+        Use this if you want to co-ST a game. You can provide a user by ID, mention/ping, or nickname, though giving
+        the nickname may find the wrong user."""
         if self.helper.authorize_st_command(ctx.author, game_number):
-            # React on Approval
             await utility.start_processing(ctx)
 
             await member.add_roles(self.helper.get_st_role(game_number))
@@ -117,7 +118,8 @@ class Grimoire(commands.Cog):
 
     @commands.command()
     async def FindGrimoire(self, ctx: commands.Context):
-
+        """Sends you a DM listing all games and whether they currently have an ST.
+        If they have an ST, it will list them."""
         # find existing games by getting all channel names in the text games category
         # and checking which of 1 to [MaxGameNumber] and x1 to x[MaxGameNumber] appear in them
         channel_names_string = " ".join([channel.name for channel in self.helper.TextGamesCategory.channels])

@@ -1,11 +1,14 @@
+import asyncio
+import datetime
 import typing
 
 import nextcord
 from nextcord import InvalidArgument
 from nextcord.ext import commands
-from nextcord.utils import get
+from nextcord.utils import get, utcnow, format_dt
 
 import utility
+from Cogs.Townsquare import Townsquare
 
 ivy_id = 183474450237358081
 
@@ -17,32 +20,9 @@ class Other(commands.Cog):
         self.helper = helper
 
     @commands.command()
-    async def ShowSignUps(self, ctx: commands.Context, game_number: str):
-        await utility.start_processing(ctx)
-        st_role = self.helper.get_st_role(game_number)
-        st_names = [st.display_name for st in st_role.members]
-        player_role = self.helper.get_game_role(game_number)
-        player_names = [player.display_name for player in player_role.members]
-        kibitz_role = self.helper.get_kibitz_role(game_number)
-        kibitz_names = [kibitzer.display_name for kibitzer in kibitz_role.members]
-
-        output_string = f"Game {game_number} Players\n" \
-                        f"Storyteller:\n"
-        output_string += "\n".join(st_names)
-
-        output_string += "\nPlayers:\n"
-        output_string += "\n".join(player_names)
-
-        output_string += "\nKibitz members:\n"
-        output_string += "\n".join(kibitz_names)
-
-        dm_success = await utility.dm_user(ctx.author, output_string)
-        if not dm_success:
-            await ctx.send(content=output_string, reference=ctx.message)
-        await self.helper.finish_processing(ctx)
-
-    @commands.command()
     async def OffServerArchive(self, ctx, archive_server_id: int, archive_channel_id: int):
+        """Copies the channel the message was sent in to the provided server and channel, message by message.
+        Attachments may not be preserved if they are too large. Also creates a discussion thread at the end."""
         # Credit to Ivy for this code, mostly their code
 
         archive_server = self.helper.bot.get_guild(archive_server_id)
@@ -87,14 +67,73 @@ class Other(commands.Cog):
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You do not have permission to use this command")
 
+    @commands.command(usage="<game_number> [event] [times]...")
+    async def SetReminders(self, ctx, *args):
+        """At the given times, sends reminders to the players how long they have until the event occurs.
+        The event argument is optional and defaults to "Whispers close". Times must be given in hours from the
+        current time. You can give any number of times. The event is assumed to occur at the latest given time."""
+        if len(args) < 2:
+            await utility.deny_command(ctx)
+            await utility.dm_user(ctx.author, "At least game number and one reminder time are required")
+            return
+        game_number = args[0]
+        game_channel = self.helper.get_game_channel(game_number)
+        if not game_channel:
+            await utility.deny_command(ctx)
+            await utility.dm_user(ctx.author, "The first argument must be a valid game number")
+            return
+        game_role = self.helper.get_game_role(game_number)
+        event = "Whispers close"
+        try:
+            times = [float(time) for time in args[1:]]
+        except ValueError:
+            event = args[1]
+            try:
+                times = [float(time) for time in args[2:]]
+            except ValueError as e:
+                await utility.deny_command(ctx)
+                await utility.dm_user(ctx.author, e.args[0])  # looks like: "could not convert string to float: 'bla'"
+                return
+            if len(times) == 0:
+                await utility.deny_command(ctx)
+                await utility.dm_user(ctx.author, "At least one reminder time is required")
+                return
+        if not self.helper.authorize_st_command(ctx.author, game_number):
+            await utility.deny_command(ctx)
+            await utility.dm_user(ctx.author, "You must be an ST to use this command")
+            return
+        await utility.start_processing(ctx)
+        times.sort()
+        end_of_countdown = utcnow() + datetime.timedelta(hours=times[-1])
+        deltas = [times[0]] + [second - first for first, second in zip(times, times[1:])]
+        await self.helper.finish_processing(ctx)
+        await self.helper.log(f"{ctx.author.mention} has run the SetReminders command for game {game_number}")
+
+        for wait_time in deltas[:-1]:
+            await asyncio.sleep(wait_time * 3600)  # hours to seconds
+            await game_channel.send(content=game_role.mention + " " + event + " " + format_dt(end_of_countdown, "R"))
+        await asyncio.sleep(deltas[-1] * 3600)
+        await game_channel.send(content=game_role.mention + " " + event)
+
     @commands.command()
     async def CreateThreads(self, ctx, game_number):
+        """Creates a private thread in the game\'s channel for each player.
+        The player and all STs are automatically added to each thread. The threads are named "ST Thread [player name]".
+        """
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
-
+            townsquare_cog: typing.Optional[Townsquare] = self.bot.get_cog("Townsquare")
+            if townsquare_cog and game_number in townsquare_cog.town_squares:
+                townsquare = townsquare_cog.town_squares[game_number]
+            else:
+                townsquare = None
             for player in self.helper.get_game_role(game_number).members:
+                if townsquare:
+                    name = next((p.alias for p in townsquare.players if p.id == player.id), None)
+                if not name:
+                    name = player.display_name
                 thread = await self.helper.get_game_channel(game_number).create_thread(
-                    name=f"ST Thread {player.display_name}",
+                    name=f"ST Thread {name}",
                     auto_archive_duration=4320,  # 3 days
                     type=nextcord.ChannelType.private_thread,
                     reason=f"Preparing text game {game_number}"
@@ -112,23 +151,26 @@ class Other(commands.Cog):
 
         await self.helper.log(f"{ctx.author.mention} has run the CreateThreads Command on Game {game_number}")
 
-    # Future task: shorten this, add information for the >help command for each command. Nextcord has built-ins for these things, I'm pretty sure
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):
+        """Sends a message listing and explaining available commands.
+        Can be filtered by appending one of `all, anyone, st, mod, no-mod`. Default is `no-mod`"""
         await utility.start_processing(ctx)
         anyone_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                       description="Commands that can be executed by anyone", color=0xe100ff)
         anyone_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
 
         anyone_embed.add_field(name=">FindGrimoire",
-                               value="Sends the user a DM listing all games and whether they currently have an ST.",
+                               value="Sends you a DM listing all games and whether they currently have an ST. If they "
+                                     "have an ST, it will list them.",
                                inline=False)
         anyone_embed.add_field(name=">ShowSignups [game_number]",
-                               value="Sends the user a DM listing the STs, players, and kibitz members of the game\n"
-                                     "Usage examples: >ShowSignups 1, >ShowSignups x3",
+                               value="Sends you a DM listing the STs, players, and kibitz members of the game\n"
+                                     "Usage examples: `>ShowSignups 1`, `>ShowSignups x3`",
                                inline=False)
         anyone_embed.add_field(name=">ClaimGrimoire [game number]",
-                               value='Grants you the ST role of the given game, unless it is already occupied\n' +
+                               value='Grants you the ST role of the given game, unless it is already occupied. '
+                                     'Also removes you from the relevant queue.\n' +
                                      'Usage examples: `>ClaimGrimoire 1`, `>ClaimGrimoire x3`',
                                inline=False)
         anyone_embed.add_field(name=">JoinTextQueue [channel type] [script name] [availability] [notes (optional)]",
@@ -140,6 +182,10 @@ class Other(commands.Cog):
                                      '`>JoinTextQueue Exp "Oops All Amnesiacs" "in July, between the 13th and 30th" '
                                      '"Let me know beforehand if you\'re interested"`',
                                inline=False)
+        anyone_embed.add_field(name=">EditEntry [script name] [availability] [notes (optional)]",
+                               value="Edits your queue entry. You cannot change the channel type. "
+                                     "You have to give availability and script even if they have not changed."
+                                     'Usage examples: `>EditEntry "Trouble Brewing" "after June 20"`')
         anyone_embed.add_field(name=">LeaveTextQueue",
                                value="Removes you from the queue you are in currently - careful, you won't be able to "
                                      "regain your spot.",
@@ -166,7 +212,7 @@ class Other(commands.Cog):
                            value='Makes the kibitz channel to the game visible to the public. Players will still need '
                                  'to remove their game role to see it. Use after the game has concluded. Will also '
                                  'send a message reminding players to give feedback for the ST and provide a link to '
-                                 'do so.\n' +
+                                 'do so. In most cases, EndGame may be the more appropriate command.\n' +
                                  'Usage examples: `>OpenKibitz 1` `>OpenKibitz x3`',
                            inline=False)
         st_embed.add_field(name=">CloseKibitz [game number]",
@@ -180,7 +226,7 @@ class Other(commands.Cog):
                            value='Moves the game channel to the archive and creates a new empty channel for the next '
                                  'game. Also makes the kibitz channel hidden from the public. Use after post-game '
                                  'discussion has concluded. Do not remove the game number from the channel name until '
-                                 'after archiving - you will still be able to do so afterwards.\n' +
+                                 'after archiving - you will still be able to do so afterward.\n' +
                                  'Usage examples: `>ArchiveGame 1`, `>ArchiveGame x3`',
                            inline=False)
         st_embed.add_field(name=">EndGame [game number]",
@@ -202,6 +248,14 @@ class Other(commands.Cog):
                                  'player name]", and adds the player and all STs to it.\n' +
                                  'Usage examples: `>CreateThreads 1`, `>CreateThreads x3`',
                            inline=False)
+        st_embed.add_field(name=">SetReminders [game number] [event] [times]",
+                           value='At the given times, sends reminders to the players how long they have until the event'
+                                 ' occurs. The event argument is optional and defaults to "Whispers close". '
+                                 'Times must be given in hours from the current time. You can give any number of times.'
+                                 'The event is assumed to occur at the latest given time.\n'
+                                 'Usage examples: `>SetReminders 1 "Votes on Alice close" 24`, '
+                                 '`>SetReminders x3 18 24 30 33 36`',
+                           inline=False)
         st_embed.add_field(name=">GiveGrimoire [game number] [User]",
                            value='Removes the ST role for the game from you and gives it to the given user. You can '
                                  'provide a user by ID, mention/ping, or nickname, though giving the nickname may '
@@ -209,12 +263,13 @@ class Other(commands.Cog):
                                  'Usage examples: `>GiveGrimoire 1 @Ben`, `>GiveGrimoire x3 107209184147185664`',
                            inline=False)
         st_embed.add_field(name=">DropGrimoire [game number]",
-                           value='Removes the ST role for the game from you\n' +
+                           value='Removes the ST role for the game from you and announces the free channel if there is '
+                                 'no other ST\n' +
                                  'Usage examples: `>DropGrimoire 1`, `>DropGrimoire x3`',
                            inline=False)
         st_embed.add_field(name=">ShareGrimoire [game number] [User]",
                            value='Gives the ST role for the game to the given user without removing it from you. Use '
-                                 'if you want to co-ST a game.You can provide a user by ID, mention/ping, '
+                                 'if you want to co-ST a game. You can provide a user by ID, mention/ping, '
                                  'or nickname, though giving the nickname may find the wrong user.\n' +
                                  'Usage examples: `>ShareGrimoire 1 @Ben`, `>ShareGrimoire x3 108309184147185664`',
                            inline=False)
@@ -230,12 +285,12 @@ class Other(commands.Cog):
                                  'Usage examples: `>RemovePlayer 1 793448603309441095`, `>RemovePlayer x3 @Alex @Ben @Celia`',
                            inline=False)
         st_embed.add_field(name=">AddKibitz [game number] [at least one user] (Requires ST Role or Mod)",
-                           value='Gives the appropriate game role to the given users. You can provide a user by ID, '
+                           value='Gives the appropriate kibitz role to the given users. You can provide a user by ID, '
                                  'mention/ping, or nickname, though giving the nickname may find the wrong user.\n' +
                                  'Usage examples: `>AddKibitz 1 793448603309441095`, `>AddKibitz x3 @Alex @Ben @Celia`',
                            inline=False)
         st_embed.add_field(name=">RemoveKibitz [game number] [at least one user] (Requires ST Role or Mod)",
-                           value='Removes the appropriate game role from the given users. You can provide a user by '
+                           value='Removes the appropriate kibitz role from the given users. You can provide a user by '
                                  'ID, mention/ping, or nickname, though giving the nickname may find the wrong '
                                  'user.\n' +
                                  'Usage examples: `>RemoveKibitz 1 793448603309441095`, `>RemoveKibitz x3 @Alex @Ben @Celia`',
@@ -246,7 +301,8 @@ class Other(commands.Cog):
                                   description="Commands related to the town square", color=0xe100ff)
         ts_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
         ts_embed.add_field(name=">SetupTownSquare [game_number] [players]",
-                           value="Creates the town square for the given game, with the given players. Ping them in order of seating.\n"
+                           value="Creates the town square for the given game, with the given players. "
+                                 "Ping them in order of seating.\n"
                                  "Usage example: `>SetupTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gabe @Hannah`",
                            inline=False)
 
@@ -311,7 +367,7 @@ class Other(commands.Cog):
                            inline=False)
         ts_embed.add_field(name=">SetAlias [game_number] [alias]",
                            value='Set your preferred alias for the given game. This will be used anytime '
-                                 'the bot refers to you. By default set to your username. Can be used by players and storytellers.\n'
+                                 'the bot refers to you. The default is your username. Can be used by players and storytellers.\n'
                                  'Usage examples: `>SetAlias x1 "Alex"`, `>SetAlias 3 "Alex"`',
                            inline=False)
         ts_embed.add_field(name=">ToggleOrganGrinder [game_number]",
@@ -346,13 +402,14 @@ class Other(commands.Cog):
                                   "mention/ping, or nickname, though giving the nickname may find the wrong user.",
                             inline=False)
         mod_embed.add_field(name=">MoveToSpot [user] [spot]",
-                            value="Moves the queue entry of the given user to the given spot in the queue, 1 being "
+                            value="Moves the queue entry of the given user to the given spot in their queue, 1 being "
                                   "the top. You can provide a user by ID, mention/ping, or nickname, though giving "
                                   "the nickname may find the wrong user.",
                             inline=False)
         mod_embed.add_field(name=">OffServerArchive [Server ID] [Channel ID]",
                             value="Copies the channel the message was sent in to the provided server and channel, "
-                                  "message by message.",
+                                  "message by message. Attachments may not be preserved if they are too large. "
+                                  "Also creates a discussion thread at the end.",
                             inline=False)
         mod_embed.set_footer(
             text="3/4")

@@ -14,8 +14,8 @@ CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
 
 
-def get_channel_type(channel_type):
-    if channel_type in ['experimental', 'Experimental', 'exp', 'Exp', 'x', 'X']:
+def get_channel_type(channel_type: str):
+    if channel_type.lower() in ['experimental', 'exp', 'x']:
         return "Experimental"
     else:
         return "Regular"

@@ -143,11 +143,10 @@ class Townsquare(commands.Cog):
         self.helper = helper
         self.TownSquaresStorage = os.path.join(self.helper.StorageLocation, "townsquares.json")
         self.emoji = {}
+        self.town_squares = {}
         if not os.path.exists(self.TownSquaresStorage):
-            self.town_squares = {}
             self.update_storage()
         else:
-            self.town_squares = {}
             with open(self.TownSquaresStorage, 'r') as f:
                 json_data = json.load(f)
                 for game in json_data:

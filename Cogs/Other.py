@@ -128,10 +128,9 @@ class Other(commands.Cog):
             else:
                 townsquare = None
             for player in self.helper.get_game_role(game_number).members:
+                name = player.display_name
                 if townsquare:
-                    name = next((p.alias for p in townsquare.players if p.id == player.id), None)
-                if not name:
-                    name = player.display_name
+                    name = next((p.alias for p in townsquare.players if p.id == player.id), name)
                 thread = await self.helper.get_game_channel(game_number).create_thread(
                     name=f"ST Thread {name}",
                     auto_archive_duration=4320,  # 3 days
@@ -314,7 +313,7 @@ class Other(commands.Cog):
                            inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",
                            value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'
-                                 'Usage example: `>CreateNomThread x1`, `>CreateNomThread "D2 Nominations"`',
+                                 'Usage example: `>CreateNomThread x1`, `>CreateNomThread 3 "D2 Nominations"`',
                            inline=False)
 
         ts_embed.add_field(name=">Nominate [game_number] [nominee] [nominator]",

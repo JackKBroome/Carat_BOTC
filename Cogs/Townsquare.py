@@ -801,7 +801,6 @@ class Townsquare(commands.Cog):
                                               "If you are, the ST may have to add you to the town square.")
         await self.helper.log(f"{ctx.author.mention} has run the SetAlias command in game {game_number}")
 
-
     @commands.command()
     async def ToggleOrganGrinder(self, ctx: commands.Context, game_number: str):
         """Activates or deactivates Organ Grinder for the display of nominations in the game.

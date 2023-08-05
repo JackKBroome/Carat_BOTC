@@ -10,62 +10,12 @@ from nextcord.utils import get, utcnow, format_dt
 import utility
 from Cogs.Townsquare import Townsquare
 
-ivy_id = 183474450237358081
-
 
 class Other(commands.Cog):
 
     def __init__(self, bot, helper: utility.Helper):
         self.bot = bot
         self.helper = helper
-
-    @commands.command()
-    async def OffServerArchive(self, ctx, archive_server_id: int, archive_channel_id: int):
-        """Copies the channel the message was sent in to the provided server and channel, message by message.
-        Attachments may not be preserved if they are too large. Also creates a discussion thread at the end."""
-        # Credit to Ivy for this code, mostly their code
-
-        archive_server = self.helper.bot.get_guild(archive_server_id)
-        archive_channel = get(archive_server.channels, id=archive_channel_id)
-
-        channel_to_archive = ctx.message.channel
-
-        access = self.helper.authorize_mod_command(ctx.author)
-        # Ivy Access
-        if access or ctx.author.id == ivy_id:
-            # React on Approval
-            await utility.start_processing(ctx)
-
-            async for current_message in channel_to_archive.history(limit=None, oldest_first=True):
-                message_content = current_message.content
-                embed = nextcord.Embed(description=message_content)
-                embed.set_author(name=str(current_message.author) + " at " + str(current_message.created_at),
-                                 icon_url=current_message.author.display_avatar.url)
-                attachment_list = []
-                for i in current_message.attachments:
-                    attachment_list.append(await i.to_file())
-                for i in current_message.reactions:
-                    user_list = []
-                    async for user in i.users():
-                        user_list.append(str(user.name))
-                    reactors = ", ".join(user_list)
-                    if not embed.footer.text or len(embed.footer.text) == 0:
-                        embed.set_footer(text=f"{i.emoji} - {reactors}, ")
-                    else:
-                        embed.set_footer(text=embed.footer.text + f" {i.emoji} - {reactors}, ")
-                try:
-                    await archive_channel.send(embed=embed, files=attachment_list)
-                except InvalidArgument:
-                    embed.set_footer(text=embed.footer.text + "\nError: Attachment file was too large.")
-                    await archive_channel.send(embed=embed)
-            await archive_channel.create_thread(name="Chat about the game", type=nextcord.ChannelType.public_thread)
-            await self.helper.finish_processing(ctx)
-
-            await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")
-            await utility.dm_user(ctx.author, f"Your Archive for {ctx.message.channel.name} is done.")
-        else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You do not have permission to use this command")
 
     @commands.command(usage="<game_number> [event] [times]...")
     async def SetReminders(self, ctx, *args):

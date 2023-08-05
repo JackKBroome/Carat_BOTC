@@ -7,6 +7,7 @@ from nextcord.ext import commands
 from nextcord.ext.commands import DefaultHelpCommand, CommandError
 
 import utility
+from Cogs.Archive import Archive
 from Cogs.Game import Game
 from Cogs.Grimoire import Grimoire
 from Cogs.Other import Other
@@ -39,6 +40,7 @@ async def on_ready():
     print(bot.user.id)
     print('Loading cogs')
     helper = Helper(bot)
+    bot.add_cog(Archive(bot, helper))
     bot.add_cog(Game(bot, helper))
     bot.add_cog(Grimoire(bot, helper))
     bot.add_cog(Other(bot, helper))

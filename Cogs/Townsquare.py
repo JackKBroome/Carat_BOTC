@@ -468,7 +468,7 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, f"No relevant nomination found for nominee {nominee_identifier}")
             return
-        if ctx.author.id == nom.nominator.id or self.helper.authorize_st_command(ctx.author, game_number):
+        if ctx.author.id == nom.nominee.id or self.helper.authorize_st_command(ctx.author, game_number):
             nom.defense = defense
             self.update_storage()
             await self.update_nom_message(game_number, nom)

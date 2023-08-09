@@ -15,7 +15,7 @@ ivy_id = 183474450237358081
 
 class Other(commands.Cog):
 
-    def __init__(self, bot, helper: utility.Helper):
+    def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot
         self.helper = helper
 
@@ -107,7 +107,6 @@ class Other(commands.Cog):
         end_of_countdown = utcnow() + datetime.timedelta(hours=times[-1])
         deltas = [times[0]] + [second - first for first, second in zip(times, times[1:])]
         await self.helper.finish_processing(ctx)
-        await self.helper.log(f"{ctx.author.mention} has run the SetReminders command for game {game_number}")
 
         for wait_time in deltas[:-1]:
             await asyncio.sleep(wait_time * 3600)  # hours to seconds
@@ -128,10 +127,9 @@ class Other(commands.Cog):
             else:
                 townsquare = None
             for player in self.helper.get_game_role(game_number).members:
+                name = player.display_name
                 if townsquare:
-                    name = next((p.alias for p in townsquare.players if p.id == player.id), None)
-                if not name:
-                    name = player.display_name
+                    name = next((p.alias for p in townsquare.players if p.id == player.id), name)
                 thread = await self.helper.get_game_channel(game_number).create_thread(
                     name=f"ST Thread {name}",
                     auto_archive_duration=4320,  # 3 days
@@ -149,8 +147,6 @@ class Other(commands.Cog):
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
             await utility.deny_command(ctx)
 
-        await self.helper.log(f"{ctx.author.mention} has run the CreateThreads Command on Game {game_number}")
-
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):
         """Sends a message listing and explaining available commands.
@@ -158,7 +154,7 @@ class Other(commands.Cog):
         await utility.start_processing(ctx)
         anyone_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                       description="Commands that can be executed by anyone", color=0xe100ff)
-        anyone_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        anyone_embed.set_thumbnail(url=self.bot.user.avatar.url)
 
         anyone_embed.add_field(name=">FindGrimoire",
                                value="Sends you a DM listing all games and whether they currently have an ST. If they "
@@ -207,7 +203,7 @@ class Other(commands.Cog):
                                   description="Commands that can be executed by the ST of the relevant game - mods "
                                               "can ignore this restriction",
                                   color=0xe100ff)
-        st_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        st_embed.set_thumbnail(url=self.bot.user.avatar.url)
         st_embed.add_field(name=">OpenKibitz [game number]",
                            value='Makes the kibitz channel to the game visible to the public. Players will still need '
                                  'to remove their game role to see it. Use after the game has concluded. Will also '
@@ -299,7 +295,7 @@ class Other(commands.Cog):
 
         ts_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                   description="Commands related to the town square", color=0xe100ff)
-        ts_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        ts_embed.set_thumbnail(url=self.bot.user.avatar.url)
         ts_embed.add_field(name=">SetupTownSquare [game_number] [players]",
                            value="Creates the town square for the given game, with the given players. "
                                  "Ping them in order of seating.\n"
@@ -314,7 +310,7 @@ class Other(commands.Cog):
                            inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",
                            value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'
-                                 'Usage example: `>CreateNomThread x1`, `>CreateNomThread "D2 Nominations"`',
+                                 'Usage example: `>CreateNomThread x1`, `>CreateNomThread 3 "D2 Nominations"`',
                            inline=False)
 
         ts_embed.add_field(name=">Nominate [game_number] [nominee] [nominator]",
@@ -390,12 +386,11 @@ class Other(commands.Cog):
 
         mod_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                    description="Commands that can only be executed by moderators", color=0xe100ff)
-        mod_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        mod_embed.set_thumbnail(self.bot.user.avatar.url)
         mod_embed.add_field(name=">InitQueue [channel type] ",
                             value="Initializes an ST queue in the channel or thread the command was used in, for the "
                                   "provided channel type (regular/experimental). Can be reused to create a new "
-                                  "queue/queue message, but all previous entries of that queue will be lost in the "
-                                  "process.",
+                                  "queue/queue message. If existing entries should be deleted, add \"reset\" at the end.",
                             inline=False)
         mod_embed.add_field(name=">RemoveFromQueue [user]",
                             value="Removes the given user from either queue. You can provide a user by ID, "
@@ -412,7 +407,7 @@ class Other(commands.Cog):
                                   "Also creates a discussion thread at the end.",
                             inline=False)
         mod_embed.set_footer(
-            text="3/4")
+            text="4/4")
         try:
             command_type = command_type.lower()
             if command_type == "all":
@@ -436,8 +431,8 @@ class Other(commands.Cog):
                 await ctx.author.send(
                     'Use `all`, `anyone`, `st`, `townsquare`, `mod` or `no-mod` to filter the help message. '
                     'Default is `no-mod`.')
-            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a "
-                                  "moderator know, or open an issue at https://github.com/JackKBroome/Carat_BOTC/issues"
+            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a mode"
+                                  "rator know, or open an issue at <https://github.com/JackKBroome/Carat_BOTC/issues>"
                                   "\nThank you!")
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")

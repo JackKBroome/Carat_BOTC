@@ -71,8 +71,6 @@ class Signup(commands.Cog):
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
 
-        await self.helper.log(f"{ctx.author.mention} has run the Signups Command  for game {game_number}")
-
 
 class SignupView(nextcord.ui.View):
     def __init__(self, helper: utility.Helper):

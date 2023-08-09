@@ -122,6 +122,7 @@ class Grimoire(commands.Cog):
         If they have an ST, it will list them."""
         # find existing games by getting all channel names in the text games category
         # and checking which of 1 to [MaxGameNumber] and x1 to x[MaxGameNumber] appear in them
+        await utility.start_processing(ctx)
         channel_names_string = " ".join([channel.name for channel in self.helper.TextGamesCategory.channels])
         games = [x for x in PotentialGames if x in channel_names_string]
         message = ""
@@ -136,4 +137,4 @@ class Grimoire(commands.Cog):
         dm_success = await utility.dm_user(ctx.author, message)
         if not dm_success:
             await ctx.send(message)
-        await self.helper.log(f"{ctx.author.mention} has run the FindGrimoire Command")
+        await self.helper.finish_processing(ctx)

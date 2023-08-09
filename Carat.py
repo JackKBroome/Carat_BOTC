@@ -22,13 +22,14 @@ token = os.environ['TOKEN']
 intents = nextcord.Intents.all()
 allowedMentions = nextcord.AllowedMentions.all()
 allowedMentions.everyone = False
+help_command = DefaultHelpCommand(verify_checks=False, dm_help=None, dm_help_threshold=600)
 
 bot = commands.Bot(command_prefix=">",
                    case_insensitive=True,
                    intents=intents,
                    allowed_mentions=allowedMentions,
                    activity=nextcord.Game(">HelpMe or >help"),
-                   help_command=DefaultHelpCommand(verify_checks=False))
+                   help_command=help_command)
 
 
 # load cogs and print ready message
@@ -59,7 +60,7 @@ async def on_command_error(ctx: commands.Context, error: CommandError):
         if ctx.message.content[1].isalnum() and not ctx.message.content[1].isdigit():
             await utility.dm_user(ctx.author, "Command not found. Use >help for a list of commands, "
                                               "or >HelpMe for a list of commands with explanations.")
-    if isinstance(error, commands.UserInputError):
+    elif isinstance(error, commands.UserInputError):
         await utility.dm_user(ctx.author, f"There was an issue with your input. Usage: "
                                           f"`>{ctx.command.name} {ctx.command.signature}`.")
     else:

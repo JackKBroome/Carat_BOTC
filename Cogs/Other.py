@@ -407,7 +407,7 @@ class Other(commands.Cog):
                                   "Also creates a discussion thread at the end.",
                             inline=False)
         mod_embed.set_footer(
-            text="3/4")
+            text="4/4")
         try:
             command_type = command_type.lower()
             if command_type == "all":
@@ -431,8 +431,8 @@ class Other(commands.Cog):
                 await ctx.author.send(
                     'Use `all`, `anyone`, `st`, `townsquare`, `mod` or `no-mod` to filter the help message. '
                     'Default is `no-mod`.')
-            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a "
-                                  "moderator know, or open an issue at https://github.com/JackKBroome/Carat_BOTC/issues"
+            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a mode"
+                                  "rator know, or open an issue at <https://github.com/JackKBroome/Carat_BOTC/issues>"
                                   "\nThank you!")
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")

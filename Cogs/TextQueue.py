@@ -52,7 +52,7 @@ class TextQueue(commands.Cog):
                 for queue in json_data:
                     self.queues[queue] = StQueue.from_dict(json_data[queue])
 
-    async def update_queue_message(self, queue: StQueue):
+    async def update_queue_message(self, queue: StQueue) -> bool:
         channel = get(self.helper.Guild.channels, id=queue.channel_id)
         if queue.thread_id:
             thread = get(channel.threads, id=queue.thread_id)
@@ -66,9 +66,14 @@ class TextQueue(commands.Cog):
             entry_string = f"Script: {entry.script}\nAvailability: {entry.availability}"
             if entry.notes:
                 entry_string += f"\nNotes: {entry.notes}"
-            embed.add_field(name=user.display_name, value=entry_string, inline=False)
-        await self.helper.log(f"Queue updated - current entries: {str(queue.entries)}"[:1000])
-        await message.edit(embed=embed)
+            embed.add_field(name=user.display_name[:256], value=entry_string[:1024], inline=False)  # length limits by discord
+        await self.helper.log(f"Queue updated - current entries: {str(queue.entries)}"[:1950])
+        success = False
+        while not success:
+            try:
+                await message.edit(embed=embed)
+            except HTT:
+                embed.remove_field(embed.fields)
 
     async def announce_free_channel(self, game_number, queue_position: int):
         channel = self.helper.get_game_channel(game_number)
@@ -115,10 +120,11 @@ class TextQueue(commands.Cog):
             return None
 
     @commands.command()
-    async def InitQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter):
+    async def InitQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter,
+                        reset: Optional[Literal["reset"]]):
         """Initializes an ST queue for either regular or experimental games in the channel or thread the command was used in.
-        Can be reused to create a new queue and queue message for either channel type, but all previous entries of that
-        queue will be lost."""
+        Can be reused to create a new queue message for either channel type.
+        If existing entries should be deleted, add "reset" at the end."""
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             channel_type = utility.get_channel_type(channel_type)
@@ -131,6 +137,9 @@ class TextQueue(commands.Cog):
             else:
                 await utility.dm_user(ctx.author, 'Please place the queue in a text channel or thread')
                 return
+
+            if not reset:
+                queue.entries = self.queues[channel_type].entries
 
             queue_message = await ctx.send(embed=embed)
             queue.message_id = queue_message.id

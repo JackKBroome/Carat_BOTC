@@ -15,7 +15,7 @@ ivy_id = 183474450237358081
 
 class Other(commands.Cog):
 
-    def __init__(self, bot, helper: utility.Helper):
+    def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot
         self.helper = helper
 
@@ -157,7 +157,7 @@ class Other(commands.Cog):
         await utility.start_processing(ctx)
         anyone_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                       description="Commands that can be executed by anyone", color=0xe100ff)
-        anyone_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        anyone_embed.set_thumbnail(url=self.bot.user.avatar.url)
 
         anyone_embed.add_field(name=">FindGrimoire",
                                value="Sends you a DM listing all games and whether they currently have an ST. If they "
@@ -206,7 +206,7 @@ class Other(commands.Cog):
                                   description="Commands that can be executed by the ST of the relevant game - mods "
                                               "can ignore this restriction",
                                   color=0xe100ff)
-        st_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        st_embed.set_thumbnail(url=self.bot.user.avatar.url)
         st_embed.add_field(name=">OpenKibitz [game number]",
                            value='Makes the kibitz channel to the game visible to the public. Players will still need '
                                  'to remove their game role to see it. Use after the game has concluded. Will also '
@@ -298,7 +298,7 @@ class Other(commands.Cog):
 
         ts_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                   description="Commands related to the town square", color=0xe100ff)
-        ts_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        ts_embed.set_thumbnail(url=self.bot.user.avatar.url)
         ts_embed.add_field(name=">SetupTownSquare [game_number] [players]",
                            value="Creates the town square for the given game, with the given players. "
                                  "Ping them in order of seating.\n"
@@ -389,7 +389,7 @@ class Other(commands.Cog):
 
         mod_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                    description="Commands that can only be executed by moderators", color=0xe100ff)
-        mod_embed.set_thumbnail(url="https://wiki.bloodontheclocktower.com/images/6/67/Thief_Icon.png")
+        mod_embed.set_thumbnail(self.bot.user.avatar.url)
         mod_embed.add_field(name=">InitQueue [channel type] ",
                             value="Initializes an ST queue in the channel or thread the command was used in, for the "
                                   "provided channel type (regular/experimental). Can be reused to create a new "

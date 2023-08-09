@@ -107,7 +107,6 @@ class Other(commands.Cog):
         end_of_countdown = utcnow() + datetime.timedelta(hours=times[-1])
         deltas = [times[0]] + [second - first for first, second in zip(times, times[1:])]
         await self.helper.finish_processing(ctx)
-        await self.helper.log(f"{ctx.author.mention} has run the SetReminders command for game {game_number}")
 
         for wait_time in deltas[:-1]:
             await asyncio.sleep(wait_time * 3600)  # hours to seconds
@@ -147,8 +146,6 @@ class Other(commands.Cog):
         else:
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
             await utility.deny_command(ctx)
-
-        await self.helper.log(f"{ctx.author.mention} has run the CreateThreads Command on Game {game_number}")
 
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):
@@ -393,8 +390,7 @@ class Other(commands.Cog):
         mod_embed.add_field(name=">InitQueue [channel type] ",
                             value="Initializes an ST queue in the channel or thread the command was used in, for the "
                                   "provided channel type (regular/experimental). Can be reused to create a new "
-                                  "queue/queue message, but all previous entries of that queue will be lost in the "
-                                  "process.",
+                                  "queue/queue message. If existing entries should be deleted, add \"reset\" at the end.",
                             inline=False)
         mod_embed.add_field(name=">RemoveFromQueue [user]",
                             value="Removes the given user from either queue. You can provide a user by ID, "

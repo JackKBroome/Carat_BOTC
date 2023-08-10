@@ -255,8 +255,8 @@ class Townsquare(commands.Cog):
             return True
 
     @staticmethod
-    def try_get_matching_player(player_list: list[Player], identifier: str, attribute: Callable[[Player], str]) \
-            -> list[Player]:
+    def try_get_matching_player(player_list: List[Player], identifier: str, attribute: Callable[[Player], str]) \
+            -> List[Player]:
         matches = [p for p in player_list if identifier.lower() in attribute(p).lower()]
         if len(matches) > 1:
             matches = [p for p in player_list if attribute(p).lower().startswith(identifier.lower())]
@@ -885,7 +885,7 @@ class CountVoteView(nextcord.ui.View):
     nom: Nomination
     author: nextcord.Member
     emoji: Dict[str, nextcord.PartialEmoji]
-    player_list: list[Player]
+    player_list: List[Player]
     player_index: int = -1
 
     def __init__(self, votes_cog: Townsquare, nom: Nomination, author: nextcord.Member,

@@ -115,7 +115,7 @@ class Other(commands.Cog):
         await game_channel.send(content=game_role.mention + " " + event)
 
     @commands.command()
-    async def CreateThreads(self, ctx, game_number):
+    async def CreateThreads(self, ctx, game_number, setup_message=None):
         """Creates a private thread in the game\'s channel for each player.
         The player and all STs are automatically added to each thread. The threads are named "ST Thread [player name]".
         """
@@ -141,7 +141,8 @@ class Other(commands.Cog):
                 await thread.add_user(player)
                 for st in self.helper.get_st_role(game_number).members:
                     await thread.add_user(st)
-
+                if setup_message != None:
+                    await thread.send(setup_message)
             await self.helper.finish_processing(ctx)
         else:
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))

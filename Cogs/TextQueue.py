@@ -5,6 +5,7 @@ from typing import Literal, Optional, List, Dict
 
 import nextcord
 from dataclasses_json import dataclass_json
+from nextcord import HTTPException
 from nextcord.ext import commands
 from nextcord.utils import get
 
@@ -52,7 +53,7 @@ class TextQueue(commands.Cog):
                 for queue in json_data:
                     self.queues[queue] = StQueue.from_dict(json_data[queue])
 
-    async def update_queue_message(self, queue: StQueue):
+    async def update_queue_message(self, queue: StQueue) -> bool:
         channel = get(self.helper.Guild.channels, id=queue.channel_id)
         if queue.thread_id:
             thread = get(channel.threads, id=queue.thread_id)
@@ -61,14 +62,29 @@ class TextQueue(commands.Cog):
             message = await channel.fetch_message(queue.message_id)
         embed = message.embeds[0]
         embed.clear_fields()
+        spot = 1
         for entry in queue.entries:
             user = get(self.helper.Guild.members, id=entry.st)
-            entry_string = f"Script: {entry.script}\nAvailability: {entry.availability}"
+            entry_string = f"Script: {entry.script}\nAvailability: {entry.availability}\n"
             if entry.notes:
-                entry_string += f"\nNotes: {entry.notes}"
-            embed.add_field(name=user.display_name, value=entry_string, inline=False)
-        await self.helper.log(f"Queue updated - current entries: {str(queue.entries)}"[:1000])
-        await message.edit(embed=embed)
+                entry_string += f"Notes: {entry.notes}\n"
+            embed.add_field(name=f"{spot}. {user.display_name}"[:256],
+                            value=entry_string[:1024],
+                            inline=False)  # length limits by discord
+            spot = spot + 1
+        await self.helper.log(
+            f"Queue updated - current entries: "
+            f"{str([str(get(self.helper.Guild.members, id=qe.st)) for qe in queue.entries])}"[:1950])
+        queue_posted_completely = True
+        success = False
+        while not success:
+            try:
+                await message.edit(embed=embed)
+                success = True
+            except HTTPException:
+                embed.remove_field(len(embed.fields) - 1)
+                queue_posted_completely = False
+        return queue_posted_completely
 
     async def announce_free_channel(self, game_number, queue_position: int):
         channel = self.helper.get_game_channel(game_number)
@@ -115,10 +131,11 @@ class TextQueue(commands.Cog):
             return None
 
     @commands.command()
-    async def InitQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter):
+    async def InitQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter,
+                        reset: Optional[Literal["reset"]]):
         """Initializes an ST queue for either regular or experimental games in the channel or thread the command was used in.
-        Can be reused to create a new queue and queue message for either channel type, but all previous entries of that
-        queue will be lost."""
+        Can be reused to create a new queue message for either channel type.
+        If existing entries should be deleted, add "reset" at the end."""
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             channel_type = utility.get_channel_type(channel_type)
@@ -131,6 +148,9 @@ class TextQueue(commands.Cog):
             else:
                 await utility.dm_user(ctx.author, 'Please place the queue in a text channel or thread')
                 return
+
+            if not reset:
+                queue.entries = self.queues[channel_type].entries
 
             queue_message = await ctx.send(embed=embed)
             queue.message_id = queue_message.id
@@ -159,7 +179,11 @@ class TextQueue(commands.Cog):
             if notes:
                 entry.notes = notes
             self.queues[channel_type].entries.append(entry)
-            await self.update_queue_message(self.queues[channel_type])
+            full_queue_posted = await self.update_queue_message(self.queues[channel_type])
+            if not full_queue_posted:
+                await self.helper.log("Queue too long for message - final entry/entries not displayed")
+                await utility.dm_user(ctx.author, "The queue is too long to display in full. Your entry may not be "
+                                                  "displayed currently, but it has been added to the queue.")
 
             await self.update_storage()
             await self.helper.finish_processing(ctx)
@@ -181,7 +205,10 @@ class TextQueue(commands.Cog):
             return
 
         queue.entries = [e for e in queue.entries if e.st != ctx.author.id]
-        await self.update_queue_message(queue)
+        full_queue_posted = await self.update_queue_message(queue)
+        if not full_queue_posted:
+            await self.helper.log("Queue too long for message - final entry/entries not displayed")
+
         await self.update_storage()
 
         await self.helper.finish_processing(ctx)
@@ -204,7 +231,11 @@ class TextQueue(commands.Cog):
                 current_index = index
         queue.entries.insert(current_index + number_of_spots, queue.entries.pop(current_index))
 
-        await self.update_queue_message(queue)
+        full_queue_posted = await self.update_queue_message(queue)
+        if not full_queue_posted:
+            await self.helper.log("Queue too long for message - final entry/entries not displayed")
+            await utility.dm_user(ctx.author, "The queue is too long to display in full. Your entry may not be "
+                                              "displayed currently, but is still in the queue.")
         await self.update_storage()
 
         await self.helper.finish_processing(ctx)
@@ -225,7 +256,9 @@ class TextQueue(commands.Cog):
         if notes:
             entry.notes = notes
 
-        await self.update_queue_message(queue)
+        full_queue_posted = await self.update_queue_message(queue)
+        if not full_queue_posted:
+            await self.helper.log("Queue too long for message - final entry/entries not displayed")
         await self.update_storage()
         await self.helper.finish_processing(ctx)
         await self.helper.log(f"{ctx.author.mention} has run the EditEntry command")
@@ -244,7 +277,9 @@ class TextQueue(commands.Cog):
                 return
 
             queue.entries = [e for e in queue.entries if e.st != member.id]
-            await self.update_queue_message(queue)
+            full_queue_posted = await self.update_queue_message(queue)
+            if not full_queue_posted:
+                await self.helper.log("Queue too long for message - final entry/entries not displayed")
             await self.update_storage()
 
             await self.helper.finish_processing(ctx)
@@ -270,7 +305,10 @@ class TextQueue(commands.Cog):
                     entry = queue.entries.pop(index)
             queue.entries.insert(spot - 1, entry)
 
-            await self.update_queue_message(queue)
+            full_queue_posted = await self.update_queue_message(queue)
+            if not full_queue_posted:
+                await self.helper.log("Queue too long for message - final entry/entries not displayed")
+
             await self.update_storage()
 
             await self.helper.finish_processing(ctx)

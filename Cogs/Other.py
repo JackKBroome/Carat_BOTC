@@ -261,7 +261,7 @@ class Other(commands.Cog):
                            inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",
                            value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'
-                                 'Usage example: `>CreateNomThread x1`, `>CreateNomThread 3 "D2 Nominations"`',
+                                 'Usage examples: `>CreateNomThread x1`, `>CreateNomThread 3 "D2 Nominations"`',
                            inline=False)
 
         ts_embed.add_field(name=">Nominate [game_number] [nominee] [nominator]",
@@ -286,7 +286,8 @@ class Other(commands.Cog):
                                  'Usage examples: `>SetDeadline x1 Alex 1`, `>SetDeadline 3 Alex 24`',
                            inline=False)
         ts_embed.add_field(name=">SetDefaultDeadline [game_number] [hours]",
-                           value='Set the default nomination duration for the game to the given number of hours. You must be a storyteller for this.\n'
+                           value='Set the default nomination duration for the game to the given number of hours. You must be a storyteller for this.'
+                                 'In a newly created town square, this value is 24 hours.\n'
                                  'Usage examples: `>SetDefaultDeadline x1 36`, `>SetDefaultDeadline 3 24`',
                            inline=False)
         ts_embed.add_field(name=">Vote [game_number] [nominee_identifier] [vote]",

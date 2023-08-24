@@ -141,7 +141,20 @@ class Other(commands.Cog):
                                value="Moves you down that number of spaces in your queue - use if you can't run the "
                                      "game yet but don't want to be pinged every time a channel becomes free. Careful "
                                      "- you cannot move yourself back up, though you can ask a mod to fix things if "
-                                     "you make a mistake",
+                                     "you make a mistake.\n"
+                                     "Usage example: `>MoveDown 2`",
+                               inline=False)
+        anyone_embed.add_field(name=">IncludeInArchive",
+                               value="Marks a thread as to be included in the archive. Use in the thread you want to "
+                                     "include. By default, private threads are not archived, and public threads are. "
+                                     "Use IncludeInArchive to include a private thread in the archive, or to undo "
+                                     "DoNotArchive for a public thread.",
+                               inline=False)
+        anyone_embed.add_field(name=">DoNotArchive",
+                               value="Marks a thread as to not be included in the archive. Use in the thread you want "
+                                     "to exclude. By default, private threads are not archived, and public threads "
+                                     "are. Use DoNotArchive to exclude a public thread from the archive, or to "
+                                     "undo IncludeInArchive for a private thread.",
                                inline=False)
         anyone_embed.add_field(name=">HelpMe",
                                value="Sends this message. Can be filtered by appending one of `all, anyone, st, mod, "

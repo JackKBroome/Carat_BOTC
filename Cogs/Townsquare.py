@@ -305,6 +305,13 @@ class Townsquare(commands.Cog):
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             new_player_list = [self.reuse_or_convert_player(p, game_number) for p in players]
+            removed_players = set(self.town_squares[game_number].players) - set(new_player_list)
+            added_players = set(new_player_list) - set(self.town_squares[game_number].players)
+            for nom in [n for n in self.town_squares[game_number].nominations if not n.finished]:
+                for player in removed_players:
+                    nom.votes.pop(player.id)
+                for player in added_players:
+                    nom.votes[player.id] = Vote(not_voted_yet)
             self.town_squares[game_number].players = new_player_list
             self.update_storage()
             await self.helper.finish_processing(ctx)
@@ -313,7 +320,7 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the storyteller for this game")
 
-    def reuse_or_convert_player(self, player: Player, game_number: str) -> Player:
+    def reuse_or_convert_player(self, player: nextcord.Member, game_number: str) -> Player:
         existing_player = next((p for p in self.town_squares[game_number].players if p.id == player.id), None)
         if existing_player:
             return existing_player
@@ -943,15 +950,7 @@ class CountVoteView(nextcord.ui.View):
     async def vote_yes_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         self.nom.private_votes.pop(self.player_list[self.player_index].id, None)
         self.nom.votes[self.player_list[self.player_index].id].vote = confirmed_yes_vote
-        self.player_index += 1
-        next((item for item in self.children if item.custom_id == "bureaucrat")).style = nextcord.ButtonStyle.grey
-        next((item for item in self.children if item.custom_id == "thief")).style = nextcord.ButtonStyle.grey
-        next((item for item in self.children if item.custom_id == "die")).disabled = False
-        next((item for item in self.children if item.custom_id == "deadvote")).disabled = False
-        if self.player_index >= len(self.player_list):
-            self.nom.finished = True
-            self.clear_items()
-            self.stop()
+        await self.next_player()
         await self.update_message(interaction.message)
         await self.cog.update_nom_message(self.game_number, self.nom)
         self.cog.update_storage()
@@ -961,21 +960,9 @@ class CountVoteView(nextcord.ui.View):
 
     @nextcord.ui.button(label="Count as no", custom_id="no", style=nextcord.ButtonStyle.red, row=1)
     async def vote_no_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        if self.player_index == -1:
-            self.player_index = 0
-            await self.update_message(interaction.message)
-            return
         self.nom.private_votes.pop(self.player_list[self.player_index].id, None)
         self.nom.votes[self.player_list[self.player_index].id].vote = confirmed_no_vote
-        self.player_index += 1
-        next(item for item in self.children if item.custom_id == "bureaucrat").style = nextcord.ButtonStyle.grey
-        next(item for item in self.children if item.custom_id == "thief").style = nextcord.ButtonStyle.grey
-        next(item for item in self.children if item.custom_id == "die").disabled = False
-        next(item for item in self.children if item.custom_id == "deadvote").disabled = False
-        if self.player_index >= len(self.player_list):
-            self.nom.finished = True
-            self.clear_items()
-            self.stop()
+        await self.next_player()
         await self.update_message(interaction.message)
         await self.cog.update_nom_message(self.game_number, self.nom)
         self.cog.update_storage()
@@ -986,8 +973,6 @@ class CountVoteView(nextcord.ui.View):
 
     @nextcord.ui.button(label="Count triple", custom_id="bureaucrat", style=nextcord.ButtonStyle.grey, row=1)
     async def bureaucrat_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        if self.player_index == -1:
-            return
         vote = self.nom.votes[self.player_list[self.player_index].id]
         vote.bureaucrat = not vote.bureaucrat
         button.style = nextcord.ButtonStyle.blurple if vote.bureaucrat else nextcord.ButtonStyle.grey
@@ -995,8 +980,6 @@ class CountVoteView(nextcord.ui.View):
 
     @nextcord.ui.button(label="Count negative", custom_id="thief", style=nextcord.ButtonStyle.grey, row=1)
     async def thief_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        if self.player_index == -1:
-            return
         vote = self.nom.votes[self.player_list[self.player_index].id]
         vote.thief = not vote.thief
         button.style = nextcord.ButtonStyle.blurple if vote.thief else nextcord.ButtonStyle.grey
@@ -1004,8 +987,6 @@ class CountVoteView(nextcord.ui.View):
 
     @nextcord.ui.button(label="Should be dead", custom_id="die", style=nextcord.ButtonStyle.grey, row=2)
     async def die_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        if self.player_index == -1:
-            return
         self.player_list[self.player_index].dead = True
         button.disabled = True
         self.cog.update_storage()
@@ -1013,8 +994,6 @@ class CountVoteView(nextcord.ui.View):
 
     @nextcord.ui.button(label="Loses vote", custom_id="deadvote", style=nextcord.ButtonStyle.grey, row=2)
     async def deadvote_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        if self.player_index == -1:
-            return
         self.player_list[self.player_index].can_vote = False
         button.disabled = True
         self.cog.update_storage()
@@ -1036,3 +1015,14 @@ class CountVoteView(nextcord.ui.View):
             player_member = get(self.cog.helper.Guild.members, id=player.id)
             await nom_thread.send(f"{player_member.mention}, reminder: you have not yet voted on the nomination of "
                                   f"{self.nom.nominee.alias}")
+
+    async def next_player(self):
+        self.player_index += 1
+        next((item for item in self.children if item.custom_id == "bureaucrat")).style = nextcord.ButtonStyle.grey
+        next((item for item in self.children if item.custom_id == "thief")).style = nextcord.ButtonStyle.grey
+        next((item for item in self.children if item.custom_id == "die")).disabled = False
+        next((item for item in self.children if item.custom_id == "deadvote")).disabled = False
+        if self.player_index >= len(self.player_list):
+            self.nom.finished = True
+            self.clear_items()
+            self.stop()

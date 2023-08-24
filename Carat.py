@@ -1,5 +1,8 @@
+import contextlib
 import os
+import sys
 import traceback
+from contextlib import contextmanager
 
 import nextcord
 from dotenv import load_dotenv
@@ -70,4 +73,16 @@ async def on_command_error(ctx: commands.Context, error: CommandError):
         traceback.print_exception(type(error), error, error.__traceback__)
 
 
-bot.run(token)
+@bot.command
+async def ReloadCogs(ctx: commands.Context):
+    if ctx.author.id == utility.OwnerID:
+        await ctx.message.add_reaction(utility.WorkingEmoji)
+        #TODO: downlaod and reload cogs
+        await ctx.message.add_reaction(utility.CompletedEmoji)
+    else:
+        await utility.deny_command(ctx)
+
+
+with open("logs.txt", "w") as logfile:
+    with contextlib.redirect_stderr(logfile):
+        bot.run(token)

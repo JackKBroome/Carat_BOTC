@@ -77,7 +77,7 @@ class Archive(commands.Cog):
     async def IncludeInArchive(self, ctx: commands.Context):
         """Marks a thread as to be included in the archive. Use in the thread you want to include.
         By default, private threads are not archived, and public threads are. Use IncludeInArchive to include a
-        private thread in the archive, or to undo DoNotArchive for a public thread."""
+        private thread in the archive, or to undo ExcludeFromArchive for a public thread."""
         thread = ctx.channel
         if thread.type == nextcord.ChannelType.private_thread:
             await utility.start_processing(ctx)
@@ -87,8 +87,9 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].private_to_archive.append(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already included in the archive.")
-                await self.helper.finish_processing(ctx)
+            await self.helper.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the IncludeInArchive Command")
+            self.update_storage()
         elif thread.type == nextcord.ChannelType.public_thread:
             await utility.start_processing(ctx)
             if thread.parent.id not in self.threads_by_channel:
@@ -97,16 +98,17 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].public_to_not_archive.remove(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already included in the archive.")
-                await self.helper.finish_processing(ctx)
+            await self.helper.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the IncludeInArchive Command")
+            self.update_storage()
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command can only be used in a thread.")
 
     @commands.command()
-    async def DoNotArchive(self, ctx: commands.Context):
+    async def ExcludeFromArchive(self, ctx: commands.Context):
         """Marks a thread as not to be included in the archive. Use in the thread you want to exclude.
-        By default, private threads are not archived, and public threads are. Use DoNotArchive to exclude a
+        By default, private threads are not archived, and public threads are. Use ExcludeFromArchive to exclude a
         public thread from the archive, or to undo IncludeInArchive for a private thread."""
         thread = ctx.channel
         if thread.type == nextcord.ChannelType.private_thread:
@@ -117,8 +119,9 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].private_to_archive.remove(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already not included in the archive.")
-                await self.helper.finish_processing(ctx)
-            await self.helper.log(f"{ctx.author.display_name} has run the DoNotArchive Command")
+            await self.helper.finish_processing(ctx)
+            await self.helper.log(f"{ctx.author.display_name} has run the ExcludeFromArchive Command")
+            self.update_storage()
         elif thread.type == nextcord.ChannelType.public_thread:
             await utility.start_processing(ctx)
             if thread.parent.id not in self.threads_by_channel:
@@ -127,8 +130,9 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].public_to_not_archive.append(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already not included in the archive.")
-                await self.helper.finish_processing(ctx)
-            await self.helper.log(f"{ctx.author.display_name} has run the DoNotArchive Command")
+            await self.helper.finish_processing(ctx)
+            await self.helper.log(f"{ctx.author.display_name} has run the ExcludeFromArchive Command")
+            self.update_storage()
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command can only be used in a thread.")
@@ -158,7 +162,7 @@ class Archive(commands.Cog):
                                             thread.id not in self.threads_by_channel[
                                                 channel_to_archive.id].private_to_archive):
                     continue
-                elif not thread.is_private() and thread.parent.id in self.threads_by_channel and \
+                elif (not thread.is_private()) and thread.parent.id in self.threads_by_channel and \
                         thread.id in self.threads_by_channel[channel_to_archive.id].public_to_not_archive:
                     continue
                 try:
@@ -173,7 +177,7 @@ class Archive(commands.Cog):
             await archive_channel.create_thread(name="Chat about the game", type=nextcord.ChannelType.public_thread)
 
             await self.helper.finish_processing(ctx)
-            self.threads_by_channel.pop(archive_channel_id)
+            self.threads_by_channel.pop(channel_to_archive.id, None)
             self.update_storage()
 
             await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")

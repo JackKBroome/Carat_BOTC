@@ -269,8 +269,14 @@ class Other(commands.Cog):
         ts_embed.add_field(name=">UpdateTownSquare [game_number] [players]",
                            value="Updates the town square for the given game, with the given players. Ping them in order of seating."
                                  "The difference to rerunning SetupTownSquare is that the latter will lose information like aliases, "
-                                 "spent deadvotes, and nominations. UpdateTownSquare will not.\n"
+                                 "spent deadvotes, and nominations. UpdateTownSquare will not, except for nominations of or by removed players.\n"
                                  "Usage example: `>UpdateTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gideon @Hannah`",
+                           inline=False)
+        ts_embed.add_field(name=">SubstitutePlayer [game number] [player] [substitute]",
+                           value="Exchanges a player in the town square with a substitute. Transfers the position, "
+                                 "status, nominations and votes of the exchanged player to the substitute. "
+                                 "Adds the substitute to all threads the exchanged player was in.\n"
+                                 "Usage example: `>SubstitutePlayer x1 @Alex @Amy`",
                            inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",
                            value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'

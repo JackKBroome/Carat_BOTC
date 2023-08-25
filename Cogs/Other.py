@@ -100,7 +100,7 @@ class Other(commands.Cog):
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):
         """Sends a message listing and explaining available commands.
-        Can be filtered by appending one of `all, anyone, st, mod, no-mod`. Default is `no-mod`"""
+        Can be filtered by appending one of `all, anyone, st, townsquare, mod, no-mod`. Default is `no-mod`"""
         await utility.start_processing(ctx)
         anyone_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                       description="Commands that can be executed by anyone", color=0xe100ff)

@@ -109,7 +109,8 @@ This project is used by the following discord servers:
 
 - To setup or adjust the voting circle you can use:
 `>SetupTownSquare [Game Number] [@member1] [@member2]...`  
-`>UpdateTownSquare [Game Number] [@member1] [@member2]...` 
+`>UpdateTownSquare [Game Number] [@member1] [@member2]...`  
+`>SubstitutePlayer [Game Number] [@player] [@substitute]`
 
 - To create a thread for voting use:
 `>CreateNomThread [Game Number]`  
@@ -128,7 +129,7 @@ This project is used by the following discord servers:
 `>ToggleDead [Game Number] [@member]`  
 `>ToggleCanVote [Game Number] [@member]`  
 
-- To toggle the visability of votes you can:
+- To toggle the visibility of votes you can:
 `>ToggleOrganGrinder [Game Number]`  
 
 - To count the votes you can:
@@ -152,6 +153,10 @@ This project is used by the following discord servers:
 - Carat can help store text games all in a location (even across servers) using:
 
 `>OffServerArchive [Server ID] [Channel ID]`  
+- Public threads are stored, private ones are not, but either can be adjusted on a thread by thread basis using:
+
+`>IncludeInArchive`  
+`>ExcludeFromArchive`
 ## Deployment instructions
 
 1. Download the necessary files (`Carat.py`, `utility.py`, the `Cogs` directory) and make sure they are arranged correctly (`Carat.py` and `utility.py`, and the `Cogs` directory all lying in the same directory)

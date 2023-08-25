@@ -3,9 +3,8 @@ import datetime
 import typing
 
 import nextcord
-from nextcord import InvalidArgument
 from nextcord.ext import commands
-from nextcord.utils import get, utcnow, format_dt
+from nextcord.utils import utcnow, format_dt
 
 import utility
 from Cogs.Townsquare import Townsquare
@@ -91,7 +90,7 @@ class Other(commands.Cog):
                 await thread.add_user(player)
                 for st in self.helper.get_st_role(game_number).members:
                     await thread.add_user(st)
-                if setup_message != None:
+                if setup_message is not None:
                     await thread.send(setup_message)
             await self.helper.finish_processing(ctx)
         else:

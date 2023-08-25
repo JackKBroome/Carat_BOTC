@@ -48,7 +48,7 @@ This project is used by the following discord servers:
 `>OpenKibitz [Game Number]`  
 `>CloseKibitz [Game Number]` 
 ## Text Queue
-- To setup the Queue (Done by Server Moderators) use:
+- To set up the Queue (Done by Server Moderators) use:
 `>InitQueue [x/r]` 
 
 ![Automatic Queue](https://github.com/JackKBroome/Carat_BOTC/blob/main/ReadMe%20Images/Queue.PNG?raw=true)
@@ -71,7 +71,7 @@ This project is used by the following discord servers:
 ![Grimoire Ping](https://github.com/JackKBroome/Carat_BOTC/blob/main/ReadMe%20Images/VoterPing.PNG?raw=true)
 ## Game Sign-ups & Setup
 
-- STs can automate signups throuh Carat using:
+- STs can automate signups through Carat using:
 `>Signup [Game Number] [Player Limit] [Script Name]` 
 
 ![Sign up Screen](https://github.com/JackKBroome/Carat_BOTC/blob/main/ReadMe%20Images/SignupSheet.PNG?raw=true)
@@ -83,21 +83,21 @@ This project is used by the following discord servers:
 - To see who is signed up to a game use:
 `>ShowSignups [Game Number]`  
 
-- Some STs choose to have private threads woth each player, this can be automated, including posting a setup message in each thread by:
+- Some STs choose to have private threads with each player, this can be automated, including posting a setup message in each thread by:
 `>CreateThreads [Game Number] [Setup Message]`  
 ## Text Game Voting (Player)
 
-- You can set your preferered name with:
+- You can set your preferred name with:
 `>SetAlias [Game Number] [Alias]`
 
 - You can nominate players with:
 `>Nominate [Game Number] [Nominee Name]`
 
-- As the Nominator or Nominatee you add the acusation or defense with:
+- As the Nominator or Nominee you add the accusation or defense with:
 `>AddAccusation [Game Number] [Accusation] [Nominee Name]`  
-`>AddDefence [Game Number] [Defence] [Nominee Name]`
+`>AddDefense [Game Number] [Defence] [Nominee Name]`
 
-- You can vote through Carat with (note this does not have to be exclusivley Y/N, any input values will be given to the ST to evaluate), Private votes override public votes to the ST:
+- You can vote through Carat with (note this does not have to be exclusively Y/N, any input values will be given to the ST to evaluate), Private votes override public votes to the ST:
 `>Vote [Game Number] [Nominee Name] [Vote]`  
 `>PrivateVote [Game Number] [Nominee Name] [Vote]`  
 `>RemovePrivateVote [Game Number] [Nominee Name]`  
@@ -107,7 +107,7 @@ This project is used by the following discord servers:
 
 ## Text Game Voting (ST)
 
-- To setup or adjust the voting circle you can use:
+- To set up or adjust the voting circle you can use:
 `>SetupTownSquare [Game Number] [@member1] [@member2]...`  
 `>UpdateTownSquare [Game Number] [@member1] [@member2]...`  
 `>SubstitutePlayer [Game Number] [@player] [@substitute]`

@@ -164,4 +164,3 @@ This project is used by the following discord servers:
 3. Create a file called `.env`, if you don't have one. To do this, you can copy `.env-dist` or create it manually. `.env-dist` contains the appropriate values to run Carat for the BotC Unofficial discord, aside from the token, which you must add yourself. Make sure to never commit or otherwise upload any file containing the bot token. `.env` (unlike `.env-dist`) is included in the `.gitignore`, so it is safe from this. If you want to run Carat somewhere that is not the BotC Unofficial discord, set the environment variables to the appropriate values. The `.env` has to lie in the same directory as `Carat.py`
 4. Create a directory named `data` for Carat to store information in - or if you want its information stored elsewhere, adjust the `STORAGE_LOCATION` in the `.env` accordingly
 5. Run Carat.py!
-

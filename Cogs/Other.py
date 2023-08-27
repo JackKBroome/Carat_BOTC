@@ -328,6 +328,11 @@ class Other(commands.Cog):
                            value='Removes your private vote for the given nominee, so that your public vote is counted instead.\n'
                                  'Usage examples: `>RemovePrivateVote x1 Alex`, `>RemovePrivateVote 3 Alex`',
                            inline=False)
+        ts_embed.add_field(name=">SetVote [game_number] [nominee_identifier] [voter_identifier] [vote]",
+                           value='Sets the vote on the given nominee for the given voter to the given vote. You must '
+                                 'be a storyteller for this. . Note that you cannot lock a vote in this way.\n'
+                                 'Usage examples: `>ResetVote x1 Alex Ben`, `>ResetVote 3 Alex Ben`',
+                            inline=False)
         ts_embed.add_field(name=">CountVotes [game_number] [nominee_identifier]",
                            value='Begins counting the votes for the given nominee. You must be a storyteller for this.\n'
                                  'Usage examples: `>CountVotes x1 Alex`, `>CountVotes 3 Alex`',
@@ -405,8 +410,8 @@ class Other(commands.Cog):
                 await ctx.author.send(
                     'Use `all`, `anyone`, `st`, `townsquare`, `mod` or `no-mod` to filter the help message. '
                     'Default is `no-mod`.')
-            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a mode"
-                                  "rator know, or open an issue at <https://github.com/JackKBroome/Carat_BOTC/issues>"
+            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a "
+                                  "mod know, or open an issue at <https://github.com/JackKBroome/Carat_BOTC/issues>"
                                   "\nThank you!")
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")

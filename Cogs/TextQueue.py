@@ -368,3 +368,7 @@ class FreeChannelNotificationView(nextcord.ui.View):
         if not st_role.members:
             await game_channel.send("Previous queue entry timed out")
             await self.queue_cog.announce_free_channel(self.game_number, self.queue_position + 1)
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(TextQueue(bot, utility.Helper(bot)))

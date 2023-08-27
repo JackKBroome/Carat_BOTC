@@ -138,3 +138,7 @@ class Grimoire(commands.Cog):
         if not dm_success:
             await ctx.send(message)
         await utility.finish_processing(ctx)
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Grimoire(bot, utility.Helper(bot)))

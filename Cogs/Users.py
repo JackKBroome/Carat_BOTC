@@ -112,3 +112,7 @@ class Users(commands.Cog):
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
         await self.helper.log(
             f"{ctx.author.mention} has run the RemoveKibitz Command on {', '.join(kibitzer_names)} for game {game_number}")
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Users(bot, utility.Helper(bot)))

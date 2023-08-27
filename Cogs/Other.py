@@ -351,3 +351,7 @@ class Other(commands.Cog):
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")
         await utility.finish_processing(ctx)
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Other(bot, utility.Helper(bot)))

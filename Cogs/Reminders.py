@@ -31,7 +31,7 @@ class Reminder:
         return explanation
 
     @staticmethod
-    def create(time: datetime.datetime, channel: int, mention: str, event: str, end_of_countdown: datetime.datetime)\
+    def create(time: datetime.datetime, channel: int, mention: str, event: str, end_of_countdown: datetime.datetime) \
             -> Reminder:
         if time == end_of_countdown:
             return Reminder(time, channel, f"{mention} {event}")
@@ -103,7 +103,8 @@ class Reminders(commands.Cog):
             times.sort()
             end_of_countdown = utcnow() + datetime.timedelta(hours=times[-1])
             for time in times:
-                reminder = Reminder.create(utcnow() + datetime.timedelta(hours=time), game_channel.id, game_role.mention, event, end_of_countdown)
+                reminder = Reminder.create(utcnow() + datetime.timedelta(hours=time), game_channel.id,
+                                           game_role.mention, event, end_of_countdown)
                 heapq.heappush(self.reminder_list, reminder)
             self.update_storage()
             await utility.finish_processing(ctx)
@@ -137,7 +138,6 @@ class Reminders(commands.Cog):
             await utility.dm_user(ctx.author, "\n".join([reminder.explain() for reminder in reminders]))
         await utility.finish_processing(ctx)
 
-
     @tasks.loop(seconds=15)
     async def check_reminders(self):
         if len(self.reminder_list) == 0:
@@ -148,3 +148,7 @@ class Reminders(commands.Cog):
             await channel.send(earliest_reminder.text)
             self.reminder_list.remove(earliest_reminder)
             self.update_storage()
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Reminders(bot, utility.Helper(bot)))

@@ -1,4 +1,3 @@
-import contextlib
 import os
 import traceback
 
@@ -9,16 +8,6 @@ from nextcord.ext import commands
 from nextcord.ext.commands import DefaultHelpCommand, CommandError
 
 import utility
-from Cogs.Archive import Archive
-from Cogs.Game import Game
-from Cogs.Grimoire import Grimoire
-from Cogs.Other import Other
-from Cogs.Reminders import Reminders
-from Cogs.Signup import Signup
-from Cogs.TextQueue import TextQueue
-from Cogs.Townsquare import Townsquare
-from Cogs.Users import Users
-from utility import Helper
 
 load_dotenv()
 token = os.environ['TOKEN']
@@ -43,18 +32,9 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('Loading cogs')
-    helper = Helper(bot)
-    bot.add_cog(Archive(bot, helper))
-    bot.add_cog(Game(bot, helper))
-    bot.add_cog(Grimoire(bot, helper))
-    bot.add_cog(Other(bot, helper))
-    bot.add_cog(Reminders(bot, helper))
-    bot.add_cog(TextQueue(bot, helper))
-    bot.add_cog(Signup(bot, helper))
-    bot.add_cog(Users(bot, helper))
-    votes_cog = Townsquare(bot, helper)
-    await votes_cog.load_emoji()
-    bot.add_cog(votes_cog)
+    cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+    for cog in cog_paths:
+        bot.load_extension(cog)
     print('Ready')
     print('------')
 
@@ -78,13 +58,19 @@ async def on_command_error(ctx: commands.Context, error: CommandError):
 async def ReloadCogs(ctx: commands.Context):
     if ctx.author.id == 224643391873482753:
         await utility.start_processing(ctx)
-        #TODO: unload extensions
+        cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+        for cog in cog_paths:
+            bot.unload_extension(cog)
+        await utility.dm_user(ctx.author, "Unloaded cogs: " + ", ".join(cog_paths))
         response = requests.get("https://api.github.com/repos/JackKBroome/Carat_BOTC/contents/Cogs",
                                       headers={"Accept": "application/vnd.github+json",
                                                "X-GitHub-Api-Version": "2022-11-28"})
         if response.status_code != 200:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "Could not connect to GitHub")
+            for cog in cog_paths:
+                bot.load_extension(cog)
+            await utility.dm_user(ctx.author, "reloaded original cogs")
             return
         for file in response.json():
             if file["name"].endswith(".py"):
@@ -92,10 +78,16 @@ async def ReloadCogs(ctx: commands.Context):
                 if response.status_code != 200:
                     await utility.deny_command(ctx)
                     await utility.dm_user(ctx.author, "Could not connect to GitHub")
+                    for cog in cog_paths:
+                        bot.load_extension(cog)
+                    await utility.dm_user(ctx.author, "reloaded original cogs")
                     return
                 with open(os.path.join("Cogs", file["name"]), "w", encoding="utf-8") as f:
                     f.write(response.text)
-                #TODO: load extensions
+        new_cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+        for cog in new_cog_paths:
+            bot.load_extension(cog)
+        await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join(new_cog_paths))
         await utility.finish_processing(ctx)
     else:
         await utility.deny_command(ctx)

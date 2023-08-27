@@ -181,3 +181,7 @@ class Archive(commands.Cog):
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You do not have permission to use this command")
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Archive(bot, utility.Helper(bot)))

@@ -1026,3 +1026,9 @@ class CountVoteView(nextcord.ui.View):
             self.nom.finished = True
             self.clear_items()
             self.stop()
+
+
+def setup(bot: commands.Bot):
+    cog = Townsquare(bot, utility.Helper(bot))
+    cog.load_emoji()
+    bot.add_cog(cog)

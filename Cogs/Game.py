@@ -146,3 +146,7 @@ class Game(commands.Cog):
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the ArchiveGame Command for Game {game_number}")
+
+
+def setup(bot):
+    bot.add_cog(Game(bot, utility.Helper(bot)))

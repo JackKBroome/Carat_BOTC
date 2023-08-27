@@ -166,3 +166,7 @@ class SignupView(nextcord.ui.View):
                 embed.add_field(name=str(i + 1) + ". ", value=" Awaiting Player", inline=False)
         embed.set_footer(text=game_number)
         await signup_message.edit(embed=embed)
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Signup(bot, utility.Helper(bot)))

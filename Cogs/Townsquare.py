@@ -291,7 +291,7 @@ class Townsquare(commands.Cog):
             self.town_squares[game_number].log_thread = log_thread.id
             await self.log(game_number, f"Town square created: {self.town_squares[game_number]}")
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the storyteller for this game")
@@ -314,7 +314,7 @@ class Townsquare(commands.Cog):
                     nom.votes[player.id] = Vote(not_voted_yet)
             self.town_squares[game_number].players = new_player_list
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number, f"{ctx.author.mention} has updated the town square: {new_player_list}")
         else:
             await utility.deny_command(ctx)
@@ -338,7 +338,7 @@ class Townsquare(commands.Cog):
                                                       type=nextcord.ChannelType.public_thread)
             self.town_squares[game_number].nomination_thread = thread.id
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the storyteller for this game")
@@ -402,7 +402,7 @@ class Townsquare(commands.Cog):
             nom_message = await nom_thread.send(content=content, embed=embed)
             nom.message = nom_message.id
             self.town_squares[game_number].nominations.append(nom)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             self.update_storage()
             await self.log(game_number, f"{converted_nominator.alias} has nominated {converted_nominee.alias}")
 
@@ -436,7 +436,7 @@ class Townsquare(commands.Cog):
             nom.accusation = accusation
             self.update_storage()
             await self.update_nom_message(game_number, nom)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number, f"{ctx.author} has added this accusation to the nomination of "
                                         f"{nom.nominee.alias}: {accusation}")
         else:
@@ -473,7 +473,7 @@ class Townsquare(commands.Cog):
             nom.defense = defense
             self.update_storage()
             await self.update_nom_message(game_number, nom)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number,
                            f"{ctx.author} has added this defense to the nomination of {nom.nominee.alias}: {defense}")
         else:
@@ -494,7 +494,7 @@ class Townsquare(commands.Cog):
             for nom in [nom for nom in self.town_squares[game_number].nominations if not nom.finished]:
                 await self.update_nom_message(game_number, nom)
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number, f"{ctx.author} has set the vote threshold to {target}")
 
     @commands.command()
@@ -522,7 +522,7 @@ class Townsquare(commands.Cog):
             nom.deadline = format_dt(utcnow() + time, "R")
             self.update_storage()
             await self.update_nom_message(game_number, nom)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number, f"{ctx.author} has set the deadline for the nomination of {nom.nominee.alias} "
                                         f"to {format_dt(utcnow() + time)}")
         else:
@@ -541,7 +541,7 @@ class Townsquare(commands.Cog):
                 return
             self.town_squares[game_number].default_nomination_duration = hours * 3600
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the ST to use this command")
@@ -593,7 +593,7 @@ class Townsquare(commands.Cog):
             nom.votes[voter.id] = Vote(vote)
             self.update_storage()
             await self.update_nom_message(game_number, nom)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number,
                            f"{ctx.author} has set their vote on the nomination of {nom.nominee.alias} to {vote}")
         else:
@@ -642,7 +642,7 @@ class Townsquare(commands.Cog):
                 return
             nom.private_votes[voter.id] = vote
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number,
                            f"{ctx.author} has set a private vote on the nomination of {nom.nominee.alias} as {vote}")
         else:
@@ -675,7 +675,7 @@ class Townsquare(commands.Cog):
                 return
             private_vote = nom.private_votes.pop(voter.id, None)
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             if private_vote:
                 await utility.dm_user(ctx.author, f"Your private vote on the nomination of {nom.nominee.alias} "
                                                   f"has been removed.")
@@ -721,7 +721,7 @@ class Townsquare(commands.Cog):
                                    "Any other button will not lock the vote in, allowing you to make "
                                    "further adjustments. Click any button to begin",
                            view=CountVoteView(self, nom, ctx.author, game_number, self.emoji))
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must be the Storyteller to count the votes for a nomination")
@@ -746,7 +746,7 @@ class Townsquare(commands.Cog):
             else:
                 nom.finished = True
                 self.update_storage()
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
                 await self.log(game_number, f"{ctx.author} has closed the nomination of {nom.nominee.alias}")
         else:
             await utility.deny_command(ctx)
@@ -774,7 +774,7 @@ class Townsquare(commands.Cog):
             player.alias = alias
             self.update_storage()
             await self.log(game_number, f"{ctx.author.name} has set their alias to {alias}")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         elif st_role in ctx.author.roles:
             await utility.start_processing(ctx)
             st = next((st for st in self.town_squares[game_number].sts if st.id == ctx.author.id), None)
@@ -785,7 +785,7 @@ class Townsquare(commands.Cog):
                 return
             st.alias = alias
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.log(game_number, f"{ctx.author.name} has set their alias to {alias}")
         else:
             await utility.deny_command(ctx)
@@ -804,7 +804,7 @@ class Townsquare(commands.Cog):
             for nom in self.town_squares[game_number].nominations:
                 if not nom.finished:
                     await self.update_nom_message(game_number, nom)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await utility.dm_user(ctx.author, f"Organ Grinder is now "
                                               f"{'enabled' if self.town_squares[game_number].organ_grinder else 'disabled'}")
         else:
@@ -823,7 +823,7 @@ class Townsquare(commands.Cog):
                 return
             self.town_squares[game_number].player_noms_allowed = not self.town_squares[game_number].player_noms_allowed
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await utility.dm_user(ctx.author,
                                   f"Player nominations are now "
                                   f"{'enabled' if self.town_squares[game_number].player_noms_allowed else 'disabled'}")
@@ -849,7 +849,7 @@ class Townsquare(commands.Cog):
                 return
             player.dead = not player.dead
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await utility.dm_user(ctx.author, f"{player.alias} is now "
                                               f"{'marked as dead' if player.dead else 'marked as living'}")
             await self.log(game_number, f"{ctx.author} has marked {player.alias} as "
@@ -876,7 +876,7 @@ class Townsquare(commands.Cog):
                 return
             player.can_vote = not player.can_vote
             self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await utility.dm_user(ctx.author, f"{player.alias} can now "
                                               f"{'vote' if player.can_vote else 'not vote'}")
             await self.log(game_number, f"{ctx.author} has set {player.alias} as "

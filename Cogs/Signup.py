@@ -34,7 +34,7 @@ class Signup(commands.Cog):
         dm_success = await utility.dm_user(ctx.author, output_string)
         if not dm_success:
             await ctx.send(content=output_string, reference=ctx.message)
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
 
     @commands.command()
     async def Signup(self, ctx: commands.Context, game_number: str, signup_limit: int, script: str):
@@ -65,7 +65,7 @@ class Signup(commands.Cog):
             await self.helper.get_game_channel(game_number).send(embed=embed, view=SignupView(self.helper))
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
 
         else:
             await utility.deny_command(ctx)

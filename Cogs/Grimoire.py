@@ -39,7 +39,7 @@ class Grimoire(commands.Cog):
                                             f"be, carry on - otherwise you can drop the grimoire with `>DropGrimoire` "
                                             f"and join the queue with `>JoinTextQueue` (see `>HelpMe` for details)")
                 await queue.user_leave_queue(ctx.author)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.dm_user(ctx.author,
                                   "This channel already has " + str(len(st_role.members)) + " STs. These users are:\n" +
@@ -61,7 +61,7 @@ class Grimoire(commands.Cog):
             await utility.dm_user(ctx.author,
                                   "You have assigned the current ST role for game " + str(game_number) +
                                   " to " + member.display_name)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
 
@@ -85,7 +85,7 @@ class Grimoire(commands.Cog):
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue and not st_role.members:
                 await queue.announce_free_channel(game_number, 0)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
@@ -108,7 +108,7 @@ class Grimoire(commands.Cog):
             dm_success = await utility.dm_user(ctx.author, dm_content)
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
@@ -137,4 +137,4 @@ class Grimoire(commands.Cog):
         dm_success = await utility.dm_user(ctx.author, message)
         if not dm_success:
             await ctx.send(message)
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)

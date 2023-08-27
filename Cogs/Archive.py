@@ -87,7 +87,7 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].private_to_archive.append(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already included in the archive.")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the IncludeInArchive Command")
         elif thread.type == nextcord.ChannelType.public_thread:
             await utility.start_processing(ctx)
@@ -97,7 +97,7 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].public_to_not_archive.remove(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already included in the archive.")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the IncludeInArchive Command")
         else:
             await utility.deny_command(ctx)
@@ -117,7 +117,7 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].private_to_archive.remove(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already not included in the archive.")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the DoNotArchive Command")
         elif thread.type == nextcord.ChannelType.public_thread:
             await utility.start_processing(ctx)
@@ -127,7 +127,7 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].public_to_not_archive.append(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already not included in the archive.")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the DoNotArchive Command")
         else:
             await utility.deny_command(ctx)
@@ -172,7 +172,7 @@ class Archive(commands.Cog):
 
             await archive_channel.create_thread(name="Chat about the game", type=nextcord.ChannelType.public_thread)
 
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             self.threads_by_channel.pop(archive_channel_id)
             self.update_storage()
 

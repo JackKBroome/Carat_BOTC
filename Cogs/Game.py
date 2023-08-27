@@ -32,7 +32,7 @@ class Game(commands.Cog):
                 f"Feedback form: https://forms.gle/HqNfMv1pte8vo5j59")
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             # React on Disapproval
             await utility.deny_command(ctx)
@@ -56,7 +56,7 @@ class Game(commands.Cog):
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=False)
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
@@ -102,7 +102,7 @@ class Game(commands.Cog):
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=True)
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
 
         else:
             # React on Disapproval
@@ -139,7 +139,7 @@ class Game(commands.Cog):
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=False)
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
 
         else:
             await utility.deny_command(ctx)

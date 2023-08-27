@@ -39,6 +39,15 @@ async def deny_command(ctx: commands.Context):
         strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
 
+async def finish_processing(ctx: commands.Context):
+    for reaction in ctx.message.reactions:
+        if reaction.emoji == WorkingEmoji:
+            await reaction.clear()
+    await ctx.message.add_reaction(CompletedEmoji)
+    print(f"-= The {ctx.command.name} command was used successfully by " + str(ctx.author.name) + " at " + str(
+        strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+
+
 async def start_processing(ctx):
     await ctx.message.add_reaction(WorkingEmoji)
 
@@ -91,12 +100,6 @@ class Helper:
 
     def authorize_mod_command(self, author):
         return (self.ModRole in author.roles) or (author.id == OwnerID)
-
-    async def finish_processing(self, ctx):
-        await ctx.message.remove_reaction(WorkingEmoji, self.bot.user)
-        await ctx.message.add_reaction(CompletedEmoji)
-        print(f"-= The {ctx.command.name} command was used successfully by " + str(ctx.author.name) + " at " + str(
-            strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
 
     async def log(self, log_string: str):
         await self.LogChannel.send(log_string)

@@ -26,7 +26,7 @@ class Users(commands.Cog):
             await utility.dm_user(ctx.author,
                                   "You have assigned the game role for game " + str(game_number) +
                                   " to " + ", ".join(player_names))
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
@@ -52,7 +52,7 @@ class Users(commands.Cog):
             await utility.dm_user(ctx.author,
                                   "You have removed the game role for game " + str(game_number) +
                                   " from " + ", ".join(player_names))
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
@@ -80,7 +80,7 @@ class Users(commands.Cog):
                                   "You have assigned the kibitz role for game " + str(game_number) +
                                   " to " + ", ".join(kibitzer_names)
                                   )
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
@@ -106,7 +106,7 @@ class Users(commands.Cog):
             await utility.dm_user(ctx.author,
                                   "You have removed the kibitz role for game " + str(game_number) +
                                   " to " + ", ".join(kibitzer_names))
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))

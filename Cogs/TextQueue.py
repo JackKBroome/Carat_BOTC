@@ -157,7 +157,7 @@ class TextQueue(commands.Cog):
             self.queues[channel_type] = queue
 
             await self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
@@ -186,7 +186,7 @@ class TextQueue(commands.Cog):
                                                   "displayed currently, but it has been added to the queue.")
 
             await self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You may not join a text ST queue while you are already in one")
@@ -201,7 +201,7 @@ class TextQueue(commands.Cog):
         queue = self.get_queue(ctx.author.id)
         if not queue:
             await utility.dm_user(ctx.author, "You are not in a queue at the moment")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             return
 
         queue.entries = [e for e in queue.entries if e.st != ctx.author.id]
@@ -211,7 +211,7 @@ class TextQueue(commands.Cog):
 
         await self.update_storage()
 
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
 
         await self.helper.log(f"{ctx.author.mention} has run the LeaveTextQueue command")
 
@@ -224,7 +224,7 @@ class TextQueue(commands.Cog):
         queue = self.get_queue(ctx.author.id)
         if not queue:
             await utility.dm_user(ctx.author, "You are not in a queue at the moment")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             return
         for index, entry in enumerate(queue.entries):
             if entry.st == ctx.author.id:
@@ -238,7 +238,7 @@ class TextQueue(commands.Cog):
                                               "displayed currently, but is still in the queue.")
         await self.update_storage()
 
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
 
     @commands.command()
     async def EditEntry(self, ctx: commands.Context, script: str, availability: str, notes: Optional[str]):
@@ -248,7 +248,7 @@ class TextQueue(commands.Cog):
         queue = self.get_queue(ctx.author.id)
         if not queue:
             await utility.dm_user(ctx.author, "You are not in a queue at the moment")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             return
         entry = next(e for e in queue.entries if e.st == ctx.author.id)
         entry.script = script
@@ -260,7 +260,7 @@ class TextQueue(commands.Cog):
         if not full_queue_posted:
             await self.helper.log("Queue too long for message - final entry/entries not displayed")
         await self.update_storage()
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
         await self.helper.log(f"{ctx.author.mention} has run the EditEntry command")
 
     @commands.command()
@@ -273,7 +273,7 @@ class TextQueue(commands.Cog):
             queue = self.get_queue(member.id)
             if not queue:
                 await utility.dm_user(ctx.author, "The member is not in a queue at the moment")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
                 return
 
             queue.entries = [e for e in queue.entries if e.st != member.id]
@@ -282,7 +282,7 @@ class TextQueue(commands.Cog):
                 await self.helper.log("Queue too long for message - final entry/entries not displayed")
             await self.update_storage()
 
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")
@@ -298,7 +298,7 @@ class TextQueue(commands.Cog):
             queue = self.get_queue(ctx.author.id)
             if not queue:
                 await utility.dm_user(ctx.author, "The member is not in a queue at the moment")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
                 return
             for index, item in enumerate(queue.entries):
                 if item.st == member.id:
@@ -311,7 +311,7 @@ class TextQueue(commands.Cog):
 
             await self.update_storage()
 
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "This command is restricted to moderators")

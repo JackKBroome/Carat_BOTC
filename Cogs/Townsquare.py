@@ -1028,7 +1028,7 @@ class CountVoteView(nextcord.ui.View):
             self.stop()
 
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     cog = Townsquare(bot, utility.Helper(bot))
-    cog.load_emoji()
+    await cog.load_emoji()
     bot.add_cog(cog)

@@ -152,9 +152,9 @@ class Other(commands.Cog):
                                  'spaces, you have to surround it with quotes.\n' +
                                  'Usage examples: `>Signup 1 12 Catfishing`, `>Signup x3 6 "My new homebrew Teensy"`',
                            inline=False)
-        st_embed.add_field(name=">CreateThreads [game number]",
+        st_embed.add_field(name=">CreateThreads [game number] [setup message]",
                            value='Creates a private thread in the game\'s channel for each player, named "ST Thread ['
-                                 'player name]", and adds the player and all STs to it.\n' +
+                                 'player name]", adds the player and all STs to it, then posts [setup message] into each channel.\n' +
                                  'Usage examples: `>CreateThreads 1`, `>CreateThreads x3`',
                            inline=False)
         st_embed.add_field(name=">SetReminders [game number] [event] [times]",

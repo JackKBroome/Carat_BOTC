@@ -40,7 +40,7 @@ class Other(commands.Cog):
                 await thread.add_user(player)
                 for st in self.helper.get_st_role(game_number).members:
                     await thread.add_user(st)
-                if setup_message != None:
+                if setup_message is not None:
                     await thread.send(setup_message)
             await utility.finish_processing(ctx)
         else:
@@ -50,7 +50,7 @@ class Other(commands.Cog):
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):
         """Sends a message listing and explaining available commands.
-        Can be filtered by appending one of `all, anyone, st, mod, no-mod`. Default is `no-mod`"""
+        Can be filtered by appending one of `all, anyone, st, townsquare, mod, no-mod`. Default is `no-mod`"""
         await utility.start_processing(ctx)
         anyone_embed = nextcord.Embed(title="Unofficial Text Game Bot",
                                       description="Commands that can be executed by anyone", color=0xe100ff)
@@ -102,12 +102,12 @@ class Other(commands.Cog):
                                value="Marks a thread as to be included in the archive. Use in the thread you want to "
                                      "include. By default, private threads are not archived, and public threads are. "
                                      "Use IncludeInArchive to include a private thread in the archive, or to undo "
-                                     "DoNotArchive for a public thread.",
+                                     "ExcludeFromArchive for a public thread.",
                                inline=False)
-        anyone_embed.add_field(name=">DoNotArchive",
+        anyone_embed.add_field(name=">ExcludeFromArchive",
                                value="Marks a thread as to not be included in the archive. Use in the thread you want "
                                      "to exclude. By default, private threads are not archived, and public threads "
-                                     "are. Use DoNotArchive to exclude a public thread from the archive, or to "
+                                     "are. Use ExcludeFromArchive to exclude a public thread from the archive, or to "
                                      "undo IncludeInArchive for a private thread.",
                                inline=False)
         anyone_embed.add_field(name=">HelpMe",
@@ -223,8 +223,14 @@ class Other(commands.Cog):
         ts_embed.add_field(name=">UpdateTownSquare [game_number] [players]",
                            value="Updates the town square for the given game, with the given players. Ping them in order of seating."
                                  "The difference to rerunning SetupTownSquare is that the latter will lose information like aliases, "
-                                 "spent deadvotes, and nominations. UpdateTownSquare will not.\n"
+                                 "spent deadvotes, and nominations. UpdateTownSquare will not, except for nominations of or by removed players.\n"
                                  "Usage example: `>UpdateTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gideon @Hannah`",
+                           inline=False)
+        ts_embed.add_field(name=">SubstitutePlayer [game number] [player] [substitute]",
+                           value="Exchanges a player in the town square with a substitute. Transfers the position, "
+                                 "status, nominations and votes of the exchanged player to the substitute. "
+                                 "Adds the substitute to all threads the exchanged player was in.\n"
+                                 "Usage example: `>SubstitutePlayer x1 @Alex @Amy`",
                            inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",
                            value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'
@@ -233,7 +239,8 @@ class Other(commands.Cog):
 
         ts_embed.add_field(name=">Nominate [game_number] [nominee] [nominator]",
                            value="Create a nomination for the given nominee. If you are a ST, provide the nominator. "
-                                 "If you are a player, leave the nominator out or give yourself. In either case, you don't need to ping, a name should work.\n"
+                                 "If you are a player, leave the nominator out or give yourself. In either case, "
+                                 "you don't need to ping, a name should work. The ST may disable this command for players.\n"
                                  "Usage examples: `>Nominate x1 Alex Ben`, >Nominate 3 Alex`",
                            inline=False)
         ts_embed.add_field(name=">AddAccusation [game_number] [accusation] [nominee_identifier]",
@@ -257,21 +264,29 @@ class Other(commands.Cog):
                                  'In a newly created town square, this value is 24 hours.\n'
                                  'Usage examples: `>SetDefaultDeadline x1 36`, `>SetDefaultDeadline 3 24`',
                            inline=False)
-        ts_embed.add_field(name=">Vote [game_number] [nominee_identifier] [vote]",
-                           value='Set your vote for the given nominee. You don\'t need to ping, a name should work. '
-                                 'Your vote can be anything (but should be something the ST can unambiguously interpret as yes or no when they count it).'
+        ts_embed.add_field(name=">Vote <game number> [nominee]... [vote]",
+                           value='Set your vote for the given nominee or nominees. You don\'t need to ping, name(s) '
+                                 'should work. Your vote can be anything (but should be something the ST can '
+                                 'unambiguously interpret as yes or no when they count it).'
                                  'You can change your vote until it is counted by the storyteller.\n'
-                                 'Usage examples: `>Vote x1 Alex yes`, `>Vote 3 Alex "no unless nobody is on the block"`',
+                                 'Usage examples: `>Vote x1 Alex yes`, `>Vote 3 Alex "yes if Fiona voted yes"`, '
+                                 '`>Vote 3 Alex Ben Celia "yes if there\'s nobody on the block"`',
                            inline=False)
         ts_embed.add_field(name=">PrivateVote [game_number] [nominee_identifier] [vote]",
                            value='Same as >Vote, but your vote will be hidden from other players. They will still see '
-                                 'whether you voted yes or no after your vote is counted. A private vote will always override any public vote, even later ones. '
-                                 'If you want your public vote to be counted instead, you can change your private vote accordingly or use >RemovePrivateVote.\n'
+                                 'whether you voted yes or no after your vote is counted. A private vote will always '
+                                 'override any public vote, even later ones. If you want your public vote to be counted'
+                                 ' instead, you can change your private vote accordingly or use >RemovePrivateVote.\n'
                                  'Usage examples: `>PrivateVote x1 Alex yes`, `>PrivateVote 3 Alex "drop my hand if there aren\'t enough votes yet"`',
                            inline=False)
         ts_embed.add_field(name=">RemovePrivateVote [game_number] [nominee_identifier]",
                            value='Removes your private vote for the given nominee, so that your public vote is counted instead.\n'
                                  'Usage examples: `>RemovePrivateVote x1 Alex`, `>RemovePrivateVote 3 Alex`',
+                           inline=False)
+        ts_embed.add_field(name=">SetVote [game_number] [nominee_identifier] [voter_identifier] [vote]",
+                           value='Sets the vote on the given nominee for the given voter to the given vote. You must '
+                                 'be a storyteller for this. . Note that you cannot lock a vote in this way.\n'
+                                 'Usage examples: `>ResetVote x1 Alex Ben`, `>ResetVote 3 Alex Ben`',
                            inline=False)
         ts_embed.add_field(name=">CountVotes [game_number] [nominee_identifier]",
                            value='Begins counting the votes for the given nominee. You must be a storyteller for this.\n'
@@ -350,8 +365,8 @@ class Other(commands.Cog):
                 await ctx.author.send(
                     'Use `all`, `anyone`, `st`, `townsquare`, `mod` or `no-mod` to filter the help message. '
                     'Default is `no-mod`.')
-            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a mode"
-                                  "rator know, or open an issue at <https://github.com/JackKBroome/Carat_BOTC/issues>"
+            await ctx.author.send("Note: If you believe that there is an error with the bot, please let Jack or a "
+                                  "mod know, or open an issue at <https://github.com/JackKBroome/Carat_BOTC/issues>"
                                   "\nThank you!")
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")

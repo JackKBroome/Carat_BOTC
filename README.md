@@ -48,7 +48,7 @@ This project is used by the following discord servers:
 `>OpenKibitz [Game Number]`  
 `>CloseKibitz [Game Number]` 
 ## Text Queue
-- To setup the Queue (Done by Server Moderators) use:
+- To set up the Queue (Done by Server Moderators) use:
 `>InitQueue [x/r]` 
 
 ![Automatic Queue](https://github.com/JackKBroome/Carat_BOTC/blob/main/ReadMe%20Images/Queue.PNG?raw=true)
@@ -71,7 +71,7 @@ This project is used by the following discord servers:
 ![Grimoire Ping](https://github.com/JackKBroome/Carat_BOTC/blob/main/ReadMe%20Images/VoterPing.PNG?raw=true)
 ## Game Sign-ups & Setup
 
-- STs can automate signups throuh Carat using:
+- STs can automate signups through Carat using:
 `>Signup [Game Number] [Player Limit] [Script Name]` 
 
 ![Sign up Screen](https://github.com/JackKBroome/Carat_BOTC/blob/main/ReadMe%20Images/SignupSheet.PNG?raw=true)
@@ -83,21 +83,21 @@ This project is used by the following discord servers:
 - To see who is signed up to a game use:
 `>ShowSignups [Game Number]`  
 
-- Some STs choose to have private threads woth each player, this can be automated, including posting a setup message in each thread by:
+- Some STs choose to have private threads with each player, this can be automated, including posting a setup message in each thread by:
 `>CreateThreads [Game Number] [Setup Message]`  
 ## Text Game Voting (Player)
 
-- You can set your preferered name with:
+- You can set your preferred name with:
 `>SetAlias [Game Number] [Alias]`
 
 - You can nominate players with:
 `>Nominate [Game Number] [Nominee Name]`
 
-- As the Nominator or Nominatee you add the acusation or defense with:
+- As the Nominator or Nominee you add the accusation or defense with:
 `>AddAccusation [Game Number] [Accusation] [Nominee Name]`  
-`>AddDefence [Game Number] [Defence] [Nominee Name]`
+`>AddDefense [Game Number] [Defence] [Nominee Name]`
 
-- You can vote through Carat with (note this does not have to be exclusivley Y/N, any input values will be given to the ST to evaluate), Private votes override public votes to the ST:
+- You can vote through Carat with (note this does not have to be exclusively Y/N, any input values will be given to the ST to evaluate), Private votes override public votes to the ST:
 `>Vote [Game Number] [Nominee Name] [Vote]`  
 `>PrivateVote [Game Number] [Nominee Name] [Vote]`  
 `>RemovePrivateVote [Game Number] [Nominee Name]`  
@@ -107,9 +107,10 @@ This project is used by the following discord servers:
 
 ## Text Game Voting (ST)
 
-- To setup or adjust the voting circle you can use:
+- To set up or adjust the voting circle you can use:
 `>SetupTownSquare [Game Number] [@member1] [@member2]...`  
-`>UpdateTownSquare [Game Number] [@member1] [@member2]...` 
+`>UpdateTownSquare [Game Number] [@member1] [@member2]...`  
+`>SubstitutePlayer [Game Number] [@player] [@substitute]`
 
 - To create a thread for voting use:
 `>CreateNomThread [Game Number]`  
@@ -128,7 +129,7 @@ This project is used by the following discord servers:
 `>ToggleDead [Game Number] [@member]`  
 `>ToggleCanVote [Game Number] [@member]`  
 
-- To toggle the visability of votes you can:
+- To toggle the visibility of votes you can:
 `>ToggleOrganGrinder [Game Number]`  
 
 - To count the votes you can:
@@ -152,6 +153,10 @@ This project is used by the following discord servers:
 - Carat can help store text games all in a location (even across servers) using:
 
 `>OffServerArchive [Server ID] [Channel ID]`  
+- Public threads are stored, private ones are not, but either can be adjusted on a thread by thread basis using:
+
+`>IncludeInArchive`  
+`>ExcludeFromArchive`
 ## Deployment instructions
 
 1. Download the necessary files (`Carat.py`, `utility.py`, the `Cogs` directory) and make sure they are arranged correctly (`Carat.py` and `utility.py`, and the `Cogs` directory all lying in the same directory)
@@ -159,4 +164,3 @@ This project is used by the following discord servers:
 3. Create a file called `.env`, if you don't have one. To do this, you can copy `.env-dist` or create it manually. `.env-dist` contains the appropriate values to run Carat for the BotC Unofficial discord, aside from the token, which you must add yourself. Make sure to never commit or otherwise upload any file containing the bot token. `.env` (unlike `.env-dist`) is included in the `.gitignore`, so it is safe from this. If you want to run Carat somewhere that is not the BotC Unofficial discord, set the environment variables to the appropriate values. The `.env` has to lie in the same directory as `Carat.py`
 4. Create a directory named `data` for Carat to store information in - or if you want its information stored elsewhere, adjust the `STORAGE_LOCATION` in the `.env` accordingly
 5. Run Carat.py!
-

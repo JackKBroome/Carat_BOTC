@@ -110,6 +110,10 @@ class Other(commands.Cog):
                                      "are. Use ExcludeFromArchive to exclude a public thread from the archive, or to "
                                      "undo IncludeInArchive for a private thread.",
                                inline=False)
+        anyone_embed.add_field(name=">ShowReminders [game number]",
+                               value="Shows all reminders for the given game number."
+                                     "Usage examples: `>ShowReminders 1`, `>ShowReminders x3`",
+                               inline=False)
         anyone_embed.add_field(name=">HelpMe",
                                value="Sends this message. Can be filtered by appending one of `all, anyone, st, mod, "
                                      "no-mod`. Default is `no-mod`\n"
@@ -170,6 +174,9 @@ class Other(commands.Cog):
                                  'Usage examples: `>SetReminders 1 "Votes on Alice close" 24`, '
                                  '`>SetReminders x3 18 24 30 33 36`',
                            inline=False)
+        st_embed.add_field(name=">DeleteReminders [game number]",
+                           value='Deletes all reminders for the given game number.'
+                                 'Usage examples: `>DeleteReminders 1`, `>DeleteReminders x3`')
         st_embed.add_field(name=">GiveGrimoire [game number] [User]",
                            value='Removes the ST role for the game from you and gives it to the given user. You can '
                                  'provide a user by ID, mention/ping, or nickname, though giving the nickname may '

@@ -2,5 +2,4 @@
 __pycache__
 /.idea
 /data
-errors.txt
-logs.txt
+/Carat.log

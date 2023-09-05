@@ -1,6 +1,6 @@
 from __future__ import annotations
+
 import datetime
-import heapq
 import json
 import os
 from dataclasses import dataclass
@@ -12,31 +12,32 @@ from nextcord.utils import utcnow, format_dt
 import utility
 
 
-@dataclass(order=True)
 @dataclass_json
+@dataclass(order=True)
 class Reminder:
-    time: datetime.datetime
+    time: str
     channel: int
     text: str
 
     def explain(self) -> str:
         text_elements = self.text.split(" ")
-        if self.text[-2:] == ">)":
+        time = datetime.datetime.fromisoformat(self.time)
+        if self.text[-2:] == ":t>)":
             event = " ".join(text_elements[1:-2])
-            explanation = f"{format_dt(self.time, 'R')} ({format_dt(self.time, 'f')}): Reminder that `{event}` at " \
-                          f"{text_elements[-1].replace('t', 'f')}"
+            explanation = f"{format_dt(time, 'R')} ({format_dt(time, 'f')}): Reminder that `{event}` at " \
+                          f"{text_elements[-1][1:-3]}f>"
         else:
             event = " ".join(text_elements[1:])
-            explanation = f"{format_dt(self.time, 'R')} ({format_dt(self.time, 'f')}): Announcement that `{event}`"
+            explanation = f"{format_dt(time, 'R')} ({format_dt(time, 'f')}): Announcement that `{event}`"
         return explanation
 
     @staticmethod
     def create(time: datetime.datetime, channel: int, mention: str, event: str, end_of_countdown: datetime.datetime) \
             -> Reminder:
         if time == end_of_countdown:
-            return Reminder(time, channel, f"{mention} {event}")
+            return Reminder(time.isoformat(), channel, f"{mention} {event}")
         text = f"{mention} {event} {format_dt(end_of_countdown, 'R')} ({format_dt(end_of_countdown, 't')})"
-        return Reminder(time, channel, text)
+        return Reminder(time.isoformat(), channel, text)
 
 
 class Reminders(commands.Cog):
@@ -56,7 +57,7 @@ class Reminders(commands.Cog):
         else:
             with open(self.ReminderStorage, 'r') as f:
                 self.reminder_list = [Reminder.from_dict(item) for item in json.load(f)]
-            heapq.heapify(self.reminder_list)
+            self.reminder_list.sort()
         self.check_reminders.start()
 
     def cog_unload(self):
@@ -105,7 +106,8 @@ class Reminders(commands.Cog):
             for time in times:
                 reminder = Reminder.create(utcnow() + datetime.timedelta(hours=time), game_channel.id,
                                            game_role.mention, event, end_of_countdown)
-                heapq.heappush(self.reminder_list, reminder)
+                self.reminder_list.append(reminder)
+            self.reminder_list.sort()
             self.update_storage()
             await utility.finish_processing(ctx)
         else:
@@ -119,7 +121,6 @@ class Reminders(commands.Cog):
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             self.reminder_list = [reminder for reminder in self.reminder_list if reminder.channel != game_channel_id]
-            heapq.heapify(self.reminder_list)
             self.update_storage()
             await utility.finish_processing(ctx)
         else:
@@ -142,11 +143,11 @@ class Reminders(commands.Cog):
     async def check_reminders(self):
         if len(self.reminder_list) == 0:
             return
-        earliest_reminder = heapq.heappop(self.reminder_list)
-        if earliest_reminder.time < utcnow():
+        earliest_reminder = self.reminder_list[0]
+        if datetime.datetime.fromisoformat(earliest_reminder.time) <= utcnow():
             channel = self.bot.get_channel(earliest_reminder.channel)
             await channel.send(earliest_reminder.text)
-            self.reminder_list.remove(earliest_reminder)
+            self.reminder_list.pop(0)
             self.update_storage()
 
 

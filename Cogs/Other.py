@@ -81,7 +81,12 @@ class Other(commands.Cog):
         anyone_embed.add_field(name=">EditEntry [script name] [availability] [notes (optional)]",
                                value="Edits your queue entry. You cannot change the channel type. "
                                      "You have to give availability and script even if they have not changed."
-                                     'Usage examples: `>EditEntry "Trouble Brewing" "after June 20"`')
+                                     'Usage example: `>EditEntry "Trouble Brewing" "after June 20"`',
+                               inline=False)
+        anyone_embed.add_field(name=">EditNotes [notes]",
+                               value="Edits only the notes part of your entry."
+                                     'Usage example: `EditNotes "Pre-ins: Alex, Ben, Celia"`',
+                               inline=False)
         anyone_embed.add_field(name=">LeaveTextQueue",
                                value="Removes you from the queue you are in currently - careful, you won't be able to "
                                      "regain your spot.",

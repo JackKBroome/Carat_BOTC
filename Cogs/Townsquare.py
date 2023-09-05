@@ -354,6 +354,7 @@ class Townsquare(commands.Cog):
         can_nominate = self.helper.authorize_st_command(ctx.author, game_number) or game_role in ctx.author.roles
         nominee = self.get_game_participant(game_number, nominee_identifier)
         nominator = self.get_game_participant(game_number, nominator_identifier) if nominator_identifier else None
+        nom_thread = get(self.helper.Guild.threads, id=self.town_squares[game_number].nomination_thread)
         if not can_nominate:
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "You must participate in the game to nominate!")
@@ -367,6 +368,9 @@ class Townsquare(commands.Cog):
         elif not nominee:  # Atheist allows ST to be nominated
             await utility.deny_command(ctx)
             await utility.dm_user(ctx.author, "The nominee must be a game participant")
+        elif not nom_thread:
+            await utility.deny_command(ctx)
+            await utility.dm_user(ctx.author, "The nomination thread has not been created. Ask an ST to fix this.")
         elif any([nominee.id == nom.nominee.id and not nom.finished for nom in
                   self.town_squares[game_number].nominations]):
             await utility.deny_command(ctx)
@@ -394,11 +398,6 @@ class Townsquare(commands.Cog):
             nom = Nomination(converted_nominator, converted_nominee, votes, format_dt(deadline, "R"))
 
             content, embed = format_nom_message(game_role, self.town_squares[game_number], nom, self.emoji)
-            nom_thread = get(self.helper.Guild.threads, id=self.town_squares[game_number].nomination_thread)
-            if not nom_thread:
-                await utility.deny_command(ctx)
-                await utility.dm_user(ctx.author, "The nomination thread has not been created. Ask an ST to fix this.")
-                return
             nom_message = await nom_thread.send(content=content, embed=embed)
             nom.message = nom_message.id
             self.town_squares[game_number].nominations.append(nom)

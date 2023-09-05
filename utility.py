@@ -8,6 +8,7 @@ from nextcord.ext import commands
 from nextcord.utils import get
 
 OwnerID = 107209184147185664
+DeveloperIDs = [224643391873482753]
 
 WorkingEmoji = '\U0001F504'
 CompletedEmoji = '\U0001F955'
@@ -17,8 +18,10 @@ DeniedEmoji = '\U000026D4'
 def get_channel_type(channel_type: str):
     if channel_type.lower() in ['experimental', 'exp', 'x']:
         return "Experimental"
-    else:
+    elif channel_type.lower() in ['regular', 'standard', 'normal', 'r', 'n', 'reg']:
         return "Regular"
+    else:
+        return None
 
 
 async def dm_user(user: Union[nextcord.User, nextcord.Member], content: str) -> bool:
@@ -42,7 +45,9 @@ async def deny_command(ctx: commands.Context):
 async def finish_processing(ctx: commands.Context):
     for reaction in ctx.message.reactions:
         if reaction.emoji == WorkingEmoji:
-            await reaction.clear()
+            async for user in reaction.users():
+                if user.bot:
+                    await reaction.remove(user)
     await ctx.message.add_reaction(CompletedEmoji)
     print(f"-= The {ctx.command.name} command was used successfully by " + str(ctx.author.name) + " at " + str(
         strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))

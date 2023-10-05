@@ -35,8 +35,7 @@ class Game(commands.Cog):
             await utility.finish_processing(ctx)
         else:
             # React on Disapproval
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(f"{ctx.author.mention} has run the OpenKibitz Command on Game {game_number}")
 
@@ -58,8 +57,7 @@ class Game(commands.Cog):
             # React for completion
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the CloseKibitz Command on Game {game_number}")
 
@@ -106,8 +104,7 @@ class Game(commands.Cog):
 
         else:
             # React on Disapproval
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the EndGame Command on Game {game_number}")
 
@@ -142,8 +139,7 @@ class Game(commands.Cog):
             await utility.finish_processing(ctx)
 
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the ArchiveGame Command for Game {game_number}")
 

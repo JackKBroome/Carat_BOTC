@@ -14,7 +14,7 @@ class Other(commands.Cog):
         self.helper = helper
 
     @commands.command()
-    async def CreateThreads(self, ctx, game_number, setup_message=None):
+    async def CreateThreads(self, ctx, game_number: str, setup_message=None):
         """Creates a private thread in the game\'s channel for each player.
         The player and all STs are automatically added to each thread. The threads are named "ST Thread [player name]".
         """
@@ -44,8 +44,7 @@ class Other(commands.Cog):
                     await thread.send(setup_message)
             await utility.finish_processing(ctx)
         else:
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
-            await utility.deny_command(ctx)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):

@@ -1,5 +1,6 @@
+import logging
 import os
-from time import gmtime, strftime
+import re
 from typing import Union, Optional
 
 import nextcord
@@ -29,17 +30,20 @@ async def dm_user(user: Union[nextcord.User, nextcord.Member], content: str) -> 
         await user.send(content)
         return True
     except nextcord.Forbidden:
-        print(f"Could not DM {user} due to lack of permission")
+        logging.warning(f"Could not DM {user} - user has DMs disabled")
         return False
     except Exception as e:
-        print(f"Could not DM {user} due to unknown error: {e}")
+        logging.exception(f"Could not DM {user}: {e}")
         return False
 
 
-async def deny_command(ctx: commands.Context):
+async def deny_command(ctx: commands.Context, reason: Optional[str]):
     await ctx.message.add_reaction(DeniedEmoji)
-    print(f"-= The {ctx.command.name} command was stopped against " + str(ctx.author.name) + " at " + str(
-        strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+    if reason:
+        await dm_user(ctx.author, reason)
+        logging.info(f"The {ctx.command.name} command was stopped against {ctx.author.name} because of {reason}")
+    else:
+        logging.info(f"The {ctx.command.name} command was stopped against {ctx.author.name}")
 
 
 async def finish_processing(ctx: commands.Context):
@@ -49,8 +53,7 @@ async def finish_processing(ctx: commands.Context):
                 if user.bot:
                     await reaction.remove(user)
     await ctx.message.add_reaction(CompletedEmoji)
-    print(f"-= The {ctx.command.name} command was used successfully by " + str(ctx.author.name) + " at " + str(
-        strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "=-"))
+    logging.info(f"The {ctx.command.name} command was used successfully by {ctx.author.name}")
 
 
 async def start_processing(ctx):
@@ -73,10 +76,28 @@ class Helper:
         self.StorageLocation = os.environ['STORAGE_LOCATION']
 
     def get_game_channel(self, number: str) -> Optional[nextcord.TextChannel]:
-        for channel in self.TextGamesCategory.channels:
-            if number in channel.name and "x" + number not in channel.name and "1" + number not in channel.name and \
-                    (not number.startswith("x") or "x1" + number[1:] not in channel.name):
+        if number.startswith("x"):
+            # ensure that number occurs without being immediately followed by another digit
+            # (so "x1" doesn't find the x10 channel)
+            pattern = fr"{re.escape(number)}(?![0-9])"
+        else:
+            # ensure that number occurs without being preceded by x or another digit
+            # (so "1" doesn't find the x1 or 11 channel)
+            # or followed by another digit (so "1" doesn't find the 10 channel)
+            pattern = fr"(?<![0-9x]){re.escape(number)}(?![0-9])"
+        matching_channels = [channel for channel in self.TextGamesCategory.text_channels
+                             if re.search(pattern, channel.name)]
+        if len(matching_channels) == 1:
+            return matching_channels[0]
+        if len(matching_channels) > 1:
+            logging.warning(f"Multiple candidates for game channel {number} found - attempting to distinguish by ST role")
+            st_role = self.get_st_role(number)
+            if not st_role:
+                return None
+            channel = next((c for c in matching_channels if c.permissions_for(st_role).manage_threads), None)
+            if channel:
                 return channel
+        logging.info(f"Game channel {number} not found")
         return None
 
     def get_kibitz_channel(self, number: str) -> nextcord.TextChannel:

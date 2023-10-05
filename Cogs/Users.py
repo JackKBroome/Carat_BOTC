@@ -28,8 +28,7 @@ class Users(commands.Cog):
                                   " to " + ", ".join(player_names))
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
             f"{ctx.author.mention} has run the AddPlayer Command on {', '.join(player_names)} for game {game_number}")
@@ -54,8 +53,7 @@ class Users(commands.Cog):
                                   " from " + ", ".join(player_names))
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
             f"{ctx.author.mention} has run the RemovePlayer Command on {', '.join(player_names)} for game {game_number}")
@@ -82,8 +80,7 @@ class Users(commands.Cog):
                                   )
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
             f"{ctx.author.mention} has run the AddKibitz Command on {', '.join(kibitzer_names)} for game {game_number}")
@@ -108,8 +105,7 @@ class Users(commands.Cog):
                                   " to " + ", ".join(kibitzer_names))
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
         await self.helper.log(
             f"{ctx.author.mention} has run the RemoveKibitz Command on {', '.join(kibitzer_names)} for game {game_number}")
 

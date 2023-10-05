@@ -138,8 +138,7 @@ class TextQueue(commands.Cog):
         If existing entries should be deleted, add "reset" at the end."""
         channel_type = utility.get_channel_type(channel_type)
         if not channel_type:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, ExplainInvalidChannelType)
+            await utility.deny_command(ctx, ExplainInvalidChannelType)
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             embed = nextcord.Embed(title=channel_type + " storytelling queue", description="Use >JoinTextQueue to join")
@@ -161,8 +160,7 @@ class TextQueue(commands.Cog):
             await self.update_storage()
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command is restricted to moderators")
+            await utility.deny_command(ctx, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the InitQueue command in {ctx.channel.mention}")
 
     @commands.command()
@@ -175,8 +173,7 @@ class TextQueue(commands.Cog):
         Note that if a parameter contains spaces, you have to surround it with quotes."""
         channel_type = utility.get_channel_type(channel_type)
         if not channel_type:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, ExplainInvalidChannelType)
+            await utility.deny_command(ctx, ExplainInvalidChannelType)
         users_in_queue = [entry.st for entry in self.queues["Regular"].entries + self.queues["Experimental"].entries]
         if ctx.author.id not in users_in_queue:
             await utility.start_processing(ctx)
@@ -193,8 +190,7 @@ class TextQueue(commands.Cog):
             await self.update_storage()
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You may not join a text ST queue while you are already in one")
+            await utility.deny_command(ctx, "You may not join a text ST queue while you are already in one")
 
         await self.helper.log(f"{ctx.author.mention} has run the JoinTextQueue command")
 
@@ -318,8 +314,7 @@ class TextQueue(commands.Cog):
 
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command is restricted to moderators")
+            await utility.deny_command(ctx, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the RemoveFromQueue command")
 
     @commands.command()
@@ -347,8 +342,7 @@ class TextQueue(commands.Cog):
 
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command is restricted to moderators")
+            await utility.deny_command(ctx, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the MoveToSpot command on {member.display_name}")
 
 

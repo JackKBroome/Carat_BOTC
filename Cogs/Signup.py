@@ -68,8 +68,7 @@ class Signup(commands.Cog):
             await utility.finish_processing(ctx)
 
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
 
 class SignupView(nextcord.ui.View):

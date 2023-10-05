@@ -2,6 +2,7 @@ import io
 import logging
 import os
 import traceback
+from typing import Optional
 
 import nextcord
 import requests
@@ -35,7 +36,8 @@ bot = commands.Bot(command_prefix=">",
                    intents=intents,
                    allowed_mentions=allowedMentions,
                    activity=nextcord.Game(">HelpMe or >help"),
-                   help_command=help_command)
+                   help_command=help_command,
+                   owner_id=utility.OwnerID)
 
 
 # load cogs and print ready message
@@ -68,8 +70,10 @@ async def on_command_error(ctx: commands.Context, error: CommandError):
                                           f"`>{ctx.command.name} {ctx.command.signature}`.")
         logging.warning(f"Command {ctx.command.name} was used with incorrect input: {ctx.message.content}")
     else:
-        trace = '\n'.join(traceback.format_tb(error.__traceback__))
-        logging.error(f"Error in command {ctx.command.name}: {error}. Trace:\n{trace}")
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in command {ctx.command}:\n{traceback_text}")
 
 
 def get_level(line: str):
@@ -79,16 +83,15 @@ def get_level(line: str):
 
 
 @bot.command()
-async def SendLogs(ctx: commands.Context, limit: int, level: str):
+async def SendLogs(ctx: commands.Context, limit: int, level: Optional[str] = "ERROR"):
     """Sends a number of the most recent log events as a DM. The number is given by limit. Events are filtered by
     logging level. Restricted to developers."""
-    if ctx.author.id == utility.OwnerID or ctx.author.id in utility.DeveloperIDs:
-        try:
-            log_level = LogLevelMapping[level.upper()]
-        except KeyError:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "Not a valid logging level")
-            return
+    if level.upper() not in LogLevelMapping:
+        await utility.deny_command(ctx, "Not a valid logging level")
+        return
+    if ctx.author.id == utility.OwnerID or \
+            (ctx.author.id in utility.DeveloperIDs and level.upper() in ["WARNING", "ERROR", "CRITICAL"]):
+        log_level = LogLevelMapping[level.upper()]
         await utility.start_processing(ctx)
         with open(LogFile, "r") as logs:
             lines = logs.readlines()
@@ -108,49 +111,44 @@ async def SendLogs(ctx: commands.Context, limit: int, level: str):
         await ctx.author.send("Logs", file=nextcord.File(bytes_data, LogFile))
         await utility.finish_processing(ctx)
     else:
-        await utility.deny_command(ctx)
-        await utility.dm_user(ctx.author, "You lack permission for this command")
+        await utility.deny_command(ctx, "You lack permission for this command")
 
 
 @bot.command()
+@commands.is_owner()
 async def ReloadCogs(ctx: commands.Context):
     """Loads newest version of cogs from GitHub repository. Restricted to repository owner"""
-    if ctx.author.id == utility.OwnerID:
-        await utility.start_processing(ctx)
-        cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+
+    await utility.start_processing(ctx)
+    cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+    for cog in cog_paths:
+        bot.unload_extension(cog)
+    await utility.dm_user(ctx.author, "Unloaded cogs: " + ", ".join(cog_paths))
+    response = requests.get("https://api.github.com/repos/JackKBroome/Carat_BOTC/contents/Cogs",
+                            headers={"Accept": "application/vnd.github+json",
+                                     "X-GitHub-Api-Version": "2022-11-28"})
+    if response.status_code != 200:
+        await utility.deny_command(ctx, "Could not connect to GitHub")
         for cog in cog_paths:
-            bot.unload_extension(cog)
-        await utility.dm_user(ctx.author, "Unloaded cogs: " + ", ".join(cog_paths))
-        response = requests.get("https://api.github.com/repos/JackKBroome/Carat_BOTC/contents/Cogs",
-                                headers={"Accept": "application/vnd.github+json",
-                                         "X-GitHub-Api-Version": "2022-11-28"})
-        if response.status_code != 200:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "Could not connect to GitHub")
-            for cog in cog_paths:
-                bot.load_extension(cog)
-            await utility.dm_user(ctx.author, "reloaded original cogs")
-            return
-        for file in response.json():
-            if file["name"].endswith(".py"):
-                response = requests.get(file["download_url"])
-                if response.status_code != 200:
-                    await utility.deny_command(ctx)
-                    await utility.dm_user(ctx.author, "Could not connect to GitHub")
-                    for cog in cog_paths:
-                        bot.load_extension(cog)
-                    await utility.dm_user(ctx.author, "reloaded original cogs")
-                    return
-                with open(os.path.join("Cogs", file["name"]), "w", encoding="utf-8") as f:
-                    f.write(response.text)
-        new_cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
-        for cog in new_cog_paths:
             bot.load_extension(cog)
-        await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join(new_cog_paths))
-        await utility.finish_processing(ctx)
-    else:
-        await utility.deny_command(ctx)
-        await utility.dm_user(ctx.author, "You lack permission for this command")
+        await utility.dm_user(ctx.author, "reloaded original cogs")
+        return
+    for file in response.json():
+        if file["name"].endswith(".py"):
+            response = requests.get(file["download_url"])
+            if response.status_code != 200:
+                await utility.deny_command(ctx, "Could not connect to GitHub")
+                for cog in cog_paths:
+                    bot.load_extension(cog)
+                await utility.dm_user(ctx.author, "reloaded original cogs")
+                return
+            with open(os.path.join("Cogs", file["name"]), "w", encoding="utf-8") as f:
+                f.write(response.text)
+    new_cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+    for cog in new_cog_paths:
+        bot.load_extension(cog)
+    await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join(new_cog_paths))
+    await utility.finish_processing(ctx)
 
 
 bot.run(token)

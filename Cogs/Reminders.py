@@ -73,14 +73,12 @@ class Reminders(commands.Cog):
         The event argument is optional and defaults to "Whispers close". Times must be given in hours from the
         current time. You can give any number of times. The event is assumed to occur at the latest given time."""
         if len(args) < 2:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "At least game number and one reminder time are required")
+            await utility.deny_command(ctx, "At least game number and one reminder time are required")
             return
         game_number = args[0]
         game_channel = self.helper.get_game_channel(game_number)
         if not game_channel:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "The first argument must be a valid game number")
+            await utility.deny_command(ctx, "The first argument must be a valid game number")
             return
         game_role = self.helper.get_game_role(game_number)
         event = "Whispers close"
@@ -92,12 +90,10 @@ class Reminders(commands.Cog):
             try:
                 times = [float(time) for time in args[2:]]
             except ValueError as e:
-                await utility.deny_command(ctx)
-                await utility.dm_user(ctx.author, e.args[0])  # looks like: "could not convert string to float: 'bla'"
+                await utility.deny_command(ctx, e.args[0])  # looks like: "could not convert string to float: 'bla'"
                 return
             if len(times) == 0:
-                await utility.deny_command(ctx)
-                await utility.dm_user(ctx.author, "At least one reminder time is required")
+                await utility.deny_command(ctx, "At least one reminder time is required")
                 return
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
@@ -111,8 +107,7 @@ class Reminders(commands.Cog):
             self.update_storage()
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You must be an ST to use this command")
+            await utility.deny_command(ctx, "You must be an ST to use this command")
 
     @commands.command()
     async def DeleteReminders(self, ctx: commands.Context, game_number: str):
@@ -124,8 +119,7 @@ class Reminders(commands.Cog):
             self.update_storage()
             await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You must be an ST to use this command")
+            await utility.deny_command(ctx, "You must be an ST to use this command")
 
     @commands.command()
     async def ShowReminders(self, ctx: commands.Context, game_number: str):

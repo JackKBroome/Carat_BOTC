@@ -102,8 +102,7 @@ class Archive(commands.Cog):
             await self.helper.log(f"{ctx.author.display_name} has run the IncludeInArchive Command")
             self.update_storage()
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command can only be used in a thread.")
+            await utility.deny_command(ctx, "This command can only be used in a thread.")
 
     @commands.command()
     async def ExcludeFromArchive(self, ctx: commands.Context):
@@ -134,8 +133,7 @@ class Archive(commands.Cog):
             await self.helper.log(f"{ctx.author.display_name} has run the ExcludeFromArchive Command")
             self.update_storage()
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command can only be used in a thread.")
+            await utility.deny_command(ctx, "This command can only be used in a thread.")
 
     @commands.command()
     async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, archive_channel_id: int):
@@ -183,8 +181,7 @@ class Archive(commands.Cog):
             await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")
             await utility.dm_user(ctx.author, f"Your Archive for {ctx.message.channel.name} is done.")
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You do not have permission to use this command")
+            await utility.deny_command(ctx, "You do not have permission to use this command")
 
 
 def setup(bot: commands.Bot):

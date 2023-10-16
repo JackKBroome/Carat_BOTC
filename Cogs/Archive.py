@@ -142,8 +142,13 @@ class Archive(commands.Cog):
         # Credit to Ivy for this code, mostly their code
 
         archive_server = self.helper.bot.get_guild(archive_server_id)
+        if archive_server is None:
+            await utility.dm_user(ctx.author, f"Was unable to find server with ID {archive_server_id}")
+            return
         archive_channel = get(archive_server.channels, id=archive_channel_id)
-
+        if archive_channel is None:
+            await utility.dm_user(ctx.author, f"Was unable to find channel with ID {archive_server_id}")
+            return
         channel_to_archive = ctx.message.channel
 
         access = self.helper.authorize_mod_command(ctx.author)

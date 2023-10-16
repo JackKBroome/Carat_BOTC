@@ -39,7 +39,7 @@ async def dm_user(user: Union[nextcord.User, nextcord.Member], content: str) -> 
 
 async def deny_command(ctx: commands.Context, reason: Optional[str]):
     await ctx.message.add_reaction(DeniedEmoji)
-    if reason:
+    if reason is not None:
         await dm_user(ctx.author, reason)
         logging.info(f"The {ctx.command.name} command was stopped against {ctx.author.name} because of {reason}")
     else:
@@ -74,6 +74,9 @@ class Helper:
         self.ModRole = get(self.Guild.roles, id=int(os.environ['DOOMSAYER_ROLE_ID']))
         self.LogChannel = get(self.Guild.channels, id=int(os.environ['LOG_CHANNEL_ID']))
         self.StorageLocation = os.environ['STORAGE_LOCATION']
+        if None in [self.Guild, self.TextGamesCategory, self.ArchiveCategory, self.ModRole, self.LogChannel]:
+            logging.error("Failed to find required discord entity. Check .env file is correct and Guild is set up")
+            raise EnvironmentError
 
     def get_game_channel(self, number: str) -> Optional[nextcord.TextChannel]:
         if number.startswith("x"):
@@ -92,32 +95,44 @@ class Helper:
         if len(matching_channels) > 1:
             logging.warning(f"Multiple candidates for game channel {number} found - attempting to distinguish by ST role")
             st_role = self.get_st_role(number)
-            if not st_role:
+            if st_role is None:
                 return None
             channel = next((c for c in matching_channels if c.permissions_for(st_role).manage_threads), None)
-            if channel:
+            if channel is not None:
                 return channel
         logging.info(f"Game channel {number} not found")
         return None
 
-    def get_kibitz_channel(self, number: str) -> nextcord.TextChannel:
+    def get_kibitz_channel(self, number: str) -> Optional[nextcord.TextChannel]:
         if number[0] == "x":
             name = "experimental-kibitz-" + number[1:]
         else:
             name = "kibitz-game-" + number
-        return get(self.Guild.channels, name=name)
+        channel = get(self.Guild.channels, name=name)
+        if channel is None:
+            logging.warning(f"Could not find kibitz channel for game {number}")
+        return channel
 
-    def get_game_role(self, number: str) -> nextcord.Role:
+    def get_game_role(self, number: str) -> Optional[nextcord.Role]:
         name = "game" + number
-        return get(self.Guild.roles, name=name)
+        role = get(self.Guild.roles, name=name)
+        if role is None:
+            logging.warning(f"Could not find game role for game {number}")
+        return role
 
-    def get_st_role(self, number: str) -> nextcord.Role:
+    def get_st_role(self, number: str) -> Optional[nextcord.Role]:
         name = "st" + number
-        return get(self.Guild.roles, name=name)
+        role = get(self.Guild.roles, name=name)
+        if role is None:
+            logging.warning(f"Could not find ST role for game {number}")
+        return role
 
-    def get_kibitz_role(self, number: str) -> nextcord.Role:
+    def get_kibitz_role(self, number: str) -> Optional[nextcord.Role]:
         name = "kibitz" + number
-        return get(self.Guild.roles, name=name)
+        role = get(self.Guild.roles, name=name)
+        if role is None:
+            logging.warning(f"Could not find kibitz role for game {number}")
+        return role
 
     def authorize_st_command(self, author: nextcord.Member, game_number: str):
         return (self.ModRole in author.roles) \

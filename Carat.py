@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import sys
 import traceback
 from typing import Optional
 
@@ -13,18 +14,26 @@ from nextcord.ext.commands import DefaultHelpCommand, CommandError
 import utility
 
 LogFile = "Carat.log"
+
 LogLevelMapping = {'DEBUG': logging.DEBUG,
                    'INFO': logging.INFO,
                    'WARNING': logging.WARNING,
                    'ERROR': logging.ERROR,
                    'CRITICAL': logging.CRITICAL}
 
-load_dotenv()
-token = os.environ['TOKEN']
-
 logging.basicConfig(filename=LogFile, filemode="w", encoding="utf-8",
                     format="%(asctime)s - %(levelname)s: %(message)s",
                     level=logging.INFO)
+
+try:
+    load_dotenv()
+    token = os.environ['TOKEN']
+except Exception as e:
+    message = "Encountered an issue loading environment variables. Ensure .env file exists and is properly formatted " \
+              "with all necessary variables.\nException: " + str(e)
+    print(message)
+    logging.critical(message)
+    sys.exit()
 
 intents = nextcord.Intents.all()
 allowedMentions = nextcord.AllowedMentions.all()
@@ -108,10 +117,11 @@ async def SendLogs(ctx: commands.Context, limit: int, level: Optional[str] = "ER
         if limit < len(items):
             items = items[-limit:]
         bytes_data = io.BytesIO("\n".join(items).encode("utf-8"))
-        await ctx.author.send("Logs", file=nextcord.File(bytes_data, LogFile))
+        await ctx.author.send("Logs", file=nextcord.File(bytes_data, f"Carat_{log_level}_{limit}.log"))
         await utility.finish_processing(ctx)
     else:
         await utility.deny_command(ctx, "You lack permission for this command")
+        logging.warning(f"{ctx.author.display_name} (id: {ctx.author.id}) attempted to access Carat's logs")
 
 
 @bot.command()
@@ -149,6 +159,16 @@ async def ReloadCogs(ctx: commands.Context):
         bot.load_extension(cog)
     await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join(new_cog_paths))
     await utility.finish_processing(ctx)
+
+
+@bot.command()
+async def Restart(ctx: commands.Context):
+    if ctx.author.id == utility.OwnerID or ctx.author.id in utility.DeveloperIDs:
+        logging.warning("Trying to restart Carat...")
+        await bot.close()
+    else:
+        await utility.deny_command(ctx, "You lack permission for this command")
+        logging.warning(f"{ctx.author.display_name} (id: {ctx.author.id}) attempted to restart Carat")
 
 
 bot.run(token)

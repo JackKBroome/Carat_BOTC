@@ -21,13 +21,13 @@ class Other(commands.Cog):
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             townsquare_cog: typing.Optional[Townsquare] = self.bot.get_cog("Townsquare")
-            if townsquare_cog and game_number in townsquare_cog.town_squares:
+            if townsquare_cog is not None and game_number in townsquare_cog.town_squares:
                 townsquare = townsquare_cog.town_squares[game_number]
             else:
                 townsquare = None
             for player in self.helper.get_game_role(game_number).members:
                 name = player.display_name
-                if townsquare:
+                if townsquare is not None:
                     name = next((p.alias for p in townsquare.players if p.id == player.id), name)
                 thread = await self.helper.get_game_channel(game_number).create_thread(
                     name=f"ST Thread {name}",

@@ -85,7 +85,7 @@ class Game(commands.Cog):
 
             # Remove roles from non-bot players
             for member in members:
-                if str(member.bot) == "False":
+                if not member.bot:
                     await member.remove_roles(kibitz_role)
                     await member.remove_roles(game_role)
 

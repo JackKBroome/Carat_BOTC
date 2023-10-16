@@ -159,26 +159,26 @@ class Townsquare(commands.Cog):
     async def load_emoji(self):
         self.emoji = {}
         shroud_emoji = get(self.helper.Guild.emojis, name="shroud")
-        if shroud_emoji:
+        if shroud_emoji is not None:
             self.emoji["shroud"] = nextcord.PartialEmoji.from_str('{emoji.name}:{emoji.id}'.format(emoji=shroud_emoji))
         else:
             self.emoji["shroud"] = nextcord.PartialEmoji.from_str('\U0001F480')  # 💀
             await self.helper.log("Shroud emoji not found, using default")
         thief_emoji = get(self.helper.Guild.emojis, name="thief")
-        if thief_emoji:
+        if thief_emoji is not None:
             self.emoji["thief"] = nextcord.PartialEmoji.from_str('{emoji.name}:{emoji.id}'.format(emoji=thief_emoji))
         else:
             self.emoji["thief"] = nextcord.PartialEmoji.from_str('\U0001F48E')  # 💎
             await self.helper.log("Thief emoji not found, using default")
         bureaucrat_emoji = get(self.helper.Guild.emojis, name="bureaucrat")
-        if bureaucrat_emoji:
+        if bureaucrat_emoji is not None:
             self.emoji["bureaucrat"] = nextcord.PartialEmoji.from_str(
                 '{emoji.name}:{emoji.id}'.format(emoji=bureaucrat_emoji))
         else:
             self.emoji["bureaucrat"] = nextcord.PartialEmoji.from_str('\U0001f4ce')  # 📎
             await self.helper.log("Bureaucrat emoji not found, using default")
         organ_grinder_emoji = get(self.helper.Guild.emojis, name="organ_grinder")
-        if organ_grinder_emoji:
+        if organ_grinder_emoji is not None:
             self.emoji["organ_grinder"] = nextcord.PartialEmoji.from_str(
                 '{emoji.name}:{emoji.id}'.format(emoji=organ_grinder_emoji))
         else:
@@ -205,7 +205,7 @@ class Townsquare(commands.Cog):
         nom_message = await nom_thread.fetch_message(nom.message)
         await nom_message.edit(content=content, embed=embed)
         view = next((v for v in self.vote_count_views if v.nom == nom), None)
-        if view:
+        if view is not None:
             await view.update_message()
         logging.debug(f"Updated nomination for game {game_number}: {nom}")
 
@@ -214,7 +214,7 @@ class Townsquare(commands.Cog):
         # handle explicit mentions
         if utility.is_mention(identifier):
             member = get(self.helper.Guild.members, id=int(identifier[2:-1]))
-            if member and member.id in [p.id for p in participants]:
+            if member is not None and member.id in [p.id for p in participants]:
                 return member
             else:
                 return None

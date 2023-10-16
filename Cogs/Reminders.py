@@ -77,7 +77,7 @@ class Reminders(commands.Cog):
             return
         game_number = args[0]
         game_channel = self.helper.get_game_channel(game_number)
-        if not game_channel:
+        if game_channel is None:
             await utility.deny_command(ctx, "The first argument must be a valid game number")
             return
         game_role = self.helper.get_game_role(game_number)

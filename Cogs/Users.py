@@ -13,7 +13,7 @@ class Users(commands.Cog):
     async def AddPlayer(self, ctx, game_number, players: commands.Greedy[nextcord.Member]):
         """Gives the appropriate game role to the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(players):
+        if len(players) == 0:
             await utility.dm_user(ctx.author, "Usage: >AddPlayer [game number] [at least one user]")
             return
 
@@ -37,7 +37,7 @@ class Users(commands.Cog):
     async def RemovePlayer(self, ctx, game_number, players: commands.Greedy[nextcord.Member]):
         """Removes the appropriate game role from the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(players):
+        if len(players) == 0:
             await utility.dm_user(ctx.author, "Usage: >RemovePlayer [game number] [at least one user]")
             return
 
@@ -62,7 +62,7 @@ class Users(commands.Cog):
     async def AddKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
         """Gives the appropriate kibitz role to the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(kibitzers):
+        if len(kibitzers) == 0:
             await utility.dm_user(ctx.author, "Usage: >AddKibitz [game number] [at least one user]")
             return
 
@@ -89,7 +89,7 @@ class Users(commands.Cog):
     async def RemoveKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
         """Removes the appropriate kibitz role from the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(kibitzers):
+        if len(kibitzers) == 0:
             await utility.dm_user(ctx.author, "Usage: >RemoveKibitz [game number] [at least one user]")
             return
         game_number = game_number

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import Literal, Optional, List, Dict
@@ -55,7 +56,7 @@ class TextQueue(commands.Cog):
 
     async def update_queue_message(self, queue: StQueue) -> bool:
         channel = get(self.helper.Guild.channels, id=queue.channel_id)
-        if queue.thread_id:
+        if queue.thread_id is not None:
             thread = get(channel.threads, id=queue.thread_id)
             message = await thread.fetch_message(queue.message_id)
         else:
@@ -65,8 +66,14 @@ class TextQueue(commands.Cog):
         spot = 1
         for entry in queue.entries:
             user = get(self.helper.Guild.members, id=entry.st)
+            if user is None:
+                queue.entries.remove(entry)
+                message = f"Removed user with ID {entry.st} from queue due to having left the guild"
+                logging.warning(message)
+                await self.helper.log(message)
+                continue
             entry_string = f"Script: {entry.script}\nAvailability: {entry.availability}\n"
-            if entry.notes:
+            if entry.notes is not None:
                 entry_string += f"Notes: {entry.notes}\n"
             embed.add_field(name=f"{spot}. {user.display_name}"[:256],
                             value=entry_string[:1024],
@@ -94,7 +101,7 @@ class TextQueue(commands.Cog):
             return
         next_entry = self.queues[channel_type].entries[queue_position]
         user = get(self.helper.Guild.members, id=next_entry.st)
-        if user:
+        if user is not None:
             content = f"{user.mention} This game channel has become free! You are next in the queue.\n" \
                       f"You may claim the grimoire with >ClaimGrimoire {game_number} or the button below.\n" \
                       f"If you are not currently able to run the game, use the button below to decline the grimoire " \

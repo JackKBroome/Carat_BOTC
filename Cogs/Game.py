@@ -32,11 +32,10 @@ class Game(commands.Cog):
                 f"Feedback form: https://forms.gle/HqNfMv1pte8vo5j59")
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
             # React on Disapproval
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(f"{ctx.author.mention} has run the OpenKibitz Command on Game {game_number}")
 
@@ -56,10 +55,9 @@ class Game(commands.Cog):
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=False)
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the CloseKibitz Command on Game {game_number}")
 
@@ -87,7 +85,7 @@ class Game(commands.Cog):
 
             # Remove roles from non-bot players
             for member in members:
-                if str(member.bot) == "False":
+                if not member.bot:
                     await member.remove_roles(kibitz_role)
                     await member.remove_roles(game_role)
 
@@ -102,12 +100,11 @@ class Game(commands.Cog):
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=True)
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
 
         else:
             # React on Disapproval
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the EndGame Command on Game {game_number}")
 
@@ -139,10 +136,13 @@ class Game(commands.Cog):
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=False)
 
             # React for completion
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
 
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + game_number)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
         await self.helper.log(f"{ctx.author.mention} has run the ArchiveGame Command for Game {game_number}")
+
+
+def setup(bot):
+    bot.add_cog(Game(bot, utility.Helper(bot)))

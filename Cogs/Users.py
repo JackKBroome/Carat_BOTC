@@ -13,7 +13,7 @@ class Users(commands.Cog):
     async def AddPlayer(self, ctx, game_number, players: commands.Greedy[nextcord.Member]):
         """Gives the appropriate game role to the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(players):
+        if len(players) == 0:
             await utility.dm_user(ctx.author, "Usage: >AddPlayer [game number] [at least one user]")
             return
 
@@ -26,10 +26,9 @@ class Users(commands.Cog):
             await utility.dm_user(ctx.author,
                                   "You have assigned the game role for game " + str(game_number) +
                                   " to " + ", ".join(player_names))
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
             f"{ctx.author.mention} has run the AddPlayer Command on {', '.join(player_names)} for game {game_number}")
@@ -38,7 +37,7 @@ class Users(commands.Cog):
     async def RemovePlayer(self, ctx, game_number, players: commands.Greedy[nextcord.Member]):
         """Removes the appropriate game role from the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(players):
+        if len(players) == 0:
             await utility.dm_user(ctx.author, "Usage: >RemovePlayer [game number] [at least one user]")
             return
 
@@ -52,10 +51,9 @@ class Users(commands.Cog):
             await utility.dm_user(ctx.author,
                                   "You have removed the game role for game " + str(game_number) +
                                   " from " + ", ".join(player_names))
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
             f"{ctx.author.mention} has run the RemovePlayer Command on {', '.join(player_names)} for game {game_number}")
@@ -64,7 +62,7 @@ class Users(commands.Cog):
     async def AddKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
         """Gives the appropriate kibitz role to the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(kibitzers):
+        if len(kibitzers) == 0:
             await utility.dm_user(ctx.author, "Usage: >AddKibitz [game number] [at least one user]")
             return
 
@@ -80,10 +78,9 @@ class Users(commands.Cog):
                                   "You have assigned the kibitz role for game " + str(game_number) +
                                   " to " + ", ".join(kibitzer_names)
                                   )
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
             f"{ctx.author.mention} has run the AddKibitz Command on {', '.join(kibitzer_names)} for game {game_number}")
@@ -92,7 +89,7 @@ class Users(commands.Cog):
     async def RemoveKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
         """Removes the appropriate kibitz role from the given users.
         You can provide a user by ID, mention/ping, or nickname, though giving the nickname may find the wrong user."""
-        if not len(kibitzers):
+        if len(kibitzers) == 0:
             await utility.dm_user(ctx.author, "Usage: >RemoveKibitz [game number] [at least one user]")
             return
         game_number = game_number
@@ -106,9 +103,12 @@ class Users(commands.Cog):
             await utility.dm_user(ctx.author,
                                   "You have removed the kibitz role for game " + str(game_number) +
                                   " to " + ", ".join(kibitzer_names))
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
+            await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
         await self.helper.log(
             f"{ctx.author.mention} has run the RemoveKibitz Command on {', '.join(kibitzer_names)} for game {game_number}")
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Users(bot, utility.Helper(bot)))

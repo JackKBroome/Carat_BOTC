@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import Literal, Optional, List, Dict
@@ -11,8 +12,8 @@ from nextcord.utils import get
 
 import utility
 
-ChannelTypeParameter = Literal[
-    'regular', 'Regular', 'standard', 'Standard', 'normal', 'Normal', 'r', 'R', 'n', 'N', 'experimental', 'Experimental', 'exp', 'Exp', 'x', 'X']
+ExplainInvalidChannelType = "Not a valid channel type - accepted forms are `regular, standard, normal, reg, r, s, n` " \
+                            "for regular, `experimental, exp, x` for experimental - capitalization doesn't matter."
 
 
 @dataclass_json
@@ -55,7 +56,7 @@ class TextQueue(commands.Cog):
 
     async def update_queue_message(self, queue: StQueue) -> bool:
         channel = get(self.helper.Guild.channels, id=queue.channel_id)
-        if queue.thread_id:
+        if queue.thread_id is not None:
             thread = get(channel.threads, id=queue.thread_id)
             message = await thread.fetch_message(queue.message_id)
         else:
@@ -65,8 +66,14 @@ class TextQueue(commands.Cog):
         spot = 1
         for entry in queue.entries:
             user = get(self.helper.Guild.members, id=entry.st)
+            if user is None:
+                queue.entries.remove(entry)
+                message = f"Removed user with ID {entry.st} from queue due to having left the guild"
+                logging.warning(message)
+                await self.helper.log(message)
+                continue
             entry_string = f"Script: {entry.script}\nAvailability: {entry.availability}\n"
-            if entry.notes:
+            if entry.notes is not None:
                 entry_string += f"Notes: {entry.notes}\n"
             embed.add_field(name=f"{spot}. {user.display_name}"[:256],
                             value=entry_string[:1024],
@@ -94,7 +101,7 @@ class TextQueue(commands.Cog):
             return
         next_entry = self.queues[channel_type].entries[queue_position]
         user = get(self.helper.Guild.members, id=next_entry.st)
-        if user:
+        if user is not None:
             content = f"{user.mention} This game channel has become free! You are next in the queue.\n" \
                       f"You may claim the grimoire with >ClaimGrimoire {game_number} or the button below.\n" \
                       f"If you are not currently able to run the game, use the button below to decline the grimoire " \
@@ -131,15 +138,16 @@ class TextQueue(commands.Cog):
             return None
 
     @commands.command()
-    async def InitQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter,
+    async def InitQueue(self, ctx: commands.Context, channel_type: str,
                         reset: Optional[Literal["reset"]]):
         """Initializes an ST queue for either regular or experimental games in the channel or thread the command was used in.
         Can be reused to create a new queue message for either channel type.
         If existing entries should be deleted, add "reset" at the end."""
+        channel_type = utility.get_channel_type(channel_type)
+        if not channel_type:
+            await utility.deny_command(ctx, ExplainInvalidChannelType)
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
-            channel_type = utility.get_channel_type(channel_type)
-
             embed = nextcord.Embed(title=channel_type + " storytelling queue", description="Use >JoinTextQueue to join")
             if isinstance(ctx.channel, nextcord.Thread):
                 queue = StQueue(ctx.channel.parent.id, -1, ctx.channel.id)
@@ -157,14 +165,13 @@ class TextQueue(commands.Cog):
             self.queues[channel_type] = queue
 
             await self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command is restricted to moderators")
+            await utility.deny_command(ctx, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the InitQueue command in {ctx.channel.mention}")
 
     @commands.command()
-    async def JoinTextQueue(self, ctx: commands.Context, channel_type: ChannelTypeParameter, script: str,
+    async def JoinTextQueue(self, ctx: commands.Context, channel_type: str, script: str,
                             availability: str, notes: Optional[str]):
         """Adds you to the queue for the given channel type (regular/experimental).
         The queue entry will list the provided information.
@@ -172,6 +179,8 @@ class TextQueue(commands.Cog):
         Do not join a queue if you are currently storytelling, unless you are just a co-ST.
         Note that if a parameter contains spaces, you have to surround it with quotes."""
         channel_type = utility.get_channel_type(channel_type)
+        if not channel_type:
+            await utility.deny_command(ctx, ExplainInvalidChannelType)
         users_in_queue = [entry.st for entry in self.queues["Regular"].entries + self.queues["Experimental"].entries]
         if ctx.author.id not in users_in_queue:
             await utility.start_processing(ctx)
@@ -186,10 +195,9 @@ class TextQueue(commands.Cog):
                                                   "displayed currently, but it has been added to the queue.")
 
             await self.update_storage()
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You may not join a text ST queue while you are already in one")
+            await utility.deny_command(ctx, "You may not join a text ST queue while you are already in one")
 
         await self.helper.log(f"{ctx.author.mention} has run the JoinTextQueue command")
 
@@ -201,7 +209,7 @@ class TextQueue(commands.Cog):
         queue = self.get_queue(ctx.author.id)
         if not queue:
             await utility.dm_user(ctx.author, "You are not in a queue at the moment")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             return
 
         queue.entries = [e for e in queue.entries if e.st != ctx.author.id]
@@ -211,7 +219,7 @@ class TextQueue(commands.Cog):
 
         await self.update_storage()
 
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
 
         await self.helper.log(f"{ctx.author.mention} has run the LeaveTextQueue command")
 
@@ -224,7 +232,7 @@ class TextQueue(commands.Cog):
         queue = self.get_queue(ctx.author.id)
         if not queue:
             await utility.dm_user(ctx.author, "You are not in a queue at the moment")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             return
         for index, entry in enumerate(queue.entries):
             if entry.st == ctx.author.id:
@@ -238,17 +246,22 @@ class TextQueue(commands.Cog):
                                               "displayed currently, but is still in the queue.")
         await self.update_storage()
 
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
 
     @commands.command()
     async def EditEntry(self, ctx: commands.Context, script: str, availability: str, notes: Optional[str]):
         """Edits your queue entry.
         You cannot change the channel type. You have to give script and availability even if they have not changed."""
+        if utility.get_channel_type(script):
+            await utility.dm_user(ctx.author, "It seems you gave a channel type as script. Note that EditEntry does "
+                                              "not need or expect a channel type. If you didn't intend to give a "
+                                              "channel type as your script, simply run the command again without the "
+                                              "channel type at the start.")
         await utility.start_processing(ctx)
         queue = self.get_queue(ctx.author.id)
         if not queue:
             await utility.dm_user(ctx.author, "You are not in a queue at the moment")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             return
         entry = next(e for e in queue.entries if e.st == ctx.author.id)
         entry.script = script
@@ -260,8 +273,32 @@ class TextQueue(commands.Cog):
         if not full_queue_posted:
             await self.helper.log("Queue too long for message - final entry/entries not displayed")
         await self.update_storage()
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
         await self.helper.log(f"{ctx.author.mention} has run the EditEntry command")
+
+    @commands.command()
+    async def EditNotes(self, ctx: commands.Context, notes: str):
+        """Edits only the notes part of your entry."""
+        if utility.get_channel_type(notes):
+            await utility.dm_user(ctx.author, "It seems you gave a channel type as notes. Note that EditNotes does "
+                                              "not need or expect a channel type. If you didn't intend to give a "
+                                              "channel type for your notes, simply run the command again without the "
+                                              "channel type at the start.")
+        await utility.start_processing(ctx)
+        queue = self.get_queue(ctx.author.id)
+        if not queue:
+            await utility.dm_user(ctx.author, "You are not in a queue at the moment")
+            await utility.finish_processing(ctx)
+            return
+        entry = next(e for e in queue.entries if e.st == ctx.author.id)
+        entry.notes = notes
+
+        full_queue_posted = await self.update_queue_message(queue)
+        if not full_queue_posted:
+            await self.helper.log("Queue too long for message - final entry/entries not displayed")
+        await self.update_storage()
+        await utility.finish_processing(ctx)
+        await self.helper.log(f"{ctx.author.mention} has run the EditNotes command")
 
     @commands.command()
     async def RemoveFromQueue(self, ctx: commands.Context, member: nextcord.Member):
@@ -273,7 +310,7 @@ class TextQueue(commands.Cog):
             queue = self.get_queue(member.id)
             if not queue:
                 await utility.dm_user(ctx.author, "The member is not in a queue at the moment")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
                 return
 
             queue.entries = [e for e in queue.entries if e.st != member.id]
@@ -282,10 +319,9 @@ class TextQueue(commands.Cog):
                 await self.helper.log("Queue too long for message - final entry/entries not displayed")
             await self.update_storage()
 
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command is restricted to moderators")
+            await utility.deny_command(ctx, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the RemoveFromQueue command")
 
     @commands.command()
@@ -298,7 +334,7 @@ class TextQueue(commands.Cog):
             queue = self.get_queue(ctx.author.id)
             if not queue:
                 await utility.dm_user(ctx.author, "The member is not in a queue at the moment")
-                await self.helper.finish_processing(ctx)
+                await utility.finish_processing(ctx)
                 return
             for index, item in enumerate(queue.entries):
                 if item.st == member.id:
@@ -311,10 +347,9 @@ class TextQueue(commands.Cog):
 
             await self.update_storage()
 
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command is restricted to moderators")
+            await utility.deny_command(ctx, "This command is restricted to moderators")
         await self.helper.log(f"{ctx.author.mention} has run the MoveToSpot command on {member.display_name}")
 
 
@@ -368,3 +403,7 @@ class FreeChannelNotificationView(nextcord.ui.View):
         if not st_role.members:
             await game_channel.send("Previous queue entry timed out")
             await self.queue_cog.announce_free_channel(self.game_number, self.queue_position + 1)
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(TextQueue(bot, utility.Helper(bot)))

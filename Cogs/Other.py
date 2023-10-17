@@ -1,10 +1,7 @@
-import asyncio
-import datetime
 import typing
 
 import nextcord
 from nextcord.ext import commands
-from nextcord.utils import utcnow, format_dt
 
 import utility
 from Cogs.Townsquare import Townsquare
@@ -16,68 +13,21 @@ class Other(commands.Cog):
         self.bot = bot
         self.helper = helper
 
-    @commands.command(usage="<game_number> [event] [times]...")
-    async def SetReminders(self, ctx, *args):
-        """At the given times, sends reminders to the players how long they have until the event occurs.
-        The event argument is optional and defaults to "Whispers close". Times must be given in hours from the
-        current time. You can give any number of times. The event is assumed to occur at the latest given time."""
-        if len(args) < 2:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "At least game number and one reminder time are required")
-            return
-        game_number = args[0]
-        game_channel = self.helper.get_game_channel(game_number)
-        if not game_channel:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "The first argument must be a valid game number")
-            return
-        game_role = self.helper.get_game_role(game_number)
-        event = "Whispers close"
-        try:
-            times = [float(time) for time in args[1:]]
-        except ValueError:
-            event = args[1]
-            try:
-                times = [float(time) for time in args[2:]]
-            except ValueError as e:
-                await utility.deny_command(ctx)
-                await utility.dm_user(ctx.author, e.args[0])  # looks like: "could not convert string to float: 'bla'"
-                return
-            if len(times) == 0:
-                await utility.deny_command(ctx)
-                await utility.dm_user(ctx.author, "At least one reminder time is required")
-                return
-        if not self.helper.authorize_st_command(ctx.author, game_number):
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You must be an ST to use this command")
-            return
-        await utility.start_processing(ctx)
-        times.sort()
-        end_of_countdown = utcnow() + datetime.timedelta(hours=times[-1])
-        deltas = [times[0]] + [second - first for first, second in zip(times, times[1:])]
-        await self.helper.finish_processing(ctx)
-
-        for wait_time in deltas[:-1]:
-            await asyncio.sleep(wait_time * 3600)  # hours to seconds
-            await game_channel.send(content=game_role.mention + " " + event + " " + format_dt(end_of_countdown, "R"))
-        await asyncio.sleep(deltas[-1] * 3600)
-        await game_channel.send(content=game_role.mention + " " + event)
-
     @commands.command()
-    async def CreateThreads(self, ctx, game_number, setup_message=None):
+    async def CreateThreads(self, ctx, game_number: str, setup_message=None):
         """Creates a private thread in the game\'s channel for each player.
         The player and all STs are automatically added to each thread. The threads are named "ST Thread [player name]".
         """
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             townsquare_cog: typing.Optional[Townsquare] = self.bot.get_cog("Townsquare")
-            if townsquare_cog and game_number in townsquare_cog.town_squares:
+            if townsquare_cog is not None and game_number in townsquare_cog.town_squares:
                 townsquare = townsquare_cog.town_squares[game_number]
             else:
                 townsquare = None
             for player in self.helper.get_game_role(game_number).members:
                 name = player.display_name
-                if townsquare:
+                if townsquare is not None:
                     name = next((p.alias for p in townsquare.players if p.id == player.id), name)
                 thread = await self.helper.get_game_channel(game_number).create_thread(
                     name=f"ST Thread {name}",
@@ -92,10 +42,9 @@ class Other(commands.Cog):
                     await thread.add_user(st)
                 if setup_message is not None:
                     await thread.send(setup_message)
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
         else:
-            await utility.dm_user(ctx.author, "You are not the current ST for game " + str(game_number))
-            await utility.deny_command(ctx)
+            await utility.deny_command(ctx, "You are not the current ST for game " + game_number)
 
     @commands.command()
     async def HelpMe(self, ctx: commands.Context, command_type: typing.Optional[str] = "no-mod"):
@@ -131,7 +80,12 @@ class Other(commands.Cog):
         anyone_embed.add_field(name=">EditEntry [script name] [availability] [notes (optional)]",
                                value="Edits your queue entry. You cannot change the channel type. "
                                      "You have to give availability and script even if they have not changed."
-                                     'Usage examples: `>EditEntry "Trouble Brewing" "after June 20"`')
+                                     'Usage example: `>EditEntry "Trouble Brewing" "after June 20"`',
+                               inline=False)
+        anyone_embed.add_field(name=">EditNotes [notes]",
+                               value="Edits only the notes part of your entry."
+                                     'Usage example: `EditNotes "Pre-ins: Alex, Ben, Celia"`',
+                               inline=False)
         anyone_embed.add_field(name=">LeaveTextQueue",
                                value="Removes you from the queue you are in currently - careful, you won't be able to "
                                      "regain your spot.",
@@ -154,6 +108,10 @@ class Other(commands.Cog):
                                      "to exclude. By default, private threads are not archived, and public threads "
                                      "are. Use ExcludeFromArchive to exclude a public thread from the archive, or to "
                                      "undo IncludeInArchive for a private thread.",
+                               inline=False)
+        anyone_embed.add_field(name=">ShowReminders [game number]",
+                               value="Shows all reminders for the given game number."
+                                     "Usage examples: `>ShowReminders 1`, `>ShowReminders x3`",
                                inline=False)
         anyone_embed.add_field(name=">HelpMe",
                                value="Sends this message. Can be filtered by appending one of `all, anyone, st, mod, "
@@ -215,6 +173,9 @@ class Other(commands.Cog):
                                  'Usage examples: `>SetReminders 1 "Votes on Alice close" 24`, '
                                  '`>SetReminders x3 18 24 30 33 36`',
                            inline=False)
+        st_embed.add_field(name=">DeleteReminders [game number]",
+                           value='Deletes all reminders for the given game number.'
+                                 'Usage examples: `>DeleteReminders 1`, `>DeleteReminders x3`')
         st_embed.add_field(name=">GiveGrimoire [game number] [User]",
                            value='Removes the ST role for the game from you and gives it to the given user. You can '
                                  'provide a user by ID, mention/ping, or nickname, though giving the nickname may '
@@ -332,7 +293,7 @@ class Other(commands.Cog):
                            value='Sets the vote on the given nominee for the given voter to the given vote. You must '
                                  'be a storyteller for this. . Note that you cannot lock a vote in this way.\n'
                                  'Usage examples: `>ResetVote x1 Alex Ben`, `>ResetVote 3 Alex Ben`',
-                            inline=False)
+                           inline=False)
         ts_embed.add_field(name=">CountVotes [game_number] [nominee_identifier]",
                            value='Begins counting the votes for the given nominee. You must be a storyteller for this.\n'
                                  'Usage examples: `>CountVotes x1 Alex`, `>CountVotes 3 Alex`',
@@ -415,4 +376,8 @@ class Other(commands.Cog):
                                   "\nThank you!")
         except nextcord.Forbidden:
             await ctx.send("Please enable DMs to receive the help message")
-        await self.helper.finish_processing(ctx)
+        await utility.finish_processing(ctx)
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Other(bot, utility.Helper(bot)))

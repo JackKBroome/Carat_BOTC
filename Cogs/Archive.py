@@ -87,7 +87,7 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].private_to_archive.append(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already included in the archive.")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the IncludeInArchive Command")
             self.update_storage()
         elif thread.type == nextcord.ChannelType.public_thread:
@@ -98,12 +98,11 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].public_to_not_archive.remove(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already included in the archive.")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the IncludeInArchive Command")
             self.update_storage()
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command can only be used in a thread.")
+            await utility.deny_command(ctx, "This command can only be used in a thread.")
 
     @commands.command()
     async def ExcludeFromArchive(self, ctx: commands.Context):
@@ -119,7 +118,7 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].private_to_archive.remove(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already not included in the archive.")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the ExcludeFromArchive Command")
             self.update_storage()
         elif thread.type == nextcord.ChannelType.public_thread:
@@ -130,12 +129,11 @@ class Archive(commands.Cog):
                 self.threads_by_channel[thread.parent.id].public_to_not_archive.append(thread.id)
             else:
                 await utility.dm_user(ctx.author, "This thread is already not included in the archive.")
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             await self.helper.log(f"{ctx.author.display_name} has run the ExcludeFromArchive Command")
             self.update_storage()
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "This command can only be used in a thread.")
+            await utility.deny_command(ctx, "This command can only be used in a thread.")
 
     @commands.command()
     async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, archive_channel_id: int):
@@ -144,8 +142,13 @@ class Archive(commands.Cog):
         # Credit to Ivy for this code, mostly their code
 
         archive_server = self.helper.bot.get_guild(archive_server_id)
+        if archive_server is None:
+            await utility.dm_user(ctx.author, f"Was unable to find server with ID {archive_server_id}")
+            return
         archive_channel = get(archive_server.channels, id=archive_channel_id)
-
+        if archive_channel is None:
+            await utility.dm_user(ctx.author, f"Was unable to find channel with ID {archive_server_id}")
+            return
         channel_to_archive = ctx.message.channel
 
         access = self.helper.authorize_mod_command(ctx.author)
@@ -176,12 +179,15 @@ class Archive(commands.Cog):
 
             await archive_channel.create_thread(name="Chat about the game", type=nextcord.ChannelType.public_thread)
 
-            await self.helper.finish_processing(ctx)
+            await utility.finish_processing(ctx)
             self.threads_by_channel.pop(channel_to_archive.id, None)
             self.update_storage()
 
             await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")
             await utility.dm_user(ctx.author, f"Your Archive for {ctx.message.channel.name} is done.")
         else:
-            await utility.deny_command(ctx)
-            await utility.dm_user(ctx.author, "You do not have permission to use this command")
+            await utility.deny_command(ctx, "You do not have permission to use this command")
+
+
+def setup(bot: commands.Bot):
+    bot.add_cog(Archive(bot, utility.Helper(bot)))

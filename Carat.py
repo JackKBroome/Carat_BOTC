@@ -136,8 +136,10 @@ async def ReloadCogs(ctx: commands.Context):
     await utility.start_processing(ctx)
     cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
     for cog in cog_paths:
-        bot.unload_extension(cog)
-    await utility.dm_user(ctx.author, "Unloaded cogs: " + ", ".join(cog_paths))
+        if cog[5:] in bot.cogs:
+            bot.unload_extension(cog)
+        logging.info(", ".join(bot.cogs.keys()))
+    await utility.dm_user(ctx.author, "Unloaded cogs: " + ", ".join([c[5:] for c in cog_paths]))
     response = requests.get("https://api.github.com/repos/JackKBroome/Carat_BOTC/contents/Cogs",
                             headers={"Accept": "application/vnd.github+json",
                                      "X-GitHub-Api-Version": "2022-11-28"})
@@ -158,7 +160,7 @@ async def ReloadCogs(ctx: commands.Context):
                 f.write(response.text)
     new_cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
     load_extensions(new_cog_paths)
-    await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join(new_cog_paths))
+    await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join([c[5:] for c in new_cog_paths]))
     await utility.finish_processing(ctx)
 
 

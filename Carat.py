@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import traceback
-from typing import Optional
+from typing import Optional, List
 
 import nextcord
 import requests
@@ -21,7 +21,7 @@ LogLevelMapping = {'DEBUG': logging.DEBUG,
                    'ERROR': logging.ERROR,
                    'CRITICAL': logging.CRITICAL}
 
-logging.basicConfig(filename=LogFile, filemode="w", encoding="utf-8",
+logging.basicConfig(filename=LogFile, filemode="w",
                     format="%(asctime)s - %(levelname)s: %(message)s",
                     level=logging.INFO)
 
@@ -57,14 +57,18 @@ async def on_ready():
     print(bot.user.id)
     print('Loading cogs')
     cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
-    for cog in cog_paths:
-        try:
-            bot.load_extension(cog)
-        except commands.ExtensionFailed as e:
-            logging.exception(f"Failed to load {cog}: {e}")
+    load_extensions(cog_paths)
     print('Ready')
     print('------')
     logging.info("Carat online")
+
+
+def load_extensions(paths: List[str]):
+    for extension in paths:
+        try:
+            bot.load_extension(extension)
+        except commands.ExtensionFailed as e:
+            logging.exception(f"Failed to load {extension}: {e}")
 
 
 @bot.event
@@ -139,8 +143,7 @@ async def ReloadCogs(ctx: commands.Context):
                                      "X-GitHub-Api-Version": "2022-11-28"})
     if response.status_code != 200:
         await utility.deny_command(ctx, "Could not connect to GitHub")
-        for cog in cog_paths:
-            bot.load_extension(cog)
+        load_extensions(cog_paths)
         await utility.dm_user(ctx.author, "reloaded original cogs")
         return
     for file in response.json():
@@ -148,15 +151,13 @@ async def ReloadCogs(ctx: commands.Context):
             response = requests.get(file["download_url"])
             if response.status_code != 200:
                 await utility.deny_command(ctx, "Could not connect to GitHub")
-                for cog in cog_paths:
-                    bot.load_extension(cog)
+                load_extensions(cog_paths)
                 await utility.dm_user(ctx.author, "reloaded original cogs")
                 return
             with open(os.path.join("Cogs", file["name"]), "w", encoding="utf-8") as f:
                 f.write(response.text)
     new_cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
-    for cog in new_cog_paths:
-        bot.load_extension(cog)
+    load_extensions(new_cog_paths)
     await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join(new_cog_paths))
     await utility.finish_processing(ctx)
 
@@ -165,6 +166,7 @@ async def ReloadCogs(ctx: commands.Context):
 async def Restart(ctx: commands.Context):
     if ctx.author.id == utility.OwnerID or ctx.author.id in utility.DeveloperIDs:
         logging.warning("Trying to restart Carat...")
+        # bot.close() finishes execution of bot.run(), so Carat terminates and is restarted by the loop in AutoRestart
         await bot.close()
     else:
         await utility.deny_command(ctx, "You lack permission for this command")

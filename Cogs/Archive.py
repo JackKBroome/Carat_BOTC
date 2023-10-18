@@ -1,6 +1,5 @@
 import json
 import os.path
-from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import List, Dict
 
@@ -22,7 +21,7 @@ class ThreadList:
     public_to_not_archive: List[int] = field(default_factory=list)
 
 
-async def copy_history(target: nextcord.abc.Messageable, history: AsyncIterator[nextcord.Message]):
+async def copy_history(target: nextcord.abc.Messageable, history):
     async for message in history:
         embed = nextcord.Embed(description=message.content)
         embed.set_author(name=str(message.author) + " at " + str(message.created_at),

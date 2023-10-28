@@ -15,7 +15,8 @@ class Other(commands.Cog):
 
     @commands.command(aliases=("sw",))
     async def StartWhisper(self, ctx, title : str, players: commands.Greedy[nextcord.Member]):
-        await ctx.send('start whisper')
+        """Creates a new thread with the specified title and included members.  This is NOT specific
+        to a text game and can be used by anyone that can create and send messages to threads."""
         auth_perms = ctx.channel.permissions_for(ctx.author)
         if auth_perms.create_private_threads and auth_perms.send_messages_in_threads:
             thread = await ctx.channel.create_thread(
@@ -135,6 +136,10 @@ class Other(commands.Cog):
                                value="Shows all reminders for the given game number."
                                      "Usage examples: `>ShowReminders 1`, `>ShowReminders x3`",
                                inline=False)
+        anyone_embed.add_field(name=">StartWhisper [thread title] [at least one user]",
+                                value="Can use `>sw` for short. Creates a new thread with the specified title and included members."
+                                      "This is NOT specific to a text game and can be used by anyone that can create and send messages to threads. \n"
+                                      "Usage example: `>StartWhisper \"Vanilla JohnDoe\" @johndoe`,\n`>sw \"group thread\" @johndoe @maryjane @BobJohnson`" )
         anyone_embed.add_field(name=">HelpMe",
                                value="Sends this message. Can be filtered by appending one of `all, anyone, st, mod, "
                                      "no-mod`. Default is `no-mod`\n"

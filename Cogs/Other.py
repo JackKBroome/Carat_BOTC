@@ -13,6 +13,28 @@ class Other(commands.Cog):
         self.bot = bot
         self.helper = helper
 
+    @commands.command(aliases=("sw",))
+    async def StartWhisper(self, ctx, title : str, players: commands.Greedy[nextcord.Member]):
+        await ctx.send('start whisper')
+        auth_perms = ctx.channel.permissions_for(ctx.author)
+        if auth_perms.create_private_threads and auth_perms.send_messages_in_threads:
+            thread = await ctx.channel.create_thread(
+                name=title,
+                auto_archive_duration=4320,  # 3 days
+                type=nextcord.ChannelType.private_thread,
+                reason=f"Starting whisper for {ctx.author.display_name}"
+            )
+            await thread.add_user(ctx.author)
+            for player in players:
+                permissions = ctx.channel.permissions_for(player)
+                if permissions.send_messages_in_threads:
+                    await thread.add_user(player)
+                else:
+                    await ctx.author.send(f"{player.display_name} cannot send messages in threads")
+        else:
+            await ctx.author.send("You are missing permissions to create or send messages to threads")
+
+
     @commands.command()
     async def CreateThreads(self, ctx, game_number: str, setup_message=None):
         """Creates a private thread in the game\'s channel for each player.

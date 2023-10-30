@@ -13,6 +13,31 @@ class Other(commands.Cog):
         self.bot = bot
         self.helper = helper
 
+    @commands.command(aliases=("sw",))
+    async def StartWhisper(self, ctx, title : str, players: commands.Greedy[nextcord.Member]):
+        """Creates a new thread with the specified title and included members.  This is NOT specific
+        to a text game and can be used by anyone that can create and send messages to threads."""
+        auth_perms = ctx.channel.permissions_for(ctx.author)
+        if auth_perms.create_private_threads and auth_perms.send_messages_in_threads:
+            await utility.start_processing(ctx)
+            thread = await ctx.channel.create_thread(
+                name=title,
+                auto_archive_duration=4320,  # 3 days
+                type=nextcord.ChannelType.private_thread,
+                reason=f"Starting whisper for {ctx.author.display_name}"
+            )
+            await thread.add_user(ctx.author)
+            for player in players:
+                permissions = ctx.channel.permissions_for(player)
+                if permissions.send_messages_in_threads:
+                    await thread.add_user(player)
+                else:
+                    await utility.dm_user(ctx.author, f"{player.display_name} cannot send messages in threads so they were not added to \"{title}\"")
+            await utility.finish_processing(ctx)
+        else:
+            await ctx.author.send("You are missing permissions to create or send messages to threads")
+
+
     @commands.command()
     async def CreateThreads(self, ctx, game_number: str, setup_message=None):
         """Creates a private thread in the game\'s channel for each player.
@@ -113,6 +138,10 @@ class Other(commands.Cog):
                                value="Shows all reminders for the given game number."
                                      "Usage examples: `>ShowReminders 1`, `>ShowReminders x3`",
                                inline=False)
+        anyone_embed.add_field(name=">StartWhisper [thread title] [at least one user]",
+                                value="Can use `>sw` for short. Creates a new thread with the specified title and included members."
+                                      "This is NOT specific to a text game and can be used by anyone that can create and send messages to threads. \n"
+                                      "Usage example: `>StartWhisper \"Vanilla JohnDoe\" @johndoe`,\n`>sw \"group thread\" @johndoe @maryjane @BobJohnson`" )
         anyone_embed.add_field(name=">HelpMe",
                                value="Sends this message. Can be filtered by appending one of `all, anyone, st, mod, "
                                      "no-mod`. Default is `no-mod`\n"

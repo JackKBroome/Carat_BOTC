@@ -19,6 +19,7 @@ class Other(commands.Cog):
         to a text game and can be used by anyone that can create and send messages to threads."""
         auth_perms = ctx.channel.permissions_for(ctx.author)
         if auth_perms.create_private_threads and auth_perms.send_messages_in_threads:
+            await utility.start_processing(ctx)
             thread = await ctx.channel.create_thread(
                 name=title,
                 auto_archive_duration=4320,  # 3 days
@@ -31,7 +32,8 @@ class Other(commands.Cog):
                 if permissions.send_messages_in_threads:
                     await thread.add_user(player)
                 else:
-                    await ctx.author.send(f"{player.display_name} cannot send messages in threads")
+                    await utility.dm_user(ctx.author, f"{player.display_name} cannot send messages in threads so they were not added to \"{title}\"")
+            await utility.finish_processing(ctx)
         else:
             await ctx.author.send("You are missing permissions to create or send messages to threads")
 

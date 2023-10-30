@@ -12,7 +12,7 @@ Use `>help` or `>HelpMe` for more information.
 - [@Qaysed](https://github.com/Qaysed) - Major contributions throughout all of Carat
 - [@Broome](https://github.com/JackKBroome) - Initial Developer
 - [@Kanave](https://github.com/lilymnky-F) - OffServerArchive contributed
-
+- [@CRSnyder](https://github.com/CRSnyder) - StartWhisper Command Added
 
 
 ## Used By

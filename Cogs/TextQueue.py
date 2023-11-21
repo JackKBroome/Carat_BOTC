@@ -331,7 +331,7 @@ class TextQueue(commands.Cog):
         # mod command
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
-            queue = self.get_queue(ctx.author.id)
+            queue = self.get_queue(member.id)
             if not queue:
                 await utility.dm_user(ctx.author, "The member is not in a queue at the moment")
                 await utility.finish_processing(ctx)

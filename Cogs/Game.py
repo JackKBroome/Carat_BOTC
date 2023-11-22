@@ -134,6 +134,8 @@ class Game(commands.Cog):
                 strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
             # remove manage threads permission so future STs for the game number can't see private threads
             await game_channel.set_permissions(st_role, manage_threads=False)
+            for st in st_role.members:
+                await game_channel.set_permissions(st, manage_threads=True)
 
             await new_channel.edit(position=game_position, name=f"text-game-{game_number}", topic="")
 

@@ -130,12 +130,12 @@ class Game(commands.Cog):
                 await utility.deny_command(ctx, "Archive category is full")
                 await game_channel.send(f"{self.helper.ModRole.mention} The archive category is full, so this channel cannot be archived")
                 return
-            await game_channel.edit(category=archive_category, name=str(game_channel_name) + " Archived on " + str(
-                strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
             # remove manage threads permission so future STs for the game number can't see private threads
             await game_channel.set_permissions(st_role, manage_threads=False)
             for st in st_role.members:
                 await game_channel.set_permissions(st, manage_threads=True)
+            await game_channel.edit(category=archive_category, name=str(game_channel_name) + " Archived on " + str(
+                strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
 
             await new_channel.edit(position=game_position, name=f"text-game-{game_number}", topic="")
 

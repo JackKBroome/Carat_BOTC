@@ -124,7 +124,6 @@ class Game(commands.Cog):
 
             game_position = game_channel.position
             game_channel_name = game_channel.name
-            new_channel = await game_channel.clone(reason="New Game")
             archive_category = self.helper.ArchiveCategory
             if len(archive_category.channels) == 50:
                 await utility.deny_command(ctx, "Archive category is full")
@@ -134,6 +133,7 @@ class Game(commands.Cog):
             await game_channel.set_permissions(st_role, manage_threads=False)
             for st in st_role.members:
                 await game_channel.set_permissions(st, manage_threads=True)
+            new_channel = await game_channel.clone(reason="New Game")
             await game_channel.edit(category=archive_category, name=str(game_channel_name) + " Archived on " + str(
                 strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
 

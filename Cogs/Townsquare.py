@@ -786,13 +786,10 @@ class Townsquare(commands.Cog):
                 return
             if not vote:
                 vote = not_voted_yet
-            if vote in [confirmed_yes_vote, confirmed_no_vote]:
-                await utility.deny_command(ctx, f"{vote} is a reserved string for internal handling.")
-                return
             nom.votes[voter.id] = Vote(vote)
             await self.update_nom_message(game_number, nom)
             await utility.finish_processing(ctx)
-            await self.log(game_number, f"{ctx.author} has reset the vote of {voter.alias} on the nomination of "
+            await self.log(game_number, f"{ctx.author} has set the vote of {voter.name} on the nomination of "
                                         f"{nom.nominee.alias}")
         else:
             await utility.deny_command(ctx, "You must be the Storyteller to reset a vote")

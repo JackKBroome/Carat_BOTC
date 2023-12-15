@@ -131,9 +131,16 @@ class Game(commands.Cog):
                 return
             # remove manage threads permission so future STs for the game number can't see private threads
             new_channel = await game_channel.clone(reason="New Game")
-            await game_channel.set_permissions(st_role, manage_threads=False)
+            st_permissions = game_channel.overwrites[st_role]
+            st_permissions.update(manage_threads=None)
+            await game_channel.set_permissions(st_role, overwrite=st_permissions)
             for st in st_role.members:
-                await game_channel.set_permissions(st, manage_threads=True)
+                if st in game_channel.overwrites:
+                    member_permissions = game_channel.overwrites[st]
+                    member_permissions.update(manage_threads=True)
+                    await game_channel.set_permissions(st, overwrite=member_permissions)
+                else:
+                    await game_channel.set_permissions(st, manage_threads=True)
             await game_channel.edit(category=archive_category, name=str(game_channel_name) + " Archived on " + str(
                 strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
 

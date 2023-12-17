@@ -21,7 +21,8 @@ class ThreadList:
     public_to_not_archive: List[int] = field(default_factory=list)
 
 
-async def copy_history(target: nextcord.abc.Messageable, history):
+async def copy_history(target: nextcord.abc.Messageable, history) -> int:
+    errors = 0
     async for message in history:
         embed = nextcord.Embed(description=message.content)
         embed.set_author(name=str(message.author) + " at " + str(message.created_at),
@@ -43,6 +44,14 @@ async def copy_history(target: nextcord.abc.Messageable, history):
         except InvalidArgument:
             embed.set_footer(text=embed.footer.text + "\nError: Attachment file was too large.")
             await target.send(embed=embed)
+        except HTTPException as e:
+            if e.status == 413:
+                embed.set_footer(text=embed.footer.text + "\nError: Attachment file was too large.")
+                await target.send(embed=embed)
+            else:
+                await target.send(f"Error: this message caused an unknown issue: {e.status} - {e.text}")
+                errors += 1
+    return errors
 
 
 class Archive(commands.Cog):
@@ -157,7 +166,7 @@ class Archive(commands.Cog):
             await utility.start_processing(ctx)
             channel_history = channel_to_archive.history(limit=None, oldest_first=True)
 
-            await copy_history(archive_channel, channel_history)
+            errors = await copy_history(archive_channel, channel_history)
 
             for thread in channel_to_archive.threads:
                 if thread.is_private() and (thread.parent.id not in self.threads_by_channel or
@@ -171,7 +180,7 @@ class Archive(commands.Cog):
                     archive_thread = await archive_channel.create_thread(name=thread.name,
                                                                          type=nextcord.ChannelType.public_thread)
                     thread_history = thread.history(limit=None, oldest_first=True)
-                    await copy_history(archive_thread, thread_history)
+                    errors += await copy_history(archive_thread, thread_history)
                 except HTTPException:
                     await archive_channel.send(f"Failed to create thread '{thread.name}'")
                     continue
@@ -183,7 +192,10 @@ class Archive(commands.Cog):
             self.update_storage()
 
             await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")
-            await utility.dm_user(ctx.author, f"Your Archive for {ctx.message.channel.name} is done.")
+            message = f"Your Archive for {ctx.message.channel.name} is done."
+            if errors > 0:
+                message += f" {errors} messages caused unknown errors and were not archived."
+            await utility.dm_user(ctx.author, message)
         else:
             await utility.deny_command(ctx, "You do not have permission to use this command")
 

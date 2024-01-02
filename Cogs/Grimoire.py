@@ -8,8 +8,6 @@ import utility
 from Cogs.TextQueue import TextQueue
 from Cogs.Townsquare import Townsquare, Player
 
-MaxGameNumber = 15
-PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
 
 
 class Grimoire(commands.Cog):
@@ -123,7 +121,7 @@ class Grimoire(commands.Cog):
         # and checking which of 1 to [MaxGameNumber] and x1 to x[MaxGameNumber] appear in them
         await utility.start_processing(ctx)
         channel_names_string = " ".join([channel.name for channel in self.helper.TextGamesCategory.channels])
-        games = [x for x in PotentialGames if x in channel_names_string]
+        games = [x for x in utility.PotentialGames if x in channel_names_string]
         message = ""
         for j in games:
             st_role = self.helper.get_st_role(j)

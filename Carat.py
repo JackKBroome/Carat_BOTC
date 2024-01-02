@@ -14,6 +14,7 @@ from nextcord.ext.commands import DefaultHelpCommand, CommandError
 import utility
 
 LogFile = "Carat.log"
+repository_api_url = "https://api.github.com/repos/JackKBroome/Carat_BOTC"
 
 LogLevelMapping = {'DEBUG': logging.DEBUG,
                    'INFO': logging.INFO,
@@ -82,6 +83,9 @@ async def on_command_error(ctx: commands.Context, error: CommandError):
         await utility.dm_user(ctx.author, f"There was an issue with your input. Usage: "
                                           f"`>{ctx.command.name} {ctx.command.signature}`.")
         logging.warning(f"Command {ctx.command.name} was used with incorrect input: {ctx.message.content}")
+    elif isinstance(error, commands.errors.CheckFailure):
+        logging.warning(
+            f"{ctx.command.name} command was ignored due to the command's check failing")
     else:
         traceback_buffer = io.StringIO()
         traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
@@ -131,35 +135,51 @@ async def SendLogs(ctx: commands.Context, limit: int, level: Optional[str] = "ER
 @bot.command()
 @commands.is_owner()
 async def ReloadCogs(ctx: commands.Context):
-    """Loads newest version of cogs from GitHub repository. Restricted to repository owner"""
+    """Loads newest version of cogs from GitHub repository. Restricted to bot owner"""
 
+    logging.warning("Starting the ReloadCogs process")
+    logging.info("Current cogs: " + ", ".join(bot.cogs.keys()))
     await utility.start_processing(ctx)
     cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
     for cog in cog_paths:
+        logging.info(f"Unloading {cog}")
         if cog[5:] in bot.cogs:
             bot.unload_extension(cog)
-        logging.info(", ".join(bot.cogs.keys()))
+    logging.info("Unloaded all cogs in cog directory. Remaining cogs: " + ", ".join(bot.cogs.keys()))
     await utility.dm_user(ctx.author, "Unloaded cogs: " + ", ".join([c[5:] for c in cog_paths]))
-    response = requests.get("https://api.github.com/repos/JackKBroome/Carat_BOTC/contents/Cogs",
+    logging.info("Downloading cogs list from repository")
+
+    response = requests.get(repository_api_url + "/contents/Cogs",
                             headers={"Accept": "application/vnd.github+json",
                                      "X-GitHub-Api-Version": "2022-11-28"})
     if response.status_code != 200:
+        logging.error(f"Request failed with status code {response.status_code} and message {response.text}. "
+                      f"Reloading old versions.")
         await utility.deny_command(ctx, "Could not connect to GitHub")
         load_extensions(cog_paths)
         await utility.dm_user(ctx.author, "reloaded original cogs")
+        logging.warning("Ending the process. Currently loaded cogs: " + ", ".join(bot.cogs.keys()))
         return
     for file in response.json():
         if file["name"].endswith(".py"):
+            logging.info(f"Downloading {file['name']} from repository")
             response = requests.get(file["download_url"])
             if response.status_code != 200:
+                logging.error(f"Request failed with status code {response.status_code} and message {response.text}. "
+                              f"Reloading cogs from current files.")
                 await utility.deny_command(ctx, "Could not connect to GitHub")
+                cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+                logging.info("Loading cogs: " + ", ".join(cog_paths))
                 load_extensions(cog_paths)
-                await utility.dm_user(ctx.author, "reloaded original cogs")
+                await utility.dm_user(ctx.author, "Loaded cogs from currently existing files")
+                logging.warning("Ending the process. Currently loaded cogs: " + ", ".join(bot.cogs.keys()))
                 return
             with open(os.path.join("Cogs", file["name"]), "w", encoding="utf-8") as f:
                 f.write(response.text)
     new_cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
+    logging.info("Now loading new cogs from files: " + ", ".join(new_cog_paths))
     load_extensions(new_cog_paths)
+    logging.warning("Cogs successfully loaded. Currently loaded cogs: " + ", ".join(bot.cogs.keys()))
     await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join([c[5:] for c in new_cog_paths]))
     await utility.finish_processing(ctx)
 

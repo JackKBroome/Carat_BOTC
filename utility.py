@@ -15,6 +15,9 @@ WorkingEmoji = '\U0001F504'
 CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
 
+MaxGameNumber = 15
+PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
+
 
 def get_channel_type(channel_type: str):
     if channel_type.lower() in ['experimental', 'exp', 'x']:
@@ -93,7 +96,8 @@ class Helper:
         if len(matching_channels) == 1:
             return matching_channels[0]
         if len(matching_channels) > 1:
-            logging.warning(f"Multiple candidates for game channel {number} found - attempting to distinguish by ST role")
+            logging.warning(
+                f"Multiple candidates for game channel {number} found - attempting to distinguish by ST role")
             st_role = self.get_st_role(number)
             if st_role is None:
                 return None

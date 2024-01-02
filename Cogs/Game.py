@@ -121,7 +121,8 @@ class Game(commands.Cog):
             townsfolk_role = self.helper.Guild.default_role
             st_role = self.helper.get_st_role(game_number)
             game_channel = self.helper.get_game_channel(game_number)
-
+            if game_channel is None:
+                await utility.deny_command(ctx, "No game for that number found")
             game_position = game_channel.position
             game_channel_name = game_channel.name
             archive_category = self.helper.ArchiveCategory

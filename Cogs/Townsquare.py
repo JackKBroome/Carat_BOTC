@@ -255,7 +255,9 @@ class Townsquare(commands.Cog):
         if ctx.command.name == "SetupTownSquare":
             return True
         args = ctx.message.content.split(" ")
-        if len(args) < 2 or args[1] not in self.town_squares:
+        if len(args) < 2:
+            await utility.deny_command(ctx, "You must give a game number")
+        elif args[1] not in self.town_squares:
             await utility.deny_command(ctx, "No town square for this game exists.")
             return False
         else:
@@ -388,7 +390,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You are not the storyteller for this game")
 
-    @commands.command()
+    @commands.command(aliases=["CreateNominationThread", "CreateNominationsThread"])
     async def CreateNomThread(self, ctx: commands.Context, game_number: str, name: Optional[str]):
         """Creates a thread for nominations to be run in.
         The name of the thread is optional, with `Nominations` as default."""
@@ -794,7 +796,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You must be the Storyteller to reset a vote")
 
-    @commands.command()
+    @commands.command(aliases=["CloseNom"])
     async def CloseNomination(self, ctx: commands.Context, game_number: str, nominee_identifier: str):
         """Marks the nomination for the given nominee as closed.
         You must be a storyteller for this."""
@@ -962,6 +964,7 @@ class CountVoteView(nextcord.ui.View):
     # executed when a button is clicked, if it returns False no callback function is called
     async def interaction_check(self, interaction: nextcord.Interaction):
         if not interaction.user == self.author:
+            await interaction.send(ephemeral=True, content="Only the command's user may interact with this")
             return False
         return True
 

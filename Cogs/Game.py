@@ -128,7 +128,8 @@ class Game(commands.Cog):
             archive_category = self.helper.ArchiveCategory
             if len(archive_category.channels) == 50:
                 await utility.deny_command(ctx, "Archive category is full")
-                await game_channel.send(f"{self.helper.ModRole.mention} The archive category is full, so this channel cannot be archived")
+                await game_channel.send(f"{self.helper.ModRole.mention} The archive category is full, so this channel "
+                                        f"cannot be archived")
                 return
             # remove manage threads permission so future STs for the game number can't see private threads
             new_channel = await game_channel.clone(reason="New Game")

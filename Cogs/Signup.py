@@ -3,6 +3,10 @@ from nextcord.ext import commands
 
 import utility
 
+green_square_emoji = '\U0001F7E9'
+red_square_emoji = '\U0001F7E5'
+refresh_emoji = '\U0001F504'
+
 
 class Signup(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
@@ -49,9 +53,10 @@ class Signup(commands.Cog):
             player_list = self.helper.get_game_role(game_number).members
             embed = nextcord.Embed(title=str(script),
                                    description="Ran by " + " ".join(st_names) +
-                                               "\nPress \U0001F7E9 to sign up for the game"
-                                               "\nPress \U0001F7E5 to remove yourself from the game"
-                                               "\nPress \U0001F504 if the list needs updating (if a command is used to assign roles)",
+                                               f"\nPress {green_square_emoji} to sign up for the game"
+                                               f"\nPress {red_square_emoji} to remove yourself from the game"
+                                               f"\nPress {refresh_emoji} if the list needs updating "
+                                               "(if a command is used to assign roles)",
                                    color=0xff0000)
             for i in range(signup_limit):
                 if i < len(player_list):
@@ -63,7 +68,6 @@ class Signup(commands.Cog):
                     embed.add_field(name=str(i + 1) + ". ", value=" Awaiting Player", inline=False)
             embed.set_footer(text=game_number)
             await self.helper.get_game_channel(game_number).send(embed=embed, view=SignupView(self.helper))
-
             # React for completion
             await utility.finish_processing(ctx)
 
@@ -139,7 +143,8 @@ class SignupView(nextcord.ui.View):
             await self.helper.log(
                 f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
 
-    @nextcord.ui.button(label="Refresh List", custom_id="Refresh_Command", style=nextcord.ButtonStyle.gray)
+    @nextcord.ui.button(label="Refresh List", custom_id="Refresh_Command", style=nextcord.ButtonStyle.gray,
+                        emoji=refresh_emoji)
     async def refresh_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.response.send_message(content=f"{button.custom_id} has been selected!",
                                                 ephemeral=True)

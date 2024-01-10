@@ -14,13 +14,14 @@ class Other(commands.Cog):
         self.helper = helper
 
     @commands.command(aliases=("sw",))
-    async def StartWhisper(self, ctx, title : str, players: commands.Greedy[nextcord.Member]):
+    async def StartWhisper(self, ctx, title: str, players: commands.Greedy[nextcord.Member]):
         """Creates a new thread with the specified title and included members.  This is NOT specific
         to a text game and can be used by anyone that can create and send messages to threads."""
-        auth_perms = ctx.channel.permissions_for(ctx.author)
+        channel = ctx.channel.parent if isinstance(ctx.channel, nextcord.Thread) else ctx.channel
+        auth_perms = channel.permissions_for(ctx.author)
         if auth_perms.create_private_threads and auth_perms.send_messages_in_threads:
             await utility.start_processing(ctx)
-            thread = await ctx.channel.create_thread(
+            thread = await channel.create_thread(
                 name=title,
                 auto_archive_duration=4320,  # 3 days
                 type=nextcord.ChannelType.private_thread,
@@ -32,11 +33,11 @@ class Other(commands.Cog):
                 if permissions.send_messages_in_threads:
                     await thread.add_user(player)
                 else:
-                    await utility.dm_user(ctx.author, f"{player.display_name} cannot send messages in threads so they were not added to \"{title}\"")
+                    await utility.dm_user(ctx.author, f"{player.display_name} cannot send messages in threads so they "
+                                                      f"were not added to \"{title}\"")
             await utility.finish_processing(ctx)
         else:
             await ctx.author.send("You are missing permissions to create or send messages to threads")
-
 
     @commands.command()
     async def CreateThreads(self, ctx, game_number: str, setup_message=None):
@@ -139,9 +140,11 @@ class Other(commands.Cog):
                                      "Usage examples: `>ShowReminders 1`, `>ShowReminders x3`",
                                inline=False)
         anyone_embed.add_field(name=">StartWhisper [thread title] [at least one user]",
-                                value="Can use `>sw` for short. Creates a new thread with the specified title and included members."
-                                      "This is NOT specific to a text game and can be used by anyone that can create and send messages to threads. \n"
-                                      "Usage example: `>StartWhisper \"Vanilla JohnDoe\" @johndoe`,\n`>sw \"group thread\" @johndoe @maryjane @BobJohnson`" )
+                               value="Can use `>sw` for short. Creates a new thread with the specified title and "
+                                     "included members. This is NOT specific to a text game and can be used by anyone "
+                                     "that can create and send messages to threads. \n"
+                                     "Usage examples: `>StartWhisper \"Vanilla JohnDoe\" @johndoe`,"
+                                     "\n`>sw \"group thread\" @johndoe @maryjane @BobJohnson`")
         anyone_embed.add_field(name=">HelpMe",
                                value="Sends this message. Can be filtered by appending one of `all, anyone, st, mod, "
                                      "no-mod`. Default is `no-mod`\n"
@@ -191,7 +194,8 @@ class Other(commands.Cog):
                            inline=False)
         st_embed.add_field(name=">CreateThreads [game number] [setup message]",
                            value='Creates a private thread in the game\'s channel for each player, named "ST Thread ['
-                                 'player name]", adds the player and all STs to it, then posts [setup message] into each channel.\n' +
+                                 'player name]", adds the player and all STs to it, then posts [setup message] '
+                                 'into each channel.\n' +
                                  'Usage examples: `>CreateThreads 1`, `>CreateThreads x3`',
                            inline=False)
         st_embed.add_field(name=">SetReminders [game number] [event] [times]",
@@ -231,7 +235,8 @@ class Other(commands.Cog):
                            value='Removes the appropriate game role from the given users. You can provide a user by '
                                  'ID, mention/ping, or nickname, though giving the nickname may find the wrong '
                                  'user.\n' +
-                                 'Usage examples: `>RemovePlayer 1 793448603309441095`, `>RemovePlayer x3 @Alex @Ben @Celia`',
+                                 'Usage examples: `>RemovePlayer 1 793448603309441095`, '
+                                 '`>RemovePlayer x3 @Alex @Ben @Celia`',
                            inline=False)
         st_embed.add_field(name=">AddKibitz [game number] [at least one user] (Requires ST Role or Mod)",
                            value='Gives the appropriate kibitz role to the given users. You can provide a user by ID, '
@@ -242,7 +247,8 @@ class Other(commands.Cog):
                            value='Removes the appropriate kibitz role from the given users. You can provide a user by '
                                  'ID, mention/ping, or nickname, though giving the nickname may find the wrong '
                                  'user.\n' +
-                                 'Usage examples: `>RemoveKibitz 1 793448603309441095`, `>RemoveKibitz x3 @Alex @Ben @Celia`',
+                                 'Usage examples: `>RemoveKibitz 1 793448603309441095`, '
+                                 '`>RemoveKibitz x3 @Alex @Ben @Celia`',
                            inline=False)
         st_embed.set_footer(text="2/4")
 
@@ -256,9 +262,10 @@ class Other(commands.Cog):
                            inline=False)
 
         ts_embed.add_field(name=">UpdateTownSquare [game_number] [players]",
-                           value="Updates the town square for the given game, with the given players. Ping them in order of seating."
-                                 "The difference to rerunning SetupTownSquare is that the latter will lose information like aliases, "
-                                 "spent deadvotes, and nominations. UpdateTownSquare will not, except for nominations of or by removed players.\n"
+                           value="Updates the town square for the given game, with the given players. Ping them in "
+                                 "order of seating. The difference to rerunning SetupTownSquare is that the latter "
+                                 "will lose information like aliases, spent deadvotes, and nominations. "
+                                 "UpdateTownSquare will not, except for nominations of or by removed players.\n"
                                  "Usage example: `>UpdateTownSquare x1 @Alex @Ben @Celia @Derek @Eli @Fiona @Gideon @Hannah`",
                            inline=False)
         ts_embed.add_field(name=">SubstitutePlayer [game number] [player] [substitute]",
@@ -268,34 +275,41 @@ class Other(commands.Cog):
                                  "Usage example: `>SubstitutePlayer x1 @Alex @Amy`",
                            inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",
-                           value='Creates a thread for nominations to be run in. The name of the thread is optional, with `Nominations` as default.\n'
+                           value='Creates a thread for nominations to be run in. The name of the thread is optional, '
+                                 'with `Nominations` as default.\n'
                                  'Usage examples: `>CreateNomThread x1`, `>CreateNomThread 3 "D2 Nominations"`',
                            inline=False)
-
         ts_embed.add_field(name=">Nominate [game_number] [nominee] [nominator]",
                            value="Create a nomination for the given nominee. If you are a ST, provide the nominator. "
-                                 "If you are a player, leave the nominator out or give yourself. In either case, "
-                                 "you don't need to ping, a name should work. The ST may disable this command for players.\n"
+                                 "If you are a player, leave the nominator out or give yourself. In either case, you "
+                                 "don't need to ping, a name should work. The ST may disable this command for players.\n"
                                  "Usage examples: `>Nominate x1 Alex Ben`, >Nominate 3 Alex`",
                            inline=False)
         ts_embed.add_field(name=">AddAccusation [game_number] [accusation] [nominee_identifier]",
-                           value='Add an accusation to the nomination of the given nominee. You don\'t need to ping, a name should work. You must be the nominator or a storyteller for this.\n'
-                                 'Usage examples: `>AddAccusation x1 "In a doubleclaim" Alex`, >AddAccusation 3 "I think they would be a great Undertaker test"`',
+                           value='Add an accusation to the nomination of the given nominee. You don\'t need to ping, a '
+                                 'name should work. You must be the nominator or a storyteller for this.\n'
+                                 'Usage examples: `>AddAccusation x1 "In a doubleclaim" Alex`, '
+                                 '>AddAccusation 3 "I think they would be a great Undertaker test"`',
                            inline=False)
         ts_embed.add_field(name=">AddDefense [game_number] [defense] [nominee_identifier]",
-                           value='Add a defense to your nomination or that of the given nominee. You must be a storyteller for the latter.\n'
-                                 'Usage examples: `>AddDefense x1 "I\'m good I promise"`, >AddDefense 3 "This is fine"`',
+                           value='Add a defense to your nomination or that of the given nominee. '
+                                 'You must be a storyteller for the latter.\n'
+                                 'Usage examples: `>AddDefense x1 "I\'m good I promise"`, '
+                                 '>AddDefense 3 "This is fine"`',
                            inline=False)
         ts_embed.add_field(name=">SetVoteThreshold [game_number] [threshold]",
-                           value='Set the vote threshold to put a player on the block to the given number. You must be a storyteller for this.\n'
+                           value='Set the vote threshold to put a player on the block to the given number. '
+                                 'You must be a storyteller for this.\n'
                                  'Usage examples: `>SetVoteThreshold x1 4`, `>SetVoteThreshold 3 5`',
                            inline=False)
         ts_embed.add_field(name=">SetDeadline [game_number] [nominee_identifier] [hours]",
-                           value='Set the deadline for the nomination of a given nominee to the given number of hours from now. You must be a storyteller for this.\n'
+                           value='Set the deadline for the nomination of a given nominee to the given number of hours '
+                                 'from now. You must be a storyteller for this.\n'
                                  'Usage examples: `>SetDeadline x1 Alex 1`, `>SetDeadline 3 Alex 24`',
                            inline=False)
         ts_embed.add_field(name=">SetDefaultDeadline [game_number] [hours]",
-                           value='Set the default nomination duration for the game to the given number of hours. You must be a storyteller for this.'
+                           value='Set the default nomination duration for the game to the given number of hours. '
+                                 'You must be a storyteller for this.'
                                  'In a newly created town square, this value is 24 hours.\n'
                                  'Usage examples: `>SetDefaultDeadline x1 36`, `>SetDefaultDeadline 3 24`',
                            inline=False)
@@ -312,10 +326,12 @@ class Other(commands.Cog):
                                  'whether you voted yes or no after your vote is counted. A private vote will always '
                                  'override any public vote, even later ones. If you want your public vote to be counted'
                                  ' instead, you can change your private vote accordingly or use >RemovePrivateVote.\n'
-                                 'Usage examples: `>PrivateVote x1 Alex yes`, `>PrivateVote 3 Alex "drop my hand if there aren\'t enough votes yet"`',
+                                 'Usage examples: `>PrivateVote x1 Alex yes`, '
+                                 '`>PrivateVote 3 Alex "drop my hand if there aren\'t enough votes yet"`',
                            inline=False)
         ts_embed.add_field(name=">RemovePrivateVote [game_number] [nominee_identifier]",
-                           value='Removes your private vote for the given nominee, so that your public vote is counted instead.\n'
+                           value='Removes your private vote for the given nominee, '
+                                 'so that your public vote is counted instead.\n'
                                  'Usage examples: `>RemovePrivateVote x1 Alex`, `>RemovePrivateVote 3 Alex`',
                            inline=False)
         ts_embed.add_field(name=">SetVote [game_number] [nominee_identifier] [voter_identifier] [vote]",
@@ -328,23 +344,27 @@ class Other(commands.Cog):
                                  'Usage examples: `>CountVotes x1 Alex`, `>CountVotes 3 Alex`',
                            inline=False)
         ts_embed.add_field(name=">CloseNomination [game_number] [nominee_identifier]",
-                           value='Marks the nomination for the given nominee as closed. You must be a storyteller for this.\n',
+                           value='Marks the nomination for the given nominee as closed. '
+                                 'You must be a storyteller for this.\n',
                            inline=False)
         ts_embed.add_field(name=">SetAlias [game_number] [alias]",
-                           value='Set your preferred alias for the given game. This will be used anytime '
-                                 'the bot refers to you. The default is your username. Can be used by players and storytellers.\n'
+                           value='Set your preferred alias for the given game. This will be used anytime the bot '
+                                 'refers to you. The default is your username. Can be used by players and storytellers.\n'
                                  'Usage examples: `>SetAlias x1 "Alex"`, `>SetAlias 3 "Alex"`',
                            inline=False)
         ts_embed.add_field(name=">ToggleOrganGrinder [game_number]",
-                           value='Activates or deactivates Organ Grinder for the display of nominations in the game. You must be a storyteller for this.\n'
+                           value='Activates or deactivates Organ Grinder for the display of nominations in the game. '
+                                 'You must be a storyteller for this.\n'
                                  'Usage examples: `>ToggleOrganGrinder x1`, `>ToggleOrganGrinder 3`',
                            inline=False)
         ts_embed.add_field(name=">TogglePlayerNoms [game_number]",
-                           value='Activates or deactivates the ability of players to nominate directly. You must be a storyteller for this.\n'
+                           value='Activates or deactivates the ability of players to nominate directly. '
+                                 'You must be a storyteller for this.\n'
                                  'Usage examples: `>TogglePlayerNoms x1`, `>TogglePlayerNoms 3`',
                            inline=False)
         ts_embed.add_field(name=">ToggleMarkedDead [game_number] [player_identifier]",
-                           value="Marks the given player as dead or alive for display on nominations. You must be a storyteller for this.\n"
+                           value="Marks the given player as dead or alive for display on nominations. "
+                                 "You must be a storyteller for this.\n"
                                  "Usage examples: `>ToggleMarkedDead x1 Alex`, `>ToggleMarkedDead 3 Alex`",
                            inline=False)
         ts_embed.add_field(name=">ToggleCanVote [game_number] [player_identifier]",
@@ -358,8 +378,8 @@ class Other(commands.Cog):
         mod_embed.set_thumbnail(self.bot.user.avatar.url)
         mod_embed.add_field(name=">InitQueue [channel type] ",
                             value="Initializes an ST queue in the channel or thread the command was used in, for the "
-                                  "provided channel type (regular/experimental). Can be reused to create a new "
-                                  "queue/queue message. If existing entries should be deleted, add \"reset\" at the end.",
+                                  "provided channel type (regular/experimental). Can be reused to create a new queue "
+                                  "or queue message. If existing entries should be deleted, add \"reset\" at the end.",
                             inline=False)
         mod_embed.add_field(name=">RemoveFromQueue [user]",
                             value="Removes the given user from either queue. You can provide a user by ID, "

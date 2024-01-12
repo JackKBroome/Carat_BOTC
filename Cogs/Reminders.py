@@ -34,13 +34,15 @@ class Reminder:
 
     def explain(self) -> str:
         text_elements = self.text.split(" ")
+        # remove role pings
+        text_elements = [el for el in text_elements[:2] if not el.startswith("<@&")] + text_elements[2:]
         time = datetime.datetime.fromisoformat(self.time)
-        if self.text[-2:] == ":t>)":
-            event = " ".join(text_elements[1:-2])
+        if self.text[-4:] == ":t>)":
+            event = " ".join(text_elements[:-2])
             explanation = f"{format_dt(time, 'R')} ({format_dt(time, 'f')}): Reminder that `{event}` at " \
                           f"{text_elements[-1][1:-3]}f>"
         else:
-            event = " ".join(text_elements[1:])
+            event = " ".join(text_elements)
             explanation = f"{format_dt(time, 'R')} ({format_dt(time, 'f')}): Announcement that `{event}`"
         return explanation
 
@@ -87,7 +89,7 @@ class Reminders(commands.Cog):
         The event argument is optional and defaults to "Whispers close". Times must be given in hours from the
         current time, either as integer, decimal number or in hh:mm format. You can give any number of times.
         The event is assumed to occur at the latest given time. You can have the reminders also ping Storytellers
-        and/or not ping players by adding `ping-st`/`no-player-ping`"""
+        and/or not ping players by adding 'ping-st'/'no-player-ping'"""
         # parse arguments
         ping_st = "ping-st" in args
         no_player_ping = "no-player-ping" in args

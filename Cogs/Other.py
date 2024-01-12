@@ -199,12 +199,15 @@ class Other(commands.Cog):
                                  'Usage examples: `>CreateThreads 1`, `>CreateThreads x3`',
                            inline=False)
         st_embed.add_field(name=">SetReminders [game number] [event] [times]",
-                           value='At the given times, sends reminders to the players how long they have until the event'
-                                 ' occurs. The event argument is optional and defaults to "Whispers close". '
-                                 'Times must be given in hours from the current time. You can give any number of times.'
-                                 'The event is assumed to occur at the latest given time.\n'
-                                 'Usage examples: `>SetReminders 1 "Votes on Alice close" 24`, '
-                                 '`>SetReminders x3 18 24 30 33 36`',
+                           value="At the given times, sends reminders to the players how long they have until the "
+                                 "event occurs. The event argument is optional and defaults to 'Whispers close'. Times "
+                                 "must be given in hours from the current time, either as integer, decimal number or "
+                                 "in hh:mm format. You can give any number of times. The event is assumed to occur at "
+                                 "the latest given time. You can have the reminders also ping Storytellers and/or not "
+                                 "ping players by adding 'ping-st'/'no-player-ping'\n"
+                                 "Usage examples: `>SetReminders 1 \"Votes on Alice close\" 12 18 23 24 ping-st`, "
+                                 "`>SetReminders x3 18 24 30 33 36`, "
+                                 "`>SetReminders 1 \"Count the votes\" 12 ping-st no-player-ping`",
                            inline=False)
         st_embed.add_field(name=">DeleteReminders [game number]",
                            value='Deletes all reminders for the given game number.'
@@ -270,8 +273,9 @@ class Other(commands.Cog):
                            inline=False)
         ts_embed.add_field(name=">SubstitutePlayer [game number] [player] [substitute]",
                            value="Exchanges a player in the town square with a substitute. Transfers the position, "
-                                 "status, nominations and votes of the exchanged player to the substitute. "
-                                 "Adds the substitute to all threads the exchanged player was in.\n"
+                                 "status, nominations and votes of the exchanged player to the substitute, adds the "
+                                 "substitute to all threads the exchanged player was in, and adds/removes the "
+                                 "game role. Can be used without the town square.\n"
                                  "Usage example: `>SubstitutePlayer x1 @Alex @Amy`",
                            inline=False)
         ts_embed.add_field(name=">CreateNomThread [game_number] [name]",

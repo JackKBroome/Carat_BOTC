@@ -206,7 +206,7 @@ class Townsquare(commands.Cog):
             nom_message = await nom_thread.fetch_message(nom.message)
             await nom_message.edit(content=content, embed=embed)
         except nextcord.HTTPException as e:
-            if e.code == 404:
+            if e.code == 10008:  # Discord's 404
                 logging.error(f"Missing message for nomination of {nom.nominee.alias} in game {game_number}")
                 st_role = self.helper.get_st_role(game_number)
                 await self.log(game_number, f"{st_role.mention} Could not find the nomination message for the "
@@ -363,7 +363,7 @@ class Townsquare(commands.Cog):
         else:
             return Player(player.id, player.display_name)
 
-    @commands.command()
+    @commands.command(aliases=["SubPlayer"])
     async def SubstitutePlayer(self, ctx: commands.Context, game_number: str, player: nextcord.Member,
                                substitute: nextcord.Member):
         """Exchanges a player in the town square with a substitute.
@@ -436,8 +436,8 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You are not the storyteller for this game")
 
-    @commands.command(aliases=["CreateNominationThread", "CreateNominationsThread"])
-    async def CreateNomThread(self, ctx: commands.Context, game_number: str, name: Optional[str]):
+    @commands.command(aliases=["CreateNomThread", "CreateNominationsThread"])
+    async def CreateNominationThread(self, ctx: commands.Context, game_number: str, name: Optional[str]):
         """Creates a thread for nominations to be run in.
         The name of the thread is optional, with `Nominations` as default."""
         if self.helper.authorize_st_command(ctx.author, game_number):

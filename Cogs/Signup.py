@@ -48,11 +48,11 @@ class Signup(commands.Cog):
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
-            st_names = [st.display_name for st in self.helper.get_st_role(game_number).members]
             # Post Signup Page
+            st_names = [st.display_name for st in self.helper.get_st_role(game_number).members]
             player_list = self.helper.get_game_role(game_number).members
             embed = nextcord.Embed(title=str(script),
-                                   description="Ran by " + " ".join(st_names) +
+                                   description="Ran by " + ", ".join(st_names) +
                                                f"\nPress {green_square_emoji} to sign up for the game"
                                                f"\nPress {red_square_emoji} to remove yourself from the game"
                                                f"\nPress {refresh_emoji} if the list needs updating "
@@ -83,7 +83,7 @@ class SignupView(nextcord.ui.View):
     @nextcord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=nextcord.ButtonStyle.green)
     async def signup_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         # Find which game the sign-up page relates to
-        await interaction.response.send_message(content=f"{button.custom_id} has been selected!",
+        await interaction.response.send_message(content=f"{button.label} has been selected!",
                                                 ephemeral=True)
         signup_message = interaction.message
         number_of_fields = signup_message.embeds[0].to_dict()
@@ -120,7 +120,7 @@ class SignupView(nextcord.ui.View):
     @nextcord.ui.button(label="Leave Game", custom_id="Leave_Game_Command", style=nextcord.ButtonStyle.red)
     async def leave_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         # Find which game the sign-up page relates to
-        await interaction.response.send_message(content=f"{button.custom_id} has been selected!",
+        await interaction.response.send_message(content=f"{button.label} has been selected!",
                                                 ephemeral=True)
         signup_message = interaction.message
         number_of_fields = signup_message.embeds[0].to_dict()
@@ -146,7 +146,7 @@ class SignupView(nextcord.ui.View):
     @nextcord.ui.button(label="Refresh List", custom_id="Refresh_Command", style=nextcord.ButtonStyle.gray,
                         emoji=refresh_emoji)
     async def refresh_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
-        await interaction.response.send_message(content=f"{button.custom_id} has been selected!",
+        await interaction.response.send_message(content=f"{button.label} has been selected!",
                                                 ephemeral=True)
         await self.update_signup_sheet(interaction.message)
 

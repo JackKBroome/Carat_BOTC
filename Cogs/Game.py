@@ -123,6 +123,7 @@ class Game(commands.Cog):
             game_channel = self.helper.get_game_channel(game_number)
             if game_channel is None:
                 await utility.deny_command(ctx, "No game for that number found")
+                return
             game_position = game_channel.position
             game_channel_name = game_channel.name
             archive_category = self.helper.ArchiveCategory

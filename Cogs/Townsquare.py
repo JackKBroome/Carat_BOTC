@@ -202,8 +202,19 @@ class Townsquare(commands.Cog):
         content, embed = format_nom_message(game_role, self.town_squares[game_number], nom, self.emoji)
         game_channel = self.helper.get_game_channel(game_number)
         nom_thread = get(game_channel.threads, id=self.town_squares[game_number].nomination_thread)
-        nom_message = await nom_thread.fetch_message(nom.message)
-        await nom_message.edit(content=content, embed=embed)
+        try:
+            nom_message = await nom_thread.fetch_message(nom.message)
+            await nom_message.edit(content=content, embed=embed)
+        except nextcord.HTTPException as e:
+            if e.code == 10008:  # Discord's 404
+                logging.error(f"Missing message for nomination of {nom.nominee.alias} in game {game_number}")
+                st_role = self.helper.get_st_role(game_number)
+                await self.log(game_number, f"{st_role.mention} Could not find the nomination message for the "
+                                            f"nomination of {nom.nominee.alias} to update it. Please close the "
+                                            f"nomination to prevent this happening again.")
+                return
+            else:
+                raise e
         view = next((v for v in self.vote_count_views if v.nom == nom), None)
         if view is not None:
             await view.update_message()
@@ -225,34 +236,34 @@ class Townsquare(commands.Cog):
         usernames = {p.id: get(self.helper.Guild.members, id=p.id).name for p in participants}
         username_matches = self.try_get_matching_player(participants, identifier, lambda p: usernames[p.id])
         if len(alias_matches) == 1:
-            target_id = alias_matches[0].id
+            target_id = alias_matches[0]
         elif len(alias_matches) > 1:
             if len(set(alias_matches).intersection(set(display_name_matches))) == 1:
-                target_id = list(set(alias_matches).intersection(set(display_name_matches)))[0].id
+                target_id = list(set(alias_matches).intersection(set(display_name_matches)))[0]
             elif len(set(alias_matches).intersection(set(username_matches))) == 1:
-                target_id = list(set(alias_matches).intersection(set(username_matches)))[0].id
+                target_id = list(set(alias_matches).intersection(set(username_matches)))[0]
             elif len(set(display_name_matches).intersection(set(display_name_matches)).intersection(
                     set(username_matches))) == 1:
                 target_id = list(set(display_name_matches).intersection(set(display_name_matches)).intersection(
-                    set(username_matches)))[0].id
+                    set(username_matches)))[0]
             else:
                 return None
         elif len(display_name_matches) == 1:
-            target_id = display_name_matches[0].id
+            target_id = display_name_matches[0]
         elif len(display_name_matches) > 1:
             if len(set(display_name_matches).intersection(set(username_matches))) == 1:
-                target_id = list(set(display_name_matches).intersection(set(username_matches)))[0].id
+                target_id = list(set(display_name_matches).intersection(set(username_matches)))[0]
             else:
                 return None
         elif len(username_matches) == 1:
-            target_id = username_matches[0].id
+            target_id = username_matches[0]
         else:
             return None
         return get(self.helper.Guild.members, id=target_id)
 
     # runs before each command - checks a town square exists
     async def cog_check(self, ctx: commands.Context) -> bool:
-        if ctx.command.name == "SetupTownSquare":
+        if ctx.command.name in ["SetupTownSquare", "SubstitutePlayer"]:
             return True
         args = ctx.message.content.split(" ")
         if len(args) < 2:
@@ -265,18 +276,18 @@ class Townsquare(commands.Cog):
 
     @staticmethod
     def try_get_matching_player(player_list: List[Player], identifier: str, attribute: Callable[[Player], str]) \
-            -> List[Player]:
-        matches = [p for p in player_list if identifier.lower() in attribute(p).lower()]
+            -> List[int]:
+        matches = [p.id for p in player_list if identifier.lower() in attribute(p).lower()]
         if len(matches) > 1:
-            matches = [p for p in player_list if attribute(p).lower().startswith(identifier.lower())]
+            matches = [p.id for p in player_list if attribute(p).lower().startswith(identifier.lower())]
             if len(matches) < 1:
-                matches = [p for p in player_list if identifier in attribute(p)]
+                matches = [p.id for p in player_list if identifier in attribute(p)]
             elif len(matches) > 1:
-                matches = [p for p in player_list if attribute(p).startswith(identifier)]
+                matches = [p.id for p in player_list if attribute(p).startswith(identifier)]
                 if len(matches) < 1:
-                    matches = [p for p in player_list if attribute(p).lower() == identifier.lower()]
+                    matches = [p.id for p in player_list if attribute(p).lower() == identifier.lower()]
                 elif len(matches) > 1:
-                    matches = [p for p in player_list if attribute(p) == identifier]
+                    matches = [p.id for p in player_list if attribute(p) == identifier]
         return matches
 
     @commands.command()
@@ -352,17 +363,25 @@ class Townsquare(commands.Cog):
         else:
             return Player(player.id, player.display_name)
 
-    @commands.command()
+    @commands.command(aliases=["SubPlayer"])
     async def SubstitutePlayer(self, ctx: commands.Context, game_number: str, player: nextcord.Member,
                                substitute: nextcord.Member):
         """Exchanges a player in the town square with a substitute.
-        Transfers the position, status, nominations and votes of the exchanged player to the substitute.
-        Adds the substitute to all threads the exchanged player was in."""
+        Transfers the position, status, nominations and votes of the exchanged player to the substitute, adds the
+        substitute to all threads the exchanged player was in, and adds/removes the game role.
+        Can be used without the town square."""
+        if game_number not in self.town_squares:
+            await self.SubstitutePlayerNoTownsquare(ctx, game_number, player, substitute)
+            return
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
             player_list = self.town_squares[game_number].players
             current_player = next((p for p in player_list if p.id == player.id), None)
-            if not current_player:
+            substitute_existing_player = next((p for p in player_list if p.id == substitute.id), None)
+            if substitute_existing_player is not None:
+                await utility.deny_command(ctx, f"{substitute.display_name} is already a player.")
+                return
+            if current_player is None:
                 st_list = self.town_squares[game_number].sts
                 current_st = next((st for st in st_list if st.id == player.id), None)
                 if not current_st:
@@ -371,16 +390,19 @@ class Townsquare(commands.Cog):
                 current_st.id = substitute.id
                 current_st.alias = substitute.display_name
             else:
+                game_role = self.helper.get_game_role(game_number)
+                await player.remove_roles(game_role, reason="substituted out")
+                await substitute.add_roles(game_role, reason="substituted in")
                 current_player.id = substitute.id
                 current_player.alias = substitute.display_name
-                for nom in [n for n in self.town_squares[game_number].nominations if not n.finished]:
-                    nom.votes[substitute.id] = nom.votes.pop(player.id)
-                    await self.update_nom_message(game_number, nom)
                 game_channel = self.helper.get_game_channel(game_number)
                 for thread in game_channel.threads:
                     thread_members = await thread.fetch_members()
                     if player in [tm.member for tm in thread_members]:
                         await thread.add_user(substitute)
+                for nom in [n for n in self.town_squares[game_number].nominations if not n.finished]:
+                    nom.votes[substitute.id] = nom.votes.pop(player.id)
+                    await self.update_nom_message(game_number, nom)
             await self.log(game_number, f"{ctx.author.mention} has substituted {player.display_name} with "
                                         f"{substitute.display_name}")
             logging.debug(f"Substituted {player} with {substitute} in game {game_number} - "
@@ -390,8 +412,32 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You are not the storyteller for this game")
 
-    @commands.command(aliases=["CreateNominationThread", "CreateNominationsThread"])
-    async def CreateNomThread(self, ctx: commands.Context, game_number: str, name: Optional[str]):
+    async def SubstitutePlayerNoTownsquare(self, ctx: commands.Context, game_number: str, player: nextcord.Member,
+                                           substitute: nextcord.Member):
+        game_role = self.helper.get_game_role(game_number)
+        if game_role not in player.roles:
+            await utility.deny_command(ctx, f"{player.display_name} is not a player.")
+            return
+        elif game_role in substitute.roles:
+            await utility.deny_command(ctx, f"{substitute.display_name} is already a player.")
+            return
+        if self.helper.authorize_st_command(ctx.author, game_number):
+            await utility.start_processing(ctx)
+            await player.remove_roles(game_role, reason="substituted out")
+            await substitute.add_roles(game_role, reason="substituted in")
+            game_channel = self.helper.get_game_channel(game_number)
+            for thread in game_channel.threads:
+                thread_members = await thread.fetch_members()
+                if player in [tm.member for tm in thread_members]:
+                    await thread.add_user(substitute)
+            logging.debug(f"Substituted {player} with {substitute} in game {game_number}")
+            self.update_storage()
+            await utility.finish_processing(ctx)
+        else:
+            await utility.deny_command(ctx, "You are not the storyteller for this game")
+
+    @commands.command(aliases=["CreateNomThread", "CreateNominationsThread"])
+    async def CreateNominationThread(self, ctx: commands.Context, game_number: str, name: Optional[str]):
         """Creates a thread for nominations to be run in.
         The name of the thread is optional, with `Nominations` as default."""
         if self.helper.authorize_st_command(ctx.author, game_number):
@@ -737,9 +783,9 @@ class Townsquare(commands.Cog):
         You must be a storyteller for this."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
-            if not override and (ctx.channel in self.helper.TextGamesCategory.channels or
-                                 (isinstance(ctx.channel, nextcord.Thread) and
-                                  ctx.channel.parent in self.helper.TextGamesCategory.channels)):
+            if override is None and (ctx.channel in self.helper.TextGamesCategory.channels or
+                                     (isinstance(ctx.channel, nextcord.Thread) and
+                                      ctx.channel.parent in self.helper.TextGamesCategory.channels)):
                 await utility.deny_command(ctx,
                                            'Vote counting should probably not happen in public, or private prevotes '
                                            'might be exposed. If you want to do so anyway, run the command again with '

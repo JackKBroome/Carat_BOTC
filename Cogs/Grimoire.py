@@ -9,7 +9,6 @@ from Cogs.TextQueue import TextQueue
 from Cogs.Townsquare import Townsquare, Player
 
 
-
 class Grimoire(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot

@@ -11,6 +11,7 @@ from nextcord.ext import commands
 from nextcord.utils import get
 
 import utility
+from Cogs.Reserve import Reserve
 
 ExplainInvalidChannelType = "Not a valid channel type - accepted forms are `regular, standard, normal, reg, r, s, n` " \
                             "for regular, `experimental, exp, x` for experimental - capitalization doesn't matter."
@@ -118,9 +119,9 @@ class TextQueue(commands.Cog):
                                                if entry.st != user.id]
         await self.update_queue_message(self.queues["Regular"])
         await self.update_queue_message(self.queues["Experimental"])
-        await self.update_storage()
+        self.update_storage()
 
-    async def update_storage(self):
+    def update_storage(self):
         json_data = {}
         for queue in self.queues:
             json_data[queue] = self.queues[queue].to_dict()
@@ -164,7 +165,7 @@ class TextQueue(commands.Cog):
             queue.message_id = queue_message.id
             self.queues[channel_type] = queue
 
-            await self.update_storage()
+            self.update_storage()
             await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx, "This command is restricted to moderators")
@@ -181,8 +182,12 @@ class TextQueue(commands.Cog):
         channel_type = utility.get_channel_type(channel_type)
         if not channel_type:
             await utility.deny_command(ctx, ExplainInvalidChannelType)
-        users_in_queue = [entry.st for entry in self.queues["Regular"].entries + self.queues["Experimental"].entries]
-        if ctx.author.id not in users_in_queue:
+            return
+        reserve_cog: Optional[Reserve] = self.bot.get_cog("Reserve")
+        if reserve_cog is not None and ctx.author.id in reserve_cog.entries:
+            await utility.deny_command(ctx, "You can't join a queue while you have reserved a game")
+            return
+        if self.get_queue(ctx.author.id) is None:
             await utility.start_processing(ctx)
             entry = Entry(ctx.author.id, script, availability)
             if notes:
@@ -194,7 +199,7 @@ class TextQueue(commands.Cog):
                 await utility.dm_user(ctx.author, "The queue is too long to display in full. Your entry may not be "
                                                   "displayed currently, but it has been added to the queue.")
 
-            await self.update_storage()
+            self.update_storage()
             await utility.finish_processing(ctx)
         else:
             await utility.deny_command(ctx, "You may not join a text ST queue while you are already in one")
@@ -217,7 +222,7 @@ class TextQueue(commands.Cog):
         if not full_queue_posted:
             await self.helper.log("Queue too long for message - final entry/entries not displayed")
 
-        await self.update_storage()
+        self.update_storage()
 
         await utility.finish_processing(ctx)
 
@@ -244,7 +249,7 @@ class TextQueue(commands.Cog):
             await self.helper.log("Queue too long for message - final entry/entries not displayed")
             await utility.dm_user(ctx.author, "The queue is too long to display in full. Your entry may not be "
                                               "displayed currently, but is still in the queue.")
-        await self.update_storage()
+        self.update_storage()
 
         await utility.finish_processing(ctx)
 
@@ -272,7 +277,7 @@ class TextQueue(commands.Cog):
         full_queue_posted = await self.update_queue_message(queue)
         if not full_queue_posted:
             await self.helper.log("Queue too long for message - final entry/entries not displayed")
-        await self.update_storage()
+        self.update_storage()
         await utility.finish_processing(ctx)
         await self.helper.log(f"{ctx.author.mention} has run the EditEntry command")
 
@@ -296,7 +301,7 @@ class TextQueue(commands.Cog):
         full_queue_posted = await self.update_queue_message(queue)
         if not full_queue_posted:
             await self.helper.log("Queue too long for message - final entry/entries not displayed")
-        await self.update_storage()
+        self.update_storage()
         await utility.finish_processing(ctx)
         await self.helper.log(f"{ctx.author.mention} has run the EditNotes command")
 
@@ -317,7 +322,7 @@ class TextQueue(commands.Cog):
             full_queue_posted = await self.update_queue_message(queue)
             if not full_queue_posted:
                 await self.helper.log("Queue too long for message - final entry/entries not displayed")
-            await self.update_storage()
+            self.update_storage()
 
             await utility.finish_processing(ctx)
         else:
@@ -345,7 +350,7 @@ class TextQueue(commands.Cog):
             if not full_queue_posted:
                 await self.helper.log("Queue too long for message - final entry/entries not displayed")
 
-            await self.update_storage()
+            self.update_storage()
 
             await utility.finish_processing(ctx)
         else:

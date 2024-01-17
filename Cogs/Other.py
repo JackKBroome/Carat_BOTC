@@ -59,6 +59,7 @@ class Other(commands.Cog):
                     name=f"ST Thread {name}",
                     auto_archive_duration=4320,  # 3 days
                     type=nextcord.ChannelType.private_thread,
+                    invitable=False,
                     reason=f"Preparing text game {game_number}"
                 )
                 thread.invitable = False

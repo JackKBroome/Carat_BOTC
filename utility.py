@@ -73,26 +73,28 @@ class Helper:
         load_dotenv()
         self.Guild = get(bot.guilds, id=int(os.environ['GUILD_ID']))
         self.TextGamesCategory = get(self.Guild.categories, id=int(os.environ['TEXT_GAMES_CATEGORY_ID']))
+        self.ReservingForum = get(self.Guild.channels, id=int(os.environ['RESERVING_FORUM_CHANNEL']))
         self.ArchiveCategory = get(self.Guild.categories, id=int(os.environ['ARCHIVE_CATEGORY_ID']))
         self.ModRole = get(self.Guild.roles, id=int(os.environ['DOOMSAYER_ROLE_ID']))
         self.LogChannel = get(self.Guild.channels, id=int(os.environ['LOG_CHANNEL_ID']))
         self.StorageLocation = os.environ['STORAGE_LOCATION']
-        if None in [self.Guild, self.TextGamesCategory, self.ArchiveCategory, self.ModRole, self.LogChannel]:
+        if None in [self.Guild, self.TextGamesCategory, self. ReservingForum, self.ArchiveCategory, self.ModRole,
+                    self.LogChannel]:
             logging.error("Failed to find required discord entity. Check .env file is correct and Guild is set up")
             raise EnvironmentError
 
     def get_game_channel(self, number: str) -> Optional[nextcord.TextChannel]:
-        if number.startswith("x"):
+        if number[0] in ["b, r, x"]:
             # ensure that number occurs without being immediately followed by another digit
             # (so "x1" doesn't find the x10 channel)
             pattern = fr"{re.escape(number)}(?![0-9])"
         else:
-            # ensure that number occurs without being preceded by x or another digit
+            # ensure that number occurs without being preceded by b, r, x or another digit
             # (so "1" doesn't find the x1 or 11 channel)
             # or followed by another digit (so "1" doesn't find the 10 channel)
-            pattern = fr"(?<![0-9x]){re.escape(number)}(?![0-9])"
+            pattern = fr"(?<![0-9brx]){re.escape(number)}(?![0-9])"
         matching_channels = [channel for channel in self.TextGamesCategory.text_channels
-                             if re.search(pattern, channel.name)]
+                             if re.search(pattern, channel.name) is not None]
         if len(matching_channels) == 1:
             return matching_channels[0]
         if len(matching_channels) > 1:
@@ -108,9 +110,12 @@ class Helper:
         return None
 
     def get_kibitz_channel(self, number: str) -> Optional[nextcord.TextChannel]:
-        if number[0] == "x":
+        if number[0] == "r":
+            name = "rsvp-kibitz-" + number[1:]
+        elif number[0] == "x":
             name = "experimental-kibitz-" + number[1:]
         else:
+            # b-games also follow this format
             name = "kibitz-game-" + number
         channel = get(self.Guild.channels, name=name)
         if channel is None:
@@ -138,13 +143,28 @@ class Helper:
             logging.warning(f"Could not find kibitz role for game {number}")
         return role
 
-    def authorize_st_command(self, author: nextcord.Member, game_number: str):
-        return (self.ModRole in author.roles) \
-            or (self.get_st_role(game_number) in author.roles) \
-            or (author.id == OwnerID)
+    def authorize_st_command(self, author: Union[nextcord.Member, nextcord.User], game_number: str):
+        if isinstance(author, nextcord.User):
+            member = get(self.Guild.members, id=author.id)
+            if member is None:
+                logging.warning("Non guild member attempting to use ST command")
+                return False
+        else:
+            member = author
+        return (self.ModRole in member.roles) \
+            or (self.get_st_role(game_number) in member.roles) \
+            or (member.id == OwnerID)
 
-    def authorize_mod_command(self, author):
+    def authorize_mod_command(self, author: Union[nextcord.Member, nextcord.User]):
+        if isinstance(author, nextcord.User):
+            member = get(self.Guild.members, id=author.id)
+            if member is None:
+                logging.warning("Non guild member attempting to use mod command")
+                return False
+            return (self.ModRole in member.roles) or (author.id == OwnerID)
         return (self.ModRole in author.roles) or (author.id == OwnerID)
 
     async def log(self, log_string: str):
         await self.LogChannel.send(log_string)
+
+# todo: make commands that are reasonable for DMs work in DMs and deny explicitly otherwise

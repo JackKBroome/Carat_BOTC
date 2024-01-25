@@ -20,7 +20,9 @@ PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n
 
 
 def get_channel_type(channel_type: str):
-    if channel_type.lower() in ['experimental', 'exp', 'x']:
+    if channel_type.lower() in ['base', 'b3', 'b']:
+        return "Base"
+    elif channel_type.lower() in ['experimental', 'exp', 'x']:
         return "Experimental"
     elif channel_type.lower() in ['regular', 'standard', 'normal', 'r', 'n', 'reg']:
         return "Regular"

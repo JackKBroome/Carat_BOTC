@@ -42,11 +42,11 @@ async def copy_history(target: nextcord.abc.Messageable, history) -> int:
         try:
             await target.send(embed=embed, files=attachment_list)
         except InvalidArgument:
-            embed.set_footer(text=embed.footer.text + "\nError: Attachment file was too large.")
+            embed.set_footer(text=f"{embed.footer.text}\nError: Attachment file was too large.")
             await target.send(embed=embed)
         except HTTPException as e:
             if e.status == 413:
-                embed.set_footer(text=embed.footer.text + "\nError: Attachment file was too large.")
+                embed.set_footer(text=f"{embed.footer.text}\nError: Attachment file was too large.")
                 await target.send(embed=embed)
             else:
                 await target.send(f"Error: this message caused an unknown issue: {e.status} - {e.text}")

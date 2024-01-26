@@ -11,7 +11,6 @@ from Cogs.Townsquare import Townsquare, Player
 MaxGameNumber = 15
 PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
 
-
 class Grimoire(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
         self.bot = bot

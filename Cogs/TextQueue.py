@@ -395,7 +395,12 @@ class FreeChannelNotificationView(nextcord.ui.View):
         await interaction.message.edit(view=self)
 
     async def interaction_check(self, interaction: nextcord.Interaction) -> bool:
-        return interaction.user.id == self.queue[self.queue_position].st
+        if interaction.user.id == self.queue[self.queue_position].st:
+            return True
+        else:
+            await interaction.send(ephemeral=True, content="This announcement is not intended for you. To claim the "
+                                                           "grimoire, you'll have to use the ClaimGrimoire command.")
+            return False
 
     async def on_timeout(self) -> None:
         game_channel = self.helper.get_game_channel(self.game_number)

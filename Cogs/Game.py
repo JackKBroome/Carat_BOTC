@@ -121,13 +121,16 @@ class Game(commands.Cog):
             townsfolk_role = self.helper.Guild.default_role
             st_role = self.helper.get_st_role(game_number)
             game_channel = self.helper.get_game_channel(game_number)
-
+            if game_channel is None:
+                await utility.deny_command(ctx, "No game for that number found")
+                return
             game_position = game_channel.position
             game_channel_name = game_channel.name
             archive_category = self.helper.ArchiveCategory
             if len(archive_category.channels) == 50:
                 await utility.deny_command(ctx, "Archive category is full")
-                await game_channel.send(f"{self.helper.ModRole.mention} The archive category is full, so this channel cannot be archived")
+                await game_channel.send(f"{self.helper.ModRole.mention} The archive category is full, so this channel "
+                                        f"cannot be archived")
                 return
             # remove manage threads permission so future STs for the game number can't see private threads
             new_channel = await game_channel.clone(reason="New Game")

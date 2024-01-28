@@ -160,7 +160,7 @@ class TextQueue(commands.Cog):
             else:
                 await utility.dm_user(ctx.author, 'Please place the queue in a text channel or thread')
                 return
-            if not reset:
+            if channel_type in self.queues and reset is None:
                 queue.entries = self.queues[channel_type].entries
 
             queue_message = await ctx.send(embed=embed)
@@ -370,6 +370,9 @@ class FreeChannelNotificationView(nextcord.ui.View):
         self.game_number = game_number
         self.queue_position = queue_position
         self.timeout = 172800  # two days
+
+    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
+        logging.error(error)
 
     @nextcord.ui.button(label="Claim grimoire", custom_id="claim_grimoire", style=nextcord.ButtonStyle.green)
     async def claim_grimoire_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):

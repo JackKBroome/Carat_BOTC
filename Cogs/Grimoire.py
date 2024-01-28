@@ -19,7 +19,13 @@ class Grimoire(commands.Cog):
         """Grants you the ST role of the given game.
         Also removes you from the relevant queue. Fails if there is already an ST for that game."""
         st_role = self.helper.get_st_role(game_number)
-
+        if st_role is None:
+            await utility.deny_command(ctx, f"No game {game_number} exists")
+            return
+        game_channel = self.helper.get_game_channel(game_number)
+        if game_channel is None:
+            await utility.deny_command(ctx, f"There is no game channel for game {game_number}")
+            return
         if len(st_role.members) == 0 or self.helper.authorize_mod_command(ctx.author):
             # React on Approval
             await utility.start_processing(ctx)
@@ -28,7 +34,12 @@ class Grimoire(commands.Cog):
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
             if queue:
-                channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
+                if game_number[0] == "b":
+                    channel_type = "Base"
+                elif game_number[0] == "x":
+                    channel_type = "Experimental"
+                else:
+                    channel_type = "Regular"
                 users_in_queue = [entry.st for entry in queue.queues[channel_type].entries]
                 if ctx.author.id not in users_in_queue:
                     game_channel = self.helper.get_game_channel(game_number)
@@ -81,7 +92,7 @@ class Grimoire(commands.Cog):
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
-            if queue and not st_role.members:
+            if queue is not None and len(st_role.members) == 0 and game_number[0] != "r":
                 await queue.announce_free_channel(game_number, 0)
             await utility.finish_processing(ctx)
         else:

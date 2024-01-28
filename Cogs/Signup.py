@@ -80,6 +80,9 @@ class SignupView(nextcord.ui.View):
         super().__init__(timeout=None)  # for persistence
         self.helper = helper
 
+    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
+        logging.error(error)
+
     @nextcord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=nextcord.ButtonStyle.green)
     async def signup_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         # Find which game the sign-up page relates to

@@ -16,7 +16,7 @@ CompletedEmoji = '\U0001F955'
 DeniedEmoji = '\U000026D4'
 
 MaxGameNumber = 15
-PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
+PotentialGames = [game for n in range(1, MaxGameNumber) for game in [str(n), f"b{n}", f"x{n}", f"r{n}"]]
 
 
 def get_channel_type(channel_type: str):

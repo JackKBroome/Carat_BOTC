@@ -1007,6 +1007,9 @@ class CountVoteView(nextcord.ui.View):
         self.emoji = emoji
         self.timeout = 86400  # 24h
 
+    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
+        logging.error(error)
+
     # executed when a button is clicked, if it returns False no callback function is called
     async def interaction_check(self, interaction: nextcord.Interaction):
         if not interaction.user == self.author:

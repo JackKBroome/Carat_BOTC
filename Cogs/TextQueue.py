@@ -1,6 +1,8 @@
+import io
 import json
 import logging
 import os
+import traceback
 from dataclasses import dataclass, field
 from typing import Literal, Optional, List, Dict
 
@@ -372,7 +374,10 @@ class FreeChannelNotificationView(nextcord.ui.View):
         self.timeout = 172800  # two days
 
     async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-        logging.error(error)
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in FreeChannelNotificationView:\n{traceback_text}")
 
     @nextcord.ui.button(label="Claim grimoire", custom_id="claim_grimoire", style=nextcord.ButtonStyle.green)
     async def claim_grimoire_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):

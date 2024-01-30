@@ -1,8 +1,10 @@
 from __future__ import annotations
 import datetime
+import io
 import json
 import logging
 import os
+import traceback
 from dataclasses import dataclass, field
 from math import ceil
 from typing import List, Optional, Dict, Union, Callable, Literal
@@ -1008,7 +1010,10 @@ class CountVoteView(nextcord.ui.View):
         self.timeout = 86400  # 24h
 
     async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-        logging.error(error)
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in CountVoteView:\n{traceback_text}")
 
     # executed when a button is clicked, if it returns False no callback function is called
     async def interaction_check(self, interaction: nextcord.Interaction):

@@ -1,3 +1,7 @@
+import io
+import logging
+import traceback
+
 import nextcord
 from nextcord.ext import commands
 
@@ -81,7 +85,10 @@ class SignupView(nextcord.ui.View):
         self.helper = helper
 
     async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-        logging.error(error)
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in SignupView:\n{traceback_text}")
 
     @nextcord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=nextcord.ButtonStyle.green)
     async def signup_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):

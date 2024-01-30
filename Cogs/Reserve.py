@@ -1,4 +1,6 @@
 import datetime
+import io
+import traceback
 from datetime import date, timedelta, time
 import json
 import logging
@@ -105,202 +107,6 @@ def parse_date(inp: str) -> Optional[date]:
                 return None
 
 
-class Reserve(commands.Cog):
-    bot: commands.Bot
-    helper: utility.Helper
-    entries: Dict[int, RSVPEntry]
-    ReservedStorage: str
-
-    def __init__(self, bot: commands.Bot, helper: utility.Helper):
-        self.bot = bot
-        self.helper = helper
-        self.bot.add_view(SignupView(self, helper, RSVPEntry(0, 0, "", 0)))  # registering views for persistence
-        self.ReservedStorage = os.path.join(self.helper.StorageLocation, "reserved.json")
-        self.entries = {}
-        if not os.path.exists(self.ReservedStorage):
-            with open(self.ReservedStorage, 'w') as f:
-                json.dump(self.entries, f)
-        else:
-            with open(self.ReservedStorage, 'r') as f:
-                json_data = json.load(f)
-                for owner in json_data:
-                    self.entries[int(owner)] = RSVPEntry.from_dict(json_data[owner])
-        self.check_entries.start()
-
-    def cog_unload(self) -> None:
-        self.check_entries.cancel()
-
-    def update_storage(self):
-        json_data = {}
-        for owner in self.entries:
-            json_data[owner] = self.entries[owner].to_dict()
-        with open(self.ReservedStorage, "w") as f:
-            json.dump(json_data, f)
-
-    def remove_entry(self, owner: int):
-        self.entries.pop(owner)
-        self.update_storage()
-
-    @commands.command()
-    async def ReserveGame(self, ctx: commands.Context, min_players: int, start: Optional[str]):
-        """Reserves a game for you to ST starting on the given start date.
-        You also have to give the number of players you need for the game. Default and minimum for the date is 2 weeks
-        after using the command. Accepted date formats are YYYY-MM-DD, MM-DD or the number of days until the date.
-        To use the command, create a post in the text game forum for your game."""
-        # check author has no entry currently
-        if any(entry_owner == ctx.author.id for entry_owner in self.entries):
-            await utility.deny_command(ctx, "You already have reserved a game")
-            return
-        queue_cog: Optional[TextQueue] = self.bot.get_cog("TextQueue")
-        if queue_cog is not None and queue_cog.get_queue(ctx.author.id) is not None:
-            await utility.deny_command(ctx, "You are already in the queue")
-            return
-        if start is None:
-            start_date = date.today() + timedelta(days=14)
-        else:
-            start_date = parse_date(start)
-        if start_date is None:
-            await utility.deny_command(ctx, "Invalid start date. Use either a number (of days) or YYYY-MM-DD "
-                                            "or MM-DD format, or nothing to set to the earliest option")
-            return
-        # todo: reenable
-        # if start_date - date.today() < timedelta(days=14):
-        #    await utility.deny_command(ctx, "Start date must be at least two weeks away")
-        #    return
-        if isinstance(ctx.channel, nextcord.Thread) and ctx.channel.parent == self.helper.ReservingForum \
-                and ctx.author == ctx.channel.owner:
-            await utility.start_processing(ctx)
-            self.entries[ctx.author.id] = RSVPEntry(ctx.channel.id, ctx.author.id, start_date.isoformat(), min_players)
-            self.update_storage()
-            await utility.dm_user(ctx.author, f"Registered your entry for {start_date.isoformat()}")
-            await utility.finish_processing(ctx)
-        else:
-            await utility.deny_command(ctx, f"You must create a post in {self.helper.ReservingForum.mention} and use "
-                                            f"this command there to reserve a game")
-
-    @commands.command()
-    async def PreSignups(self, ctx: commands.Context, max_players: int, script: str):
-        """Posts a message listing the signed up players in the post, with buttons that players can
-        use to sign up or leave the game."""
-        if ctx.author.id not in self.entries:
-            await utility.deny_command(ctx, "You have not reserved a game")
-        else:
-            await utility.start_processing(ctx)
-            entry = self.entries[ctx.author.id]
-            entry.max_players = max_players
-            entry.script = script
-            self.update_storage()
-            embed = signup_embed(entry, self.helper)
-            thread = get(self.helper.ReservingForum.threads, id=entry.thread)
-            await thread.send(embed=embed, view=SignupView(self, self.helper, entry))
-            await utility.finish_processing(ctx)
-
-    @commands.command()
-    async def SwitchToQueue(self, ctx: commands.Context, channel_type: str, availability: Optional[str]):
-        """Cancels your reserved game and joins one of the queues.
-        You can specify your availability, by default it is the start date that was planned for the reserved game."""
-        if ctx.author.id not in self.entries:
-            await utility.deny_command(ctx, "You have not reserved a game")
-        else:
-            await utility.start_processing(ctx)
-            channel_type = utility.get_channel_type(channel_type)
-            if channel_type is None:
-                await utility.deny_command(ctx, ExplainInvalidChannelType)
-                return
-            entry = self.entries[ctx.author.id]
-            if availability is None:
-                availability = f"Starting {entry.date}"
-            queue_cog: Optional[TextQueue] = self.bot.get_cog("TextQueue")
-            if queue_cog is None:
-                await utility.deny_command(ctx, "Could not access queue")
-                return
-            await switch_to_queue(queue_cog, self.helper, entry, channel_type, availability)
-            self.remove_entry(ctx.author.id)
-            thread = get(self.helper.ReservingForum.threads, id=entry.thread)
-            await thread.send(f"The game has been moved to the {channel_type} queue")
-            await utility.finish_processing(ctx)
-
-    @commands.command()
-    async def CancelGame(self, ctx: commands.Context):
-        """Cancels your reserved game."""
-        if ctx.author.id not in self.entries:
-            await utility.deny_command(ctx, "You have not reserved a game")
-        elif ctx.channel.id != self.entries[ctx.author.id].thread:
-            await utility.deny_command(ctx,
-                                       "Please use the command in the game thread to ensure your players are aware")
-        else:
-            await utility.start_processing(ctx)
-            self.remove_entry(ctx.author.id)
-            await utility.finish_processing(ctx)
-
-    @commands.command()
-    async def ListNextGames(self, ctx: commands.Context, days: Optional[int] = 7):
-        """Lists the reserved games starting in the next week, or in the next specified number of days"""
-        await utility.start_processing(ctx)
-        cutoff = date.today() + datetime.timedelta(days=days)
-        upcoming = sorted([entry for entry in self.entries.values() if date.fromisoformat(entry.date) <= cutoff],
-                          key=lambda e: e.date)
-        embed = nextcord.Embed(title="Upcoming games",
-                               description=f"All reserved games starting in the next {days} days")
-        embed.set_thumbnail(self.helper.Guild.icon.url)
-        for entry in upcoming:
-            owner = get(self.helper.Guild.members, id=entry.owner)
-            if owner is None:
-                continue
-            co_sts = [get(self.helper.Guild.members, id=co_st) for co_st in entry.co_sts]
-            co_st_names = [co_st.display_name for co_st in co_sts if co_st is not None]
-            name = f"{owner.display_name} running {entry.script}" if entry.script != "TBA" else f"{owner.mention}"
-            description = f"{len(entry.players)}/{entry.min_players} players signed up"
-            if entry.max_players != 0:
-                description += f" (max {entry.max_players} players)"
-            description += f"\n{get(self.helper.ReservingForum.threads, id=entry.thread).mention}"
-            if len(co_st_names) > 0:
-                description = "with " + ", ".join(co_st_names) + "\n" + description
-            embed.add_field(name=name, value=description, inline=False)
-        await ctx.message.reply(embed=embed)
-        await utility.finish_processing(ctx)
-
-
-    @commands.command()
-    async def CreateRGame(self, ctx: commands.Context, st: nextcord.Member):
-        if self.helper.authorize_mod_command(ctx.author):
-            await utility.start_processing(ctx)
-            if st.id not in self.entries:
-                await create_channel(st.id, self.helper)
-            else:
-                entry = self.entries[st.id]
-                await create_channel(entry.owner, self.helper, entry.script, entry.co_sts, entry.players)
-            await utility.finish_processing(ctx)
-        else:
-            await utility.deny_command(ctx, "You do not have permission to use this command")
-
-    # todo: mod commands - CreateRGame, RemoveReservation, ChangeStartDate, ChangePlayerMinimum
-
-    # will run every day at 5 pm UTC
-    # (figure that's a good choice to maximize chances of the ST seeing it not much later)
-    #todo: restore daily setting
-    @tasks.loop(minutes=10)
-    async def check_entries(self):
-        to_announce = [entry for entry in self.entries.values() if date.fromisoformat(entry.date) <= date.today()]
-        if len(to_announce) > 0:
-            queue_cog: Optional[TextQueue] = self.bot.get_cog("TextQueue")
-        for entry in to_announce:
-            thread = get(self.helper.ReservingForum.threads, id=entry.thread)
-            owner = get(self.helper.Guild.members, id=entry.owner)
-            if owner is None:
-                await thread.send("Reserved date has arrived, but owner could not be found")
-                logging.warning(f"r-game thread owner {entry.owner} for thread {entry.thread} could not be found")
-                continue
-            if entry.min_players <= len(entry.players):
-                await thread.send(content=EnoughPlayersView.message_string(owner),
-                                  view=EnoughPlayersView(self, self.helper, entry, queue_cog))
-                self.remove_entry(entry.owner)
-            else:
-                await thread.send(content=NotEnoughPlayersView.message_string(owner),
-                                  view=NotEnoughPlayersView(self, self.helper, entry, queue_cog))
-                self.remove_entry(entry.owner)
-
-
 async def create_channel(owner: int, helper: utility.Helper,
                          script: str = "", co_sts: List[int] = None, players: List[int] = None):
     # find free game number
@@ -398,7 +204,285 @@ def signup_embed(entry: RSVPEntry, helper: utility.Helper) -> nextcord.Embed:
     return embed
 
 
-class SignupView(nextcord.ui.View):
+class Reserve(commands.Cog):
+    bot: commands.Bot
+    helper: utility.Helper
+    entries: Dict[int, RSVPEntry]
+    announced: Dict[int, RSVPEntry]
+    ReservedStorage: str
+
+    def __init__(self, bot: commands.Bot, helper: utility.Helper):
+        self.bot = bot
+        self.helper = helper
+        self.bot.add_view(PreSignupView(self, helper, RSVPEntry(0, 0, "", 0)))  # registering views for persistence
+        self.ReservedStorage = os.path.join(self.helper.StorageLocation, "reserved.json")
+        self.entries = {}
+        self.announced = {}
+        if not os.path.exists(self.ReservedStorage):
+            with open(self.ReservedStorage, 'w') as f:
+                json.dump({"entries": self.entries, "announced": self.announced}, f)
+        else:
+            with open(self.ReservedStorage, 'r') as f:
+                json_data = json.load(f)
+                for owner in json_data["entries"]:
+                    self.entries[int(owner)] = RSVPEntry.from_dict(json_data["entries"][owner])
+                for owner in json_data["announced"]:
+                    self.announced[int(owner)] = RSVPEntry.from_dict(json_data["announced"][owner])
+        self.check_entries.start()
+
+    def cog_unload(self) -> None:
+        self.check_entries.cancel()
+
+    def update_storage(self):
+        json_data = {"entries": {}, "announced": {}}
+        for owner in self.entries:
+            json_data["entries"][owner] = self.entries[owner].to_dict()
+        for owner in self.announced:
+            json_data["announced"][owner] = self.announced[owner].to_dict()
+        with open(self.ReservedStorage, "w") as f:
+            json.dump(json_data, f)
+
+    def remove_entry(self, owner: int):
+        self.entries.pop(owner)
+        self.update_storage()
+
+    def remove_announced(self, owner: int):
+        self.announced.pop(owner)
+        self.update_storage()
+
+    @commands.command()
+    async def ReserveGame(self, ctx: commands.Context, min_players: int, start: Optional[str]):
+        """Reserves a game for you to ST starting on the given start date.
+        You also have to give the number of players you need for the game. Default and minimum for the date is 2 weeks
+        after using the command. Accepted date formats are YYYY-MM-DD, MM-DD or the number of days until the date.
+        To use the command, create a post in the text game forum for your game."""
+        # check author has no entry currently
+        if any(entry_owner == ctx.author.id for entry_owner in self.entries):
+            await utility.deny_command(ctx, "You already have reserved a game")
+            return
+        queue_cog: Optional[TextQueue] = self.bot.get_cog("TextQueue")
+        if queue_cog is not None and queue_cog.get_queue(ctx.author.id) is not None:
+            await utility.deny_command(ctx, "You are already in the queue")
+            return
+        if start is None:
+            start_date = date.today() + timedelta(days=14)
+        else:
+            start_date = parse_date(start)
+        if start_date is None:
+            await utility.deny_command(ctx, "Invalid start date. Use either a number (of days) or YYYY-MM-DD "
+                                            "or MM-DD format, or nothing to set to the earliest option")
+            return
+        # todo: reenable
+        # if start_date - date.today() < timedelta(days=14):
+        #    await utility.deny_command(ctx, "Start date must be at least two weeks away")
+        #    return
+        if isinstance(ctx.channel, nextcord.Thread) and ctx.channel.parent == self.helper.ReservingForum \
+                and ctx.author == ctx.channel.owner:
+            await utility.start_processing(ctx)
+            self.entries[ctx.author.id] = RSVPEntry(ctx.channel.id, ctx.author.id, start_date.isoformat(), min_players)
+            self.update_storage()
+            await utility.dm_user(ctx.author, f"Registered your entry for {start_date.isoformat()}")
+            await utility.finish_processing(ctx)
+        else:
+            await utility.deny_command(ctx, f"You must create a post in {self.helper.ReservingForum.mention} and use "
+                                            f"this command there to reserve a game")
+
+    @commands.command()
+    async def PreSignups(self, ctx: commands.Context, max_players: int, script: str):
+        """Posts a message listing the signed up players in the post, with buttons that players can
+        use to sign up or leave the game."""
+        if ctx.author.id not in self.entries:
+            await utility.deny_command(ctx, "You have not reserved a game")
+        else:
+            await utility.start_processing(ctx)
+            entry = self.entries[ctx.author.id]
+            entry.max_players = max_players
+            entry.script = script
+            self.update_storage()
+            embed = signup_embed(entry, self.helper)
+            thread = get(self.helper.ReservingForum.threads, id=entry.thread)
+            await thread.send(embed=embed, view=PreSignupView(self, self.helper, entry))
+            await utility.finish_processing(ctx)
+
+    @commands.command()
+    async def SwitchToQueue(self, ctx: commands.Context, channel_type: str, availability: Optional[str]):
+        """Cancels your reserved game and joins one of the queues.
+        You can specify your availability, by default it is the start date that was planned for the reserved game."""
+        if ctx.author.id not in self.entries:
+            await utility.deny_command(ctx, "You have not reserved a game")
+        else:
+            await utility.start_processing(ctx)
+            channel_type = utility.get_channel_type(channel_type)
+            if channel_type is None:
+                await utility.deny_command(ctx, ExplainInvalidChannelType)
+                return
+            entry = self.entries[ctx.author.id]
+            if availability is None:
+                availability = f"Starting {entry.date}"
+            queue_cog: Optional[TextQueue] = self.bot.get_cog("TextQueue")
+            if queue_cog is None:
+                await utility.deny_command(ctx, "Could not access queue")
+                return
+            await switch_to_queue(queue_cog, self.helper, entry, channel_type, availability)
+            self.remove_entry(ctx.author.id)
+            thread = get(self.helper.ReservingForum.threads, id=entry.thread)
+            await thread.send(f"The game has been moved to the {channel_type} queue")
+            await utility.finish_processing(ctx)
+
+    @commands.command()
+    async def CancelGame(self, ctx: commands.Context):
+        """Cancels your reserved game."""
+        if ctx.author.id not in self.entries:
+            await utility.deny_command(ctx, "You have not reserved a game")
+        elif ctx.channel.id != self.entries[ctx.author.id].thread:
+            await utility.deny_command(ctx,
+                                       "Please use the command in the game thread to ensure your players are aware")
+        else:
+            await utility.start_processing(ctx)
+            self.remove_entry(ctx.author.id)
+            await utility.finish_processing(ctx)
+
+    @commands.command()
+    async def ListNextGames(self, ctx: commands.Context, days: Optional[int] = 7):
+        """Lists the reserved games starting in the next week, or in the next specified number of days"""
+        await utility.start_processing(ctx)
+        cutoff = date.today() + datetime.timedelta(days=days)
+        upcoming = sorted([entry for entry in self.entries.values() if date.fromisoformat(entry.date) <= cutoff],
+                          key=lambda e: e.date)
+        embed = nextcord.Embed(title="Upcoming games",
+                               description=f"All reserved games starting in the next {days} days")
+        embed.set_thumbnail(self.helper.Guild.icon.url)
+        for entry in upcoming:
+            owner = get(self.helper.Guild.members, id=entry.owner)
+            if owner is None:
+                continue
+            co_sts = [get(self.helper.Guild.members, id=co_st) for co_st in entry.co_sts]
+            co_st_names = [co_st.display_name for co_st in co_sts if co_st is not None]
+            name = f"{owner.display_name} running {entry.script}" if entry.script != "TBA" else f"{owner.mention}"
+            description = f"{len(entry.players)}/{entry.min_players} players signed up"
+            if entry.max_players != 0:
+                description += f" (max {entry.max_players} players)"
+            description += f"\n{get(self.helper.ReservingForum.threads, id=entry.thread).mention}"
+            if len(co_st_names) > 0:
+                description = "with " + ", ".join(co_st_names) + "\n" + description
+            embed.add_field(name=name, value=description, inline=False)
+        await ctx.message.reply(embed=embed)
+        await utility.finish_processing(ctx)
+
+    @commands.command()
+    async def CreateRGame(self, ctx: commands.Context, st: nextcord.Member):
+        if self.helper.authorize_mod_command(ctx.author):
+            await utility.start_processing(ctx)
+            if st.id in self.entries:
+                entry = self.entries[st.id]
+                await create_channel(entry.owner, self.helper, entry.script, entry.co_sts, entry.players)
+                self.remove_entry(st.id)
+            elif st.id in self.announced:
+                entry = self.announced[st.id]
+                await create_channel(entry.owner, self.helper, entry.script, entry.co_sts, entry.players)
+                self.remove_announced(st.id)
+            else:
+                await create_channel(st.id, self.helper)
+            await utility.finish_processing(ctx)
+        else:
+            await utility.deny_command(ctx, "You do not have permission to use this command")
+
+    @commands.command()
+    async def RemoveReservation(self, ctx: commands.Context, st: nextcord.Member):
+        if self.helper.authorize_mod_command(ctx.author):
+            await utility.start_processing(ctx)
+            if st.id in self.entries:
+                self.remove_entry(st.id)
+            elif st.id in self.announced:
+                self.remove_announced(st.id)
+            else:
+                await utility.dm_user(ctx.author, f"No reservation for {st.display_name} found")
+            await utility.finish_processing(ctx)
+        else:
+            await utility.deny_command(ctx, "You do not have permission to use this command")
+
+    @commands.command()
+    async def ChangeStartDate(self, ctx: commands.Context, st: nextcord.Member, new_date: str):
+        if self.helper.authorize_mod_command(ctx.author):
+            await utility.start_processing(ctx)
+            start_day = parse_date(new_date)
+            if start_day is None:
+                await utility.deny_command(ctx, "Invalid start date. Use either a number (of days) or YYYY-MM-DD "
+                                                "or MM-DD format")
+                return
+            if st.id in self.entries:
+                entry = self.entries[st.id]
+                entry.date = start_day.isoformat()
+                self.update_storage()
+            elif st.id in self.announced:
+                if start_day > date.today():
+                    entry = self.announced[st.id]
+                    entry.date = start_day.isoformat()
+                    self.entries[st.id] = entry
+                    self.remove_announced(st.id)
+                    # storage is updated as part of remove_announced
+                else:
+                    await utility.dm_user(ctx.author, f"The reserved game of {st.display_name} has already reached its "
+                                                      f"start date")
+            else:
+                await utility.dm_user(ctx.author, f"{st.display_name} has no reserved game")
+            await utility.finish_processing(ctx)
+        else:
+            await utility.deny_command(ctx, "You do not have permission to use this command")
+
+    @commands.command()
+    async def ChangePlayerMinimum(self, ctx: commands.Context, st: nextcord.Member, new_min: int):
+        if self.helper.authorize_mod_command(ctx.author):
+            await utility.start_processing(ctx)
+            if st.id in self.entries:
+                entry = self.entries[st.id]
+                entry.min_players = new_min
+                self.update_storage()
+            elif st.id in self.announced:
+                entry = self.announced[st.id]
+                if new_min > len(entry.players) >= entry.min_players or new_min <= len(entry.players) < entry.min_players:
+                    entry.min_players = new_min
+                    self.entries[st.id] = entry
+                    self.remove_announced(st.id)
+                    # storage is updated as part of remove_announced
+                else:
+                    await utility.dm_user(ctx.author, f"The reserved game of {st.display_name} has already reached its "
+                                                      f"start date and the new minimum would not affect it at this "
+                                                      f"point.")
+            else:
+                await utility.dm_user(ctx.author, f"{st.display_name} has no reserved game")
+            await utility.finish_processing(ctx)
+        else:
+            await utility.deny_command(ctx, "You do not have permission to use this command")
+
+    # will run every day at 5 pm UTC
+    # (figure that's a good choice to maximize chances of the ST seeing it not much later)
+    # todo: restore daily setting
+    @tasks.loop(minutes=10)
+    async def check_entries(self):
+        to_announce = [entry for entry in self.entries.values() if date.fromisoformat(entry.date) <= date.today()]
+        if len(to_announce) > 0:
+            queue_cog: Optional[TextQueue] = self.bot.get_cog("TextQueue")
+        for entry in to_announce:
+            thread = get(self.helper.ReservingForum.threads, id=entry.thread)
+            owner = get(self.helper.Guild.members, id=entry.owner)
+            if owner is None:
+                await thread.send("Reserved date has arrived, but owner could not be found")
+                logging.warning(f"r-game thread owner {entry.owner} for thread {entry.thread} could not be found")
+                continue
+            if entry.min_players <= len(entry.players):
+                await thread.send(content=EnoughPlayersView.message_string(owner),
+                                  view=EnoughPlayersView(self, self.helper, entry, queue_cog))
+                self.remove_entry(entry.owner)
+                self.announced[entry.owner] = entry
+            else:
+                await thread.send(content=NotEnoughPlayersView.message_string(owner),
+                                  view=NotEnoughPlayersView(self, self.helper, entry, queue_cog))
+                self.remove_entry(entry.owner)
+                self.announced[entry.owner] = entry
+
+
+class PreSignupView(nextcord.ui.View):
     def __init__(self, cog: Reserve, helper: utility.Helper, entry: RSVPEntry):
         super().__init__(timeout=None)
         self.cog = cog
@@ -406,7 +490,10 @@ class SignupView(nextcord.ui.View):
         self.entry = entry
 
     async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-        logging.error(error)
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in PreSignupView:\n{traceback_text}")
 
     @nextcord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=nextcord.ButtonStyle.green)
     async def signup_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
@@ -465,15 +552,19 @@ class EnoughPlayersView(nextcord.ui.View):
         self.timeout = 172800  # two days
 
     async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-        logging.error(error)
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in EnoughPlayersView:\n{traceback_text}")
 
     @nextcord.ui.button(label="Create channel", custom_id="create_channel", style=nextcord.ButtonStyle.green, row=1)
     async def create_channel_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(ephemeral=True, content="Creating channel")
-        await create_channel(self.entry, self.helper)
+        await create_channel(self.entry.owner, self.helper, self.entry.script, self.entry.co_sts, self.entry.players)
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     @nextcord.ui.button(label="Switch to queue", custom_id="switch_to_queue", style=nextcord.ButtonStyle.blurple, row=1)
     async def switch_to_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
@@ -482,7 +573,7 @@ class EnoughPlayersView(nextcord.ui.View):
             logging.error(f"Queue not available for switching in RSVP thread {self.entry.thread}")
             return
         queue_buttons = [b for b in self.children
-                         if isinstance(b, nextcord.Button) and b.custom_id.startswith("select")]
+                         if isinstance(b, nextcord.ui.Button) and b.custom_id.startswith("select")]
         for b in queue_buttons:
             b.disabled = False
         await interaction.message.edit(view=self)
@@ -492,7 +583,7 @@ class EnoughPlayersView(nextcord.ui.View):
     @nextcord.ui.button(label="Cancel the game", custom_id="cancel_game", style=nextcord.ButtonStyle.red, row=1)
     async def cancel_game_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         confirm_button = [b for b in self.children
-                          if isinstance(b, nextcord.Button) and b.custom_id == "confirm_cancellation"][0]
+                          if isinstance(b, nextcord.ui.Button) and b.custom_id == "confirm_cancellation"][0]
         confirm_button.disabled = False
         await interaction.message.edit(view=self)
         await interaction.send(ephemeral=True, content="You have selected: Cancel the game. Press Confirm to confirm")
@@ -505,6 +596,7 @@ class EnoughPlayersView(nextcord.ui.View):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     @nextcord.ui.button(label="Regular Queue", custom_id="select_regular_queue", style=nextcord.ButtonStyle.blurple,
                         disabled=True, row=2)
@@ -514,6 +606,7 @@ class EnoughPlayersView(nextcord.ui.View):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     @nextcord.ui.button(label="Experimental Queue", custom_id="select_experimental_queue",
                         style=nextcord.ButtonStyle.blurple, disabled=True, row=2)
@@ -523,6 +616,7 @@ class EnoughPlayersView(nextcord.ui.View):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     @nextcord.ui.button(label="Confirm cancellation", custom_id="confirm_cancellation", style=nextcord.ButtonStyle.red,
                         disabled=True, row=3)
@@ -531,6 +625,7 @@ class EnoughPlayersView(nextcord.ui.View):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     async def interaction_check(self, interaction: nextcord.Interaction) -> bool:
         if interaction.user.id == self.entry.owner:
@@ -564,7 +659,11 @@ class NotEnoughPlayersView(nextcord.ui.View):
         self.timeout = 172800  # two days
 
     async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-        logging.error(error)
+
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in NotEnoughPlayersView:\n{traceback_text}")
 
     @nextcord.ui.button(label="Switch to base queue", custom_id="select_base_queue", style=nextcord.ButtonStyle.blurple,
                         row=1)
@@ -574,6 +673,7 @@ class NotEnoughPlayersView(nextcord.ui.View):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     @nextcord.ui.button(label="Switch to regular queue", custom_id="select_regular_queue",
                         style=nextcord.ButtonStyle.blurple, row=1)
@@ -583,6 +683,7 @@ class NotEnoughPlayersView(nextcord.ui.View):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     @nextcord.ui.button(label="Switch to experimental queue", custom_id="select_experimental_queue",
                         style=nextcord.ButtonStyle.blurple, row=1)
@@ -592,13 +693,15 @@ class NotEnoughPlayersView(nextcord.ui.View):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     @nextcord.ui.button(label="Cancel game", custom_id="cancel", style=nextcord.ButtonStyle.red, row=2)
-    async def confirm_cancel_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+    async def cancel_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Game cancelled")
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
     async def interaction_check(self, interaction: nextcord.Interaction) -> bool:
         if interaction.user.id == self.entry.owner:

@@ -393,7 +393,8 @@ class FreeChannelNotificationView(nextcord.ui.View):
             await self.queue_cog.user_leave_queue(interaction.user)
             await interaction.send(content="You have claimed the grimoire. Enjoy your game!", ephemeral=True)
             await self.helper.log(
-                f"{interaction.user.mention} has claimed grimoire {self.game_number} through the queue announcement button")
+                f"{interaction.user.mention} has claimed grimoire {self.game_number} "
+                f"through the queue announcement button")
             self.clear_items()
             self.stop()
             await interaction.message.edit(view=self)

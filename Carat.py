@@ -68,8 +68,8 @@ def load_extensions(paths: List[str]):
     for extension in paths:
         try:
             bot.load_extension(extension)
-        except commands.ExtensionFailed as e:
-            logging.exception(f"Failed to load {extension}: {e}")
+        except commands.ExtensionFailed as exception:
+            logging.exception(f"Failed to load {extension}: {exception}")
 
 
 @bot.event

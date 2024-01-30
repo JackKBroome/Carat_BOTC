@@ -1,11 +1,11 @@
 import datetime
 import io
-import traceback
-from datetime import date, timedelta, time
 import json
 import logging
 import os
+import traceback
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Optional, Dict, List
 
 import nextcord
@@ -551,20 +551,11 @@ class EnoughPlayersView(nextcord.ui.View):
         self.queue_cog = queue_cog
         self.timeout = 172800  # two days
 
-    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-        traceback_buffer = io.StringIO()
-        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
-        traceback_text = traceback_buffer.getvalue()
-        logging.exception(f"Ignoring exception in EnoughPlayersView:\n{traceback_text}")
-
     @nextcord.ui.button(label="Create channel", custom_id="create_channel", style=nextcord.ButtonStyle.green, row=1)
     async def create_channel_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(ephemeral=True, content="Creating channel")
         await create_channel(self.entry.owner, self.helper, self.entry.script, self.entry.co_sts, self.entry.players)
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     @nextcord.ui.button(label="Switch to queue", custom_id="switch_to_queue", style=nextcord.ButtonStyle.blurple, row=1)
     async def switch_to_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
@@ -593,35 +584,29 @@ class EnoughPlayersView(nextcord.ui.View):
     async def select_base_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Joining base queue")
         await switch_to_queue(self.queue_cog, self.helper, self.entry, "Base")
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     @nextcord.ui.button(label="Regular Queue", custom_id="select_regular_queue", style=nextcord.ButtonStyle.blurple,
                         disabled=True, row=2)
     async def select_regular_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Joining regular queue")
         await switch_to_queue(self.queue_cog, self.helper, self.entry, "Regular")
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     @nextcord.ui.button(label="Experimental Queue", custom_id="select_experimental_queue",
                         style=nextcord.ButtonStyle.blurple, disabled=True, row=2)
     async def select_experimental_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Joining experimental queue")
         await switch_to_queue(self.queue_cog, self.helper, self.entry, "Experimental")
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     @nextcord.ui.button(label="Confirm cancellation", custom_id="confirm_cancellation", style=nextcord.ButtonStyle.red,
                         disabled=True, row=3)
     async def confirm_cancel_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Game cancelled")
+        await self.finish(interaction)
+
+    async def finish(self, interaction):
         self.clear_items()
         self.stop()
         await interaction.message.edit(view=self)
@@ -638,9 +623,14 @@ class EnoughPlayersView(nextcord.ui.View):
         thread = get(self.helper.ReservingForum.threads, id=self.entry.thread)
         await thread.send("Timed out")
 
+    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in EnoughPlayersView:\n{traceback_text}")
+
 
 class NotEnoughPlayersView(nextcord.ui.View):
-
     @staticmethod
     def message_string(owner: nextcord.Member) -> str:
         timeout = utcnow() + datetime.timedelta(seconds=172800)
@@ -658,50 +648,31 @@ class NotEnoughPlayersView(nextcord.ui.View):
         self.queue_cog = queue_cog
         self.timeout = 172800  # two days
 
-    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
-
-        traceback_buffer = io.StringIO()
-        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
-        traceback_text = traceback_buffer.getvalue()
-        logging.exception(f"Ignoring exception in NotEnoughPlayersView:\n{traceback_text}")
-
     @nextcord.ui.button(label="Switch to base queue", custom_id="select_base_queue", style=nextcord.ButtonStyle.blurple,
                         row=1)
     async def select_base_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Joining base queue")
         await switch_to_queue(self.queue_cog, self.helper, self.entry, "Base")
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     @nextcord.ui.button(label="Switch to regular queue", custom_id="select_regular_queue",
                         style=nextcord.ButtonStyle.blurple, row=1)
     async def select_regular_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Joining regular queue")
         await switch_to_queue(self.queue_cog, self.helper, self.entry, "Regular")
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     @nextcord.ui.button(label="Switch to experimental queue", custom_id="select_experimental_queue",
                         style=nextcord.ButtonStyle.blurple, row=1)
     async def select_experimental_queue_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Joining experimental queue")
         await switch_to_queue(self.queue_cog, self.helper, self.entry, "Experimental")
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     @nextcord.ui.button(label="Cancel game", custom_id="cancel", style=nextcord.ButtonStyle.red, row=2)
     async def cancel_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         await interaction.send(content="Game cancelled")
-        self.clear_items()
-        self.stop()
-        await interaction.message.edit(view=self)
-        self.cog.remove_announced(self.entry.owner)
+        await self.finish(interaction)
 
     async def interaction_check(self, interaction: nextcord.Interaction) -> bool:
         if interaction.user.id == self.entry.owner:
@@ -713,6 +684,19 @@ class NotEnoughPlayersView(nextcord.ui.View):
     async def on_timeout(self) -> None:
         thread = get(self.helper.ReservingForum.threads, id=self.entry.thread)
         await thread.send("Timed out")
+
+    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
+
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in NotEnoughPlayersView:\n{traceback_text}")
+
+    async def finish(self, interaction):
+        self.clear_items()
+        self.stop()
+        await interaction.message.edit(view=self)
+        self.cog.remove_announced(self.entry.owner)
 
 
 def setup(bot: commands.Bot):

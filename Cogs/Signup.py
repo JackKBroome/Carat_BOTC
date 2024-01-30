@@ -123,7 +123,8 @@ class SignupView(nextcord.ui.View):
             await self.update_signup_sheet(interaction.message)
             for st in st_role.members:
                 await utility.dm_user(st,
-                                      f"{interaction.user.display_name} ({interaction.user.name}) has signed up for Game {game_number}")
+                                      f"{interaction.user.display_name} ({interaction.user.name}) "
+                                      f"has signed up for Game {game_number}")
             await self.helper.log(
                 f"{interaction.user.display_name} ({interaction.user.name}) has signed up for Game {game_number}")
 
@@ -135,7 +136,6 @@ class SignupView(nextcord.ui.View):
         signup_message = interaction.message
         number_of_fields = signup_message.embeds[0].to_dict()
         game_number = str(number_of_fields["footer"]["text"])
-
         game_role = self.helper.get_game_role(game_number)
         st_role = self.helper.get_st_role(game_number)
 
@@ -149,9 +149,11 @@ class SignupView(nextcord.ui.View):
             await self.update_signup_sheet(interaction.message)
             for st in st_role.members:
                 await utility.dm_user(st,
-                                      f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
+                                      f"{interaction.user.display_name} ({interaction.user.name}) "
+                                      f"has removed themself from Game {game_number}")
             await self.helper.log(
-                f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
+                f"{interaction.user.display_name} ({interaction.user.name}) "
+                f"has removed themself from Game {game_number}")
 
     @nextcord.ui.button(label="Refresh List", custom_id="Refresh_Command", style=nextcord.ButtonStyle.gray,
                         emoji=refresh_emoji)

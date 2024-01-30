@@ -639,8 +639,8 @@ class Townsquare(commands.Cog):
     async def Vote(self, ctx: commands.Context, *args):
         """Set your vote for the given nominee or nominees.
         You don't need to ping, name(s) should work.
-        Your vote can be anything, but should be something the ST can unambiguously interpret as yes or no when they count it.
-        You can change your vote until it is counted by the storyteller."""
+        Your vote can be anything, but should be something the ST can unambiguously interpret as yes or no when they
+        count it. You can change your vote until it is counted by the storyteller."""
         if len(args) < 3:
             await utility.deny_command(ctx, "You must provide the game number, at least one nominee, and your vote")
             return
@@ -916,8 +916,9 @@ class Townsquare(commands.Cog):
                 if not nom.finished:
                     await self.update_nom_message(game_number, nom)
             await utility.finish_processing(ctx)
-            await utility.dm_user(ctx.author, f"Organ Grinder is now "
-                                              f"{'enabled' if self.town_squares[game_number].organ_grinder else 'disabled'}")
+            await utility.dm_user(ctx.author,
+                                  f"Organ Grinder is now "
+                                  f"{'enabled' if self.town_squares[game_number].organ_grinder else 'disabled'}")
         else:
             await utility.deny_command(ctx, "You must be the Storyteller to toggle the Organ Grinder")
 
@@ -1025,11 +1026,14 @@ class CountVoteView(nextcord.ui.View):
     async def check_initial(self):
         if self.player_index == -1:
             self.player_index = 0
-            bureaucrat = next((item for item in self.children if item.custom_id == "bureaucrat"))
+            bureaucrat = next((item for item in self.children if
+                               isinstance(item, nextcord.ui.Button) and item.custom_id == "bureaucrat"))
             bureaucrat.emoji = self.emoji["bureaucrat"]
-            thief = next((item for item in self.children if item.custom_id == "thief"))
+            thief = next(
+                (item for item in self.children if isinstance(item, nextcord.ui.Button) and item.custom_id == "thief"))
             thief.emoji = self.emoji["thief"]
-            mark_dead = next((item for item in self.children if item.custom_id == "die"))
+            mark_dead = next(
+                (item for item in self.children if isinstance(item, nextcord.ui.Button) and item.custom_id == "die"))
             mark_dead.emoji = self.emoji["shroud"]
             await self.update_message()
             return True
@@ -1045,9 +1049,10 @@ class CountVoteView(nextcord.ui.View):
                 line = f"{line}: {voted_yes_emoji}"
             elif self.nom.votes[player.id].vote == confirmed_no_vote:
                 line = f"{line}: {voted_no_emoji}"
+            elif player.id in self.nom.private_votes:
+                line = f"{line}: {self.nom.private_votes[player.id]}"
             else:
-                line = f"{line}: " \
-                       f"{self.nom.private_votes[player.id] if player.id in self.nom.private_votes else self.nom.votes[player.id].vote}"
+                line = f"{line}: {self.nom.votes[player.id].vote}"
             if player.dead:
                 line = f"{self.emoji['shroud']}{line}"
             if index == self.player_index:

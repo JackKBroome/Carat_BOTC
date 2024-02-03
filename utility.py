@@ -168,5 +168,3 @@ class Helper:
 
     async def log(self, log_string: str):
         await self.LogChannel.send(log_string)
-
-# todo: make commands that are reasonable for DMs work in DMs and deny explicitly otherwise

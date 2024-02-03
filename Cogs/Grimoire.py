@@ -33,7 +33,7 @@ class Grimoire(commands.Cog):
             await ctx.author.add_roles(st_role)
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
-            if queue:
+            if queue is not None:
                 if game_number[0] == "b":
                     channel_type = "Base"
                 elif game_number[0] == "x":

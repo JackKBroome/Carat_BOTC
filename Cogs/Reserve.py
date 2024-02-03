@@ -5,7 +5,7 @@ import logging
 import os
 import traceback
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 from typing import Optional, Dict, List
 
 import nextcord
@@ -151,7 +151,6 @@ async def create_channel(owner: int, helper: utility.Helper,
             logging.error("Kibitz category not found")
     else:
         await kibitz_channel.edit(reason=reason, overwrites=kibitz_overwrites)
-    # todo: channel positions??
     # assign roles
     st = get(helper.Guild.members, id=owner)
     await st.add_roles(st_role)
@@ -272,10 +271,9 @@ class Reserve(commands.Cog):
             await utility.deny_command(ctx, "Invalid start date. Use either a number (of days) or YYYY-MM-DD "
                                             "or MM-DD format, or nothing to set to the earliest option")
             return
-        # todo: reenable
-        # if start_date - date.today() < timedelta(days=14):
-        #    await utility.deny_command(ctx, "Start date must be at least two weeks away")
-        #    return
+        if start_date - date.today() < timedelta(days=14):
+           await utility.deny_command(ctx, "Start date must be at least two weeks away")
+           return
         if isinstance(ctx.channel, nextcord.Thread) and ctx.channel.parent == self.helper.ReservingForum \
                 and ctx.author == ctx.channel.owner:
             await utility.start_processing(ctx)
@@ -371,6 +369,8 @@ class Reserve(commands.Cog):
 
     @commands.command()
     async def CreateRGame(self, ctx: commands.Context, st: nextcord.Member):
+        """Creates an r-game channel with the given user as ST.
+        If they have a game reserved, Carat uses the information from the entry, but it works even if they have not."""
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             if st.id in self.entries:
@@ -389,6 +389,7 @@ class Reserve(commands.Cog):
 
     @commands.command()
     async def RemoveReservation(self, ctx: commands.Context, st: nextcord.Member):
+        """Removes the reservation of the given member."""
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             if st.id in self.entries:
@@ -403,6 +404,10 @@ class Reserve(commands.Cog):
 
     @commands.command()
     async def ChangeStartDate(self, ctx: commands.Context, st: nextcord.Member, new_date: str):
+        """Updates the start date of the reservation of the given member.
+        If the new start date is not in the future, the member will be notified with the next pings.
+        If the old date was reached but the new date isn't, they will no longer be able to create a channel until the
+        date is reached."""
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             start_day = parse_date(new_date)
@@ -432,6 +437,9 @@ class Reserve(commands.Cog):
 
     @commands.command()
     async def ChangePlayerMinimum(self, ctx: commands.Context, st: nextcord.Member, new_min: int):
+        """Changes the required number of players for the reservation of the given member.
+        If they already reached the start date and the change affects whether they can start the game,
+        they will receive a new announcement with the next pings."""
         if self.helper.authorize_mod_command(ctx.author):
             await utility.start_processing(ctx)
             if st.id in self.entries:
@@ -457,8 +465,7 @@ class Reserve(commands.Cog):
 
     # will run every day at 5 pm UTC
     # (figure that's a good choice to maximize chances of the ST seeing it not much later)
-    # todo: restore daily setting
-    @tasks.loop(minutes=10)
+    @tasks.loop(time=time(hour=17, minute=0))
     async def check_entries(self):
         to_announce = [entry for entry in self.entries.values() if date.fromisoformat(entry.date) <= date.today()]
         if len(to_announce) > 0:
@@ -553,6 +560,12 @@ class EnoughPlayersView(nextcord.ui.View):
 
     @nextcord.ui.button(label="Create channel", custom_id="create_channel", style=nextcord.ButtonStyle.green, row=1)
     async def create_channel_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        if self.entry.owner not in self.cog.announced:
+            await interaction.send(
+                ephemeral=True,
+                content="Your reservation has been removed or altered. You may no longer create a channel."
+            )
+            return
         await interaction.send(ephemeral=True, content="Creating channel")
         await create_channel(self.entry.owner, self.helper, self.entry.script, self.entry.co_sts, self.entry.players)
         await self.finish(interaction)

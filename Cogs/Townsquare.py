@@ -444,8 +444,11 @@ class Townsquare(commands.Cog):
         The name of the thread is optional, with `Nominations` as default."""
         if self.helper.authorize_st_command(ctx.author, game_number):
             await utility.start_processing(ctx)
+            if name is not None and len(name) > 100:
+                await utility.dm_user(ctx.author, "Thread name is too long, will be shortened")
             game_channel = self.helper.get_game_channel(game_number)
-            thread = await game_channel.create_thread(name=name if name else "Nominations", auto_archive_duration=4320,
+            thread = await game_channel.create_thread(name=name[:100] if name is not None else "Nominations",
+                                                      auto_archive_duration=4320,
                                                       type=nextcord.ChannelType.public_thread)
             for st in self.helper.get_st_role(game_number).members:
                 await thread.add_user(st)

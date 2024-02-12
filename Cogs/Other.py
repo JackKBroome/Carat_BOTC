@@ -21,8 +21,10 @@ class Other(commands.Cog):
         auth_perms = channel.permissions_for(ctx.author)
         if auth_perms.create_private_threads and auth_perms.send_messages_in_threads:
             await utility.start_processing(ctx)
+            if len(title) > 100:
+                await utility.dm_user(ctx.author, "Thread title too long, will be shortened")
             thread = await channel.create_thread(
-                name=title,
+                name=title[:100],
                 auto_archive_duration=4320,  # 3 days
                 type=nextcord.ChannelType.private_thread,
                 reason=f"Starting whisper for {ctx.author.display_name}"
@@ -56,7 +58,7 @@ class Other(commands.Cog):
                 if townsquare is not None:
                     name = next((p.alias for p in townsquare.players if p.id == player.id), name)
                 thread = await self.helper.get_game_channel(game_number).create_thread(
-                    name=f"ST Thread {name}",
+                    name=f"ST Thread {name}"[:100],
                     auto_archive_duration=4320,  # 3 days
                     type=nextcord.ChannelType.private_thread,
                     invitable=False,

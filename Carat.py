@@ -82,7 +82,7 @@ async def on_command_error(ctx: commands.Context, error: CommandError):
     elif isinstance(error, commands.UserInputError):
         await utility.dm_user(ctx.author, f"There was an issue with your input. Usage: "
                                           f"`>{ctx.command.name} {ctx.command.signature}`.")
-        logging.warning(f"Command {ctx.command.name} was used with incorrect input: {ctx.message.content}")
+        logging.info(f"Command {ctx.command.name} was used with incorrect input: {ctx.message.content}")
     elif isinstance(error, commands.errors.CheckFailure):
         logging.warning(
             f"{ctx.command.name} command was ignored due to the command's check failing")

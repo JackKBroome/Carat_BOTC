@@ -21,8 +21,10 @@ class Other(commands.Cog):
         auth_perms = channel.permissions_for(ctx.author)
         if auth_perms.create_private_threads and auth_perms.send_messages_in_threads:
             await utility.start_processing(ctx)
+            if len(title) > 100:
+                await utility.dm_user(ctx.author, "Thread title too long, will be shortened")
             thread = await channel.create_thread(
-                name=title,
+                name=title[:100],
                 auto_archive_duration=4320,  # 3 days
                 type=nextcord.ChannelType.private_thread,
                 reason=f"Starting whisper for {ctx.author.display_name}"
@@ -56,9 +58,10 @@ class Other(commands.Cog):
                 if townsquare is not None:
                     name = next((p.alias for p in townsquare.players if p.id == player.id), name)
                 thread = await self.helper.get_game_channel(game_number).create_thread(
-                    name=f"ST Thread {name}",
+                    name=f"ST Thread {name}"[:100],
                     auto_archive_duration=4320,  # 3 days
                     type=nextcord.ChannelType.private_thread,
+                    invitable=False,
                     reason=f"Preparing text game {game_number}"
                 )
                 thread.invitable = False
@@ -123,6 +126,33 @@ class Other(commands.Cog):
                                      "you make a mistake.\n"
                                      "Usage example: `>MoveDown 2`",
                                inline=False)
+        anyone_embed.add_field(name="ReserveGame [min_players] [start (optional)]",
+                               value="Reserves a game for you to ST starting on the given start date. You also have to "
+                                     "give the number of players you need for the game. Default and minimum for the "
+                                     "date is 2 weeks after using the command. Accepted date formats are YYYY-MM-DD, "
+                                     "MM-DD or the number of days until the date. To use the command, create a post "
+                                     "in the text game forum for your game.\n"
+                                     "Usage examples: `>ReserveGame 7 2024-12-24`, `>ReserveGame 5 03-21`, "
+                                     "`>ReserveGame 12`",
+                               inline=False)
+        anyone_embed.add_field(name=">PreSignups [max_players] [script]",
+                               value="Posts a message listing the signed up players for a reserved game, with buttons "
+                                     "that players can use to sign up or leave the game.\n"
+                                     "Usage examples: `>PreSignups 12 \"Trouble Brewing\"`, `>PreSignups 7 AllAmnes`",
+                               inline=False)
+        anyone_embed.add_field(name=">SwitchToQueue [channel_type] [availability (optional)]",
+                               value=">Cancels your reserved game and joins one of the queues. You can specify your "
+                                     "availability, by default it is the start date that was planned for the reserved "
+                                     "game.\n"
+                                     "Usage examples: `>SwitchToQueue base asap`, `>SwitchToQueue exp \"After Easter\"`",
+                               inline=False)
+        anyone_embed.add_field(name=">CancelGame",
+                               value="Cancels your reserved game.",
+                               inline=False)
+        anyone_embed.add_field(name=">ListNextGames [days (optional)]",
+                               value="Lists the reserved games starting in the next week, or in the next specified "
+                                     "number of days\n"
+                                     "Usage examples: `>ListNextGames`, `>ListNextgames 5`")
         anyone_embed.add_field(name=">IncludeInArchive",
                                value="Marks a thread as to be included in the archive. Use in the thread you want to "
                                      "include. By default, private threads are not archived, and public threads are. "
@@ -398,6 +428,26 @@ class Other(commands.Cog):
                             value="Copies the channel the message was sent in to the provided server and channel, "
                                   "message by message. Attachments may not be preserved if they are too large. "
                                   "Also creates a discussion thread at the end.",
+                            inline=False)
+        mod_embed.add_field(name=">CreateRGame [st]",
+                            value="Creates an r-game channel with the given user as ST. If they have a game reserved, "
+                                  "Carat uses the information from the entry, but it works even if they have not.",
+                            inline=False)
+        mod_embed.add_field(name=">RemoveReservation [st]",
+                            value="Removes the reservation of the given member.",
+                            inline=False)
+        mod_embed.add_field(name=">ChangeStartDate [st] [date]",
+                            value="Updates the start date of the reservation of the given member. If the new start "
+                                  "date is not in the future, the member will be notified with the next pings. If the "
+                                  "old date was reached but the new date isn't, they will no longer be able to create "
+                                  "a channel until the date is reached.\n"
+                                  "Usage example: `>ChangeStartDate @Bob 2024-04-01`",
+                            inline=False)
+        mod_embed.add_field(name=">ChangePlayerMinimum [st] [new_min]",
+                            value="Changes the required number of players for the reservation of the given member. If "
+                                  "they already reached the start date and the change affects whether they can start "
+                                  "the game, they will receive a new announcement with the next pings.\n"
+                                  "Usage example: `>ChangePlayerMinimum @Bob 12`",
                             inline=False)
         mod_embed.set_footer(
             text="4/4")

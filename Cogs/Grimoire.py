@@ -8,8 +8,6 @@ import utility
 from Cogs.TextQueue import TextQueue
 from Cogs.Townsquare import Townsquare, Player
 
-MaxGameNumber = 15
-PotentialGames = [str(n) for n in range(1, MaxGameNumber)] + ["x" + str(n) for n in range(1, MaxGameNumber)]
 
 class Grimoire(commands.Cog):
     def __init__(self, bot: commands.Bot, helper: utility.Helper):
@@ -21,7 +19,13 @@ class Grimoire(commands.Cog):
         """Grants you the ST role of the given game.
         Also removes you from the relevant queue. Fails if there is already an ST for that game."""
         st_role = self.helper.get_st_role(game_number)
-
+        if st_role is None:
+            await utility.deny_command(ctx, f"No game {game_number} exists")
+            return
+        game_channel = self.helper.get_game_channel(game_number)
+        if game_channel is None:
+            await utility.deny_command(ctx, f"There is no game channel for game {game_number}")
+            return
         if len(st_role.members) == 0 or self.helper.authorize_mod_command(ctx.author):
             # React on Approval
             await utility.start_processing(ctx)
@@ -29,8 +33,13 @@ class Grimoire(commands.Cog):
             await ctx.author.add_roles(st_role)
             await utility.dm_user(ctx.author, "You are now the current ST for game " + game_number)
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
-            if queue:
-                channel_type = "Experimental" if game_number[0] == 'x' else "Regular"
+            if queue is not None:
+                if game_number[0] == "b":
+                    channel_type = "Base"
+                elif game_number[0] == "x":
+                    channel_type = "Experimental"
+                else:
+                    channel_type = "Regular"
                 users_in_queue = [entry.st for entry in queue.queues[channel_type].entries]
                 if ctx.author.id not in users_in_queue:
                     game_channel = self.helper.get_game_channel(game_number)
@@ -83,7 +92,7 @@ class Grimoire(commands.Cog):
             if not dm_success:
                 await ctx.send(content=dm_content, reference=ctx.message)
             queue: Optional[TextQueue] = self.bot.get_cog('TextQueue')
-            if queue and not st_role.members:
+            if queue is not None and len(st_role.members) == 0 and game_number[0] != "r":
                 await queue.announce_free_channel(game_number, 0)
             await utility.finish_processing(ctx)
         else:
@@ -122,7 +131,7 @@ class Grimoire(commands.Cog):
         # and checking which of 1 to [MaxGameNumber] and x1 to x[MaxGameNumber] appear in them
         await utility.start_processing(ctx)
         channel_names_string = " ".join([channel.name for channel in self.helper.TextGamesCategory.channels])
-        games = [x for x in PotentialGames if x in channel_names_string]
+        games = [x for x in utility.PotentialGames if x in channel_names_string]
         message = ""
         for j in games:
             st_role = self.helper.get_st_role(j)

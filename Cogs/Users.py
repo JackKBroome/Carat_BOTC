@@ -31,7 +31,7 @@ class Users(commands.Cog):
             await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
-            f"{ctx.author.mention} has run the AddPlayer Command on {', '.join(player_names)} for game {game_number}")
+            f"{ctx.author.mention} has run the AddPlayer command on {', '.join(player_names)} for game {game_number}")
 
     @commands.command()
     async def RemovePlayer(self, ctx, game_number, players: commands.Greedy[nextcord.Member]):
@@ -55,8 +55,8 @@ class Users(commands.Cog):
         else:
             await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
-        await self.helper.log(
-            f"{ctx.author.mention} has run the RemovePlayer Command on {', '.join(player_names)} for game {game_number}")
+        await self.helper.log(f"{ctx.author.mention} has run the RemovePlayer command "
+                              f"on {', '.join(player_names)} for game {game_number}")
 
     @commands.command()
     async def AddKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
@@ -83,7 +83,7 @@ class Users(commands.Cog):
             await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
 
         await self.helper.log(
-            f"{ctx.author.mention} has run the AddKibitz Command on {', '.join(kibitzer_names)} for game {game_number}")
+            f"{ctx.author.mention} has run the AddKibitz command on {', '.join(kibitzer_names)} for game {game_number}")
 
     @commands.command()
     async def RemoveKibitz(self, ctx, game_number, kibitzers: commands.Greedy[nextcord.Member]):
@@ -107,7 +107,8 @@ class Users(commands.Cog):
         else:
             await utility.deny_command(ctx, "You are not the current ST for game " + str(game_number))
         await self.helper.log(
-            f"{ctx.author.mention} has run the RemoveKibitz Command on {', '.join(kibitzer_names)} for game {game_number}")
+            f"{ctx.author.mention} has run the RemoveKibitz command on "
+            f"{', '.join(kibitzer_names)} for game {game_number}")
 
 
 def setup(bot: commands.Bot):

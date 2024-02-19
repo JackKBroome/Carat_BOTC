@@ -146,7 +146,9 @@ class Archive(commands.Cog):
     @commands.command()
     async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, archive_channel_id: int):
         """Copies the channel the message was sent in to the provided server and channel, message by message.
-        Attachments may not be preserved if they are too large. Also creates a discussion thread at the end."""
+        Attachments may not be preserved if they are too large. Also creates a discussion thread at the end.
+        Public threads are also copied, private threads are not, except where someone specifically excluded or
+        included them."""
         # Credit to Ivy for this code, mostly their code
 
         archive_server = self.helper.bot.get_guild(archive_server_id)

@@ -1,3 +1,7 @@
+import io
+import logging
+import traceback
+
 import nextcord
 from nextcord.ext import commands
 
@@ -80,6 +84,12 @@ class SignupView(nextcord.ui.View):
         super().__init__(timeout=None)  # for persistence
         self.helper = helper
 
+    async def on_error(self, error: Exception, item: nextcord.ui.Item, interaction: nextcord.Interaction) -> None:
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Ignoring exception in SignupView:\n{traceback_text}")
+
     @nextcord.ui.button(label="Sign Up", custom_id="Sign_Up_Command", style=nextcord.ButtonStyle.green)
     async def signup_callback(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         # Find which game the sign-up page relates to
@@ -113,7 +123,8 @@ class SignupView(nextcord.ui.View):
             await self.update_signup_sheet(interaction.message)
             for st in st_role.members:
                 await utility.dm_user(st,
-                                      f"{interaction.user.display_name} ({interaction.user.name}) has signed up for Game {game_number}")
+                                      f"{interaction.user.display_name} ({interaction.user.name}) "
+                                      f"has signed up for Game {game_number}")
             await self.helper.log(
                 f"{interaction.user.display_name} ({interaction.user.name}) has signed up for Game {game_number}")
 
@@ -125,7 +136,6 @@ class SignupView(nextcord.ui.View):
         signup_message = interaction.message
         number_of_fields = signup_message.embeds[0].to_dict()
         game_number = str(number_of_fields["footer"]["text"])
-
         game_role = self.helper.get_game_role(game_number)
         st_role = self.helper.get_st_role(game_number)
 
@@ -139,9 +149,11 @@ class SignupView(nextcord.ui.View):
             await self.update_signup_sheet(interaction.message)
             for st in st_role.members:
                 await utility.dm_user(st,
-                                      f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
+                                      f"{interaction.user.display_name} ({interaction.user.name}) "
+                                      f"has removed themself from Game {game_number}")
             await self.helper.log(
-                f"{interaction.user.display_name} ({interaction.user.name}) has removed themself from Game {game_number}")
+                f"{interaction.user.display_name} ({interaction.user.name}) "
+                f"has removed themself from Game {game_number}")
 
     @nextcord.ui.button(label="Refresh List", custom_id="Refresh_Command", style=nextcord.ButtonStyle.gray,
                         emoji=refresh_emoji)

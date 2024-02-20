@@ -69,7 +69,7 @@ class Reminders(commands.Cog):
         self.reminder_list = []
         if not os.path.exists(self.ReminderStorage):
             with open(self.ReminderStorage, 'w') as f:
-                json.dump(self.reminder_list, f)
+                json.dump(self.reminder_list, f, indent=2)
         else:
             with open(self.ReminderStorage, 'r') as f:
                 self.reminder_list = [Reminder.from_dict(item) for item in json.load(f)]
@@ -81,7 +81,7 @@ class Reminders(commands.Cog):
 
     def update_storage(self):
         with open(self.ReminderStorage, 'w') as f:
-            json.dump([item.to_dict() for item in self.reminder_list], f)
+            json.dump([item.to_dict() for item in self.reminder_list], f, indent=2)
 
     @commands.command(usage="<game_number> [event] [times]... <'ping-st'> <'no-player-ping'>")
     async def SetReminders(self, ctx, *args):

@@ -219,7 +219,7 @@ class Reserve(commands.Cog):
         self.announced = {}
         if not os.path.exists(self.ReservedStorage):
             with open(self.ReservedStorage, 'w') as f:
-                json.dump({"entries": self.entries, "announced": self.announced}, f)
+                json.dump({"entries": self.entries, "announced": self.announced}, f, indent=2)
         else:
             with open(self.ReservedStorage, 'r') as f:
                 json_data = json.load(f)
@@ -239,7 +239,7 @@ class Reserve(commands.Cog):
         for owner in self.announced:
             json_data["announced"][owner] = self.announced[owner].to_dict()
         with open(self.ReservedStorage, "w") as f:
-            json.dump(json_data, f)
+            json.dump(json_data, f, indent=2)
 
     def remove_entry(self, owner: int):
         self.entries.pop(owner)

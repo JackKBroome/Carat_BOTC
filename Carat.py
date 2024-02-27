@@ -153,7 +153,7 @@ async def ReloadCogs(ctx: commands.Context):
                             headers={"Accept": "application/vnd.github+json",
                                      "X-GitHub-Api-Version": "2022-11-28"})
     if response.status_code != 200:
-        logging.error(f"Request failed with status code {response.status_code} and message {response.text}. "
+        logging.error(f"Initial request failed with status code {response.status_code} and message {response.text}. "
                       f"Reloading old versions.")
         await utility.deny_command(ctx, "Could not connect to GitHub")
         load_extensions(cog_paths)
@@ -165,7 +165,7 @@ async def ReloadCogs(ctx: commands.Context):
             logging.info(f"Downloading {file['name']} from repository")
             response = requests.get(file["download_url"])
             if response.status_code != 200:
-                logging.error(f"Request failed with status code {response.status_code} and message {response.text}. "
+                logging.error(f"File request failed with status code {response.status_code} and message {response.text}. "
                               f"Reloading cogs from current files.")
                 await utility.deny_command(ctx, "Could not connect to GitHub")
                 cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
@@ -182,6 +182,50 @@ async def ReloadCogs(ctx: commands.Context):
     logging.warning("Cogs successfully loaded. Currently loaded cogs: " + ", ".join(bot.cogs.keys()))
     await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join([c[5:] for c in new_cog_paths]))
     await utility.finish_processing(ctx)
+
+
+@bot.command()
+@commands.is_owner()
+async def ReloadMainFiles(ctx: commands.Context):
+    """Loads newest version of main files (Carat.py, utility.py) from GitHub repository. Restricted to bot owner"""
+    logging.warning("Attempting to update Carat.py and utility.py")
+    response = requests.get(repository_api_url + "/contents/",
+                            headers={"Accept": "application/vnd.github+json",
+                                     "X-GitHub-Api-Version": "2022-11-28"})
+    if response.status_code != 200:
+        logging.error(f"Initial request failed with status code {response.status_code} and message {response.text}. ")
+        await utility.deny_command(ctx, "Request failed")
+        return
+    carat_file_url = None
+    utility_file_url = None
+    for file in response.json():
+        if file['name'] == "Carat.py":
+            carat_file_url = file['download_url']
+        elif file['name'] == "utility.py":
+            utility_file_url = file['download_url']
+    if carat_file_url is None or utility_file_url is None:
+        logging.error("Could not find files in repository")
+        await utility.deny_command(ctx, "Could not find files in repository")
+        return
+    carat_file_response = requests.get(carat_file_url)
+    if carat_file_response.status_code != 200:
+        logging.error(f"File request failed with status code {carat_file_response.status_code} "
+                      f"and message {carat_file_response.text}. ")
+        await utility.deny_command(ctx, "Request failed")
+        return
+    with open("Carat_UPDATE.py", "w", encoding="utf-8") as f:
+        f.write(carat_file_response.text)
+    utility_file_response = requests.get(utility_file_url)
+    if utility_file_response.status_code != 200:
+        logging.error(f"File request failed with status code {utility_file_response.status_code} "
+                      f"and message {utility_file_response.text}. ")
+        await utility.deny_command(ctx, "Request failed")
+        os.remove("Carat_UPDATE.py")
+        return
+    with open("utility_UPDATE.py", "w", encoding="utf-8") as f:
+        f.write(utility_file_response.text)
+    logging.warning("New files downloaded.Stopping Carat to restart new version")
+    await bot.close()
 
 
 @bot.command()

@@ -133,9 +133,16 @@ async def SendLogs(ctx: commands.Context, limit: int, level: Optional[str] = "ER
 
 
 def get_repo_info(sub_path: str) -> Optional[List]:
-    response = requests.get(repository_api_url + "/contents" + sub_path,
+    try:
+        response = requests.get(repository_api_url + "/contents" + sub_path,
                             headers={"Accept": "application/vnd.github+json",
                                      "X-GitHub-Api-Version": "2022-11-28"})
+    except Exception as error:
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Exception during request to repository:\n{traceback_text}")
+        return None
     if response.status_code != 200:
         logging.error(f"Initial request failed with status code {response.status_code} and message {response.text}.")
         return None
@@ -143,7 +150,14 @@ def get_repo_info(sub_path: str) -> Optional[List]:
 
 
 def download_file(url, local_directory, local_filename):
-    response = requests.get(url)
+    try:
+        response = requests.get(url)
+    except Exception as error:
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Exception during request to repository:\n{traceback_text}")
+        return False
     if response.status_code != 200:
         logging.error(f"File request failed with status code {response.status_code} and message {response.text}.")
         return False

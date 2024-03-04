@@ -67,7 +67,7 @@ class Archive(commands.Cog):
         self.threads_by_channel = {}
         if not os.path.exists(self.ThreadArchivalStorage):
             with open(self.ThreadArchivalStorage, 'w') as f:
-                json.dump(self.threads_by_channel, f)
+                json.dump(self.threads_by_channel, f, indent=2)
         else:
             with open(self.ThreadArchivalStorage, 'r') as f:
                 json_data = json.load(f)
@@ -79,7 +79,7 @@ class Archive(commands.Cog):
         for channel in self.threads_by_channel:
             json_data[channel] = self.threads_by_channel[channel].to_dict()
         with open(self.ThreadArchivalStorage, 'w') as f:
-            json.dump(json_data, f)
+            json.dump(json_data, f, indent=2)
 
     @commands.command()
     async def IncludeInArchive(self, ctx: commands.Context):

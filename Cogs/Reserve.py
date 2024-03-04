@@ -19,6 +19,7 @@ from Cogs.TextQueue import TextQueue, Entry, ExplainInvalidChannelType
 green_square_emoji = '\U0001F7E9'
 red_square_emoji = '\U0001F7E5'
 refresh_emoji = '\U0001F504'
+min_advance_days = 14
 
 
 @dataclass_json
@@ -219,7 +220,7 @@ class Reserve(commands.Cog):
         self.announced = {}
         if not os.path.exists(self.ReservedStorage):
             with open(self.ReservedStorage, 'w') as f:
-                json.dump({"entries": self.entries, "announced": self.announced}, f)
+                json.dump({"entries": self.entries, "announced": self.announced}, f, indent=2)
         else:
             with open(self.ReservedStorage, 'r') as f:
                 json_data = json.load(f)
@@ -239,7 +240,7 @@ class Reserve(commands.Cog):
         for owner in self.announced:
             json_data["announced"][owner] = self.announced[owner].to_dict()
         with open(self.ReservedStorage, "w") as f:
-            json.dump(json_data, f)
+            json.dump(json_data, f, indent=2)
 
     def remove_entry(self, owner: int):
         self.entries.pop(owner)
@@ -264,14 +265,14 @@ class Reserve(commands.Cog):
             await utility.deny_command(ctx, "You are already in the queue")
             return
         if start is None:
-            start_date = date.today() + timedelta(days=14)
+            start_date = date.today() + timedelta(days=min_advance_days)
         else:
             start_date = parse_date(start)
         if start_date is None:
             await utility.deny_command(ctx, "Invalid start date. Use either a number (of days) or YYYY-MM-DD "
                                             "or MM-DD format, or nothing to set to the earliest option")
             return
-        if start_date - date.today() < timedelta(days=14):
+        if start_date - date.today() < timedelta(days=min_advance_days):
            await utility.deny_command(ctx, "Start date must be at least two weeks away")
            return
         if isinstance(ctx.channel, nextcord.Thread) and ctx.channel.parent == self.helper.ReservingForum \

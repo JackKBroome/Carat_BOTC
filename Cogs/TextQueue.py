@@ -49,7 +49,7 @@ class TextQueue(commands.Cog):
         self.queues = {}
         if not os.path.exists(self.QueueStorage):
             with open(self.QueueStorage, 'w') as f:
-                json.dump(self.queues, f)
+                json.dump(self.queues, f, indent=2)
         else:
             with open(self.QueueStorage, 'r') as f:
                 json_data = json.load(f)
@@ -135,7 +135,7 @@ class TextQueue(commands.Cog):
         for queue in self.queues:
             json_data[queue] = self.queues[queue].to_dict()
         with open(self.QueueStorage, "w") as f:
-            json.dump(json_data, f)
+            json.dump(json_data, f, indent=2)
 
     def get_queue(self, user_id: int) -> Optional[StQueue]:
         for channel_type in self.queues:
@@ -184,7 +184,7 @@ class TextQueue(commands.Cog):
         Do not join a queue if you are currently storytelling, unless you are just a co-ST.
         Note that if a parameter contains spaces, you have to surround it with quotes."""
         channel_type = utility.get_channel_type(channel_type)
-        if not channel_type:
+        if channel_type is None:
             await utility.deny_command(ctx, ExplainInvalidChannelType)
             return
         reserve_cog = self.bot.get_cog("Reserve")
@@ -295,9 +295,8 @@ class TextQueue(commands.Cog):
                                               "channel type at the start.")
         await utility.start_processing(ctx)
         queue = self.get_queue(ctx.author.id)
-        if not queue:
-            await utility.dm_user(ctx.author, "You are not in a queue at the moment")
-            await utility.finish_processing(ctx)
+        if queue is None:
+            await utility.deny_command(ctx, "You are not in a queue at the moment")
             return
         entry = next(e for e in queue.entries if e.st == ctx.author.id)
         entry.notes = notes

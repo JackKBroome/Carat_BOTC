@@ -192,7 +192,7 @@ class Townsquare(commands.Cog):
         for game in self.town_squares:
             json_data[game] = self.town_squares[game].to_dict()
         with open(self.TownSquaresStorage, 'w') as f:
-            json.dump(json_data, f)
+            json.dump(json_data, f, indent=2)
 
     async def log(self, game_number: str, message: str):
         kibitz = self.helper.get_kibitz_channel(game_number)

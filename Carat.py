@@ -132,6 +132,40 @@ async def SendLogs(ctx: commands.Context, limit: int, level: Optional[str] = "ER
         logging.warning(f"{ctx.author.display_name} (id: {ctx.author.id}) attempted to access Carat's logs")
 
 
+def get_repo_info(sub_path: str) -> Optional[List]:
+    try:
+        response = requests.get(repository_api_url + "/contents" + sub_path,
+                            headers={"Accept": "application/vnd.github+json",
+                                     "X-GitHub-Api-Version": "2022-11-28"})
+    except Exception as error:
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Exception during request to repository:\n{traceback_text}")
+        return None
+    if response.status_code != 200:
+        logging.error(f"Initial request failed with status code {response.status_code} and message {response.text}.")
+        return None
+    return response.json()
+
+
+def download_file(url, local_directory, local_filename):
+    try:
+        response = requests.get(url)
+    except Exception as error:
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.exception(f"Exception during request to repository:\n{traceback_text}")
+        return False
+    if response.status_code != 200:
+        logging.error(f"File request failed with status code {response.status_code} and message {response.text}.")
+        return False
+    with open(os.path.join(local_directory, local_filename), "w", encoding="utf-8") as f:
+        f.write(response.text)
+    return True
+
+
 @bot.command()
 @commands.is_owner()
 async def ReloadCogs(ctx: commands.Context):
@@ -148,25 +182,19 @@ async def ReloadCogs(ctx: commands.Context):
     logging.info("Unloaded all cogs in cog directory. Remaining cogs: " + ", ".join(bot.cogs.keys()))
     await utility.dm_user(ctx.author, "Unloaded cogs: " + ", ".join([c[5:] for c in cog_paths]))
     logging.info("Downloading cogs list from repository")
-
-    response = requests.get(repository_api_url + "/contents/Cogs",
-                            headers={"Accept": "application/vnd.github+json",
-                                     "X-GitHub-Api-Version": "2022-11-28"})
-    if response.status_code != 200:
-        logging.error(f"Request failed with status code {response.status_code} and message {response.text}. "
-                      f"Reloading old versions.")
+    cogs_contents = get_repo_info("/Cogs")
+    if cogs_contents is None:
+        logging.warning("Reloading old versions")
         await utility.deny_command(ctx, "Could not connect to GitHub")
         load_extensions(cog_paths)
         await utility.dm_user(ctx.author, "reloaded original cogs")
         logging.warning("Ending the process. Currently loaded cogs: " + ", ".join(bot.cogs.keys()))
         return
-    for file in response.json():
+    for file in cogs_contents:
         if file["name"].endswith(".py"):
             logging.info(f"Downloading {file['name']} from repository")
-            response = requests.get(file["download_url"])
-            if response.status_code != 200:
-                logging.error(f"Request failed with status code {response.status_code} and message {response.text}. "
-                              f"Reloading cogs from current files.")
+            if not download_file(file["download_url"], "Cogs", file["name"]):
+                logging.warning("Reloading cogs from current files")
                 await utility.deny_command(ctx, "Could not connect to GitHub")
                 cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
                 logging.info("Loading cogs: " + ", ".join(cog_paths))
@@ -174,14 +202,38 @@ async def ReloadCogs(ctx: commands.Context):
                 await utility.dm_user(ctx.author, "Loaded cogs from currently existing files")
                 logging.warning("Ending the process. Currently loaded cogs: " + ", ".join(bot.cogs.keys()))
                 return
-            with open(os.path.join("Cogs", file["name"]), "w", encoding="utf-8") as f:
-                f.write(response.text)
     new_cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
     logging.info("Now loading new cogs from files: " + ", ".join(new_cog_paths))
     load_extensions(new_cog_paths)
     logging.warning("Cogs successfully loaded. Currently loaded cogs: " + ", ".join(bot.cogs.keys()))
     await utility.dm_user(ctx.author, "Loaded new cogs: " + ", ".join([c[5:] for c in new_cog_paths]))
     await utility.finish_processing(ctx)
+
+
+@bot.command()
+@commands.is_owner()
+async def ReloadMainFiles(ctx: commands.Context):
+    """Loads newest version of main files (Carat.py, utility.py) from GitHub repository. Restricted to bot owner"""
+    logging.warning("Attempting to update Carat.py and utility.py")
+    repo_contents = get_repo_info("/")
+    if repo_contents is None:
+        await utility.deny_command(ctx, "Could not connect to GitHub")
+        return
+    carat_file_url = next((file['download_url'] for file in repo_contents if file['name'] == "Carat.py"), None)
+    utility_file_url = next((file['download_url'] for file in repo_contents if file['name'] == "utility.py"), None)
+    if carat_file_url is None or utility_file_url is None:
+        logging.error("Could not find files in repository")
+        await utility.deny_command(ctx, "Could not find files in repository")
+        return
+    if download_file(carat_file_url, ".", "Carat_UPDATE.py"):
+        if download_file(utility_file_url, ".", "utility_UPDATE.py"):
+            logging.warning("New files downloaded.Stopping Carat to restart new version")
+            await bot.close()
+        else:
+            os.remove("Carat_UPDATE.py")  # Clean up
+            await utility.deny_command(ctx, "Could not connect to GitHub")
+    else:
+        await utility.deny_command(ctx, "Could not connect to GitHub")
 
 
 @bot.command()

@@ -29,7 +29,7 @@ class Game(commands.Cog):
             await ctx.channel.send(
                 f"{game_role.mention} Kibitz is now being opened - remove your game role to access it. " +
                 f"Remember to give your ST(s) any feedback you may have!\n" +
-                f"Feedback form: https://forms.gle/HqNfMv1pte8vo5j59")
+                f"Feedback form: https://forms.gle/3PsSPs4TznRkMhY8A")
 
             # React for completion
             await utility.finish_processing(ctx)
@@ -78,7 +78,7 @@ class Game(commands.Cog):
             await ctx.channel.send(
                 f"{game_role.mention} Kibitz is now being opened. "
                 f"Remember to give your ST(s) any feedback you may have!\n" +
-                f"Feedback form: https://forms.gle/HqNfMv1pte8vo5j59"
+                f"Feedback form: https://forms.gle/3PsSPs4TznRkMhY8A"
             )
             members = game_role.members
             members += kibitz_role.members

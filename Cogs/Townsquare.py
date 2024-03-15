@@ -906,7 +906,7 @@ class Townsquare(commands.Cog):
             await utility.deny_command(ctx, "You must be a player to set your alias. "
                                             "If you are, the ST may have to add you to the town square.")
 
-    @commands.command()
+    @commands.command(aliases=["TOrganGrinder"])
     async def ToggleOrganGrinder(self, ctx: commands.Context, game_number: str):
         """Activates or deactivates Organ Grinder for the display of nominations in the game.
         Finished nominations are not updated.
@@ -925,7 +925,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You must be the Storyteller to toggle the Organ Grinder")
 
-    @commands.command()
+    @commands.command(aliases=["TPlayerNoms"])
     async def TogglePlayerNoms(self, ctx: commands.Context, game_number: str):
         """Activates or deactivates the ability of players to nominate directly.
         You must be a storyteller for this."""
@@ -943,7 +943,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You must be the Storyteller to toggle player nominations")
 
-    @commands.command()
+    @commands.command(aliases=["TMarkedDead"])
     async def ToggleMarkedDead(self, ctx: commands.Context, game_number: str, player_identifier: str):
         """Marks the given player as dead or alive for display on nominations.
         You must be a storyteller for this."""
@@ -967,7 +967,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You must be the Storyteller to mark a player as dead")
 
-    @commands.command()
+    @commands.command(aliases=["TCanVote"])
     async def ToggleCanVote(self, ctx: commands.Context, game_number: str, player_identifier: str):
         """Allows or disallows the given player to vote.
         You must be a storyteller for this."""

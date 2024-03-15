@@ -187,8 +187,12 @@ async def switch_to_queue(queue_cog: TextQueue, helper: utility.Helper, entry: R
 def signup_embed(entry: RSVPEntry, helper: utility.Helper) -> nextcord.Embed:
     owner = get(helper.Guild.members, id=entry.owner)
     co_sts = [get(helper.Guild.members, id=st_id).mention for st_id in entry.co_sts]
+    info = f"Ran by {owner.mention}"
+    if len(co_sts) > 0:
+        info += "with " + ", ".join(co_sts)
+    info += ", starting " + entry.date
     embed = nextcord.Embed(title=str(entry.script),
-                           description=f"Ran by {owner.mention} with" + ", ".join(co_sts) +
+                           description=info +
                                        f"\nPress {green_square_emoji} to sign up for the game"
                                        f"\nPress {red_square_emoji} to remove yourself from the game",
                            color=0xff0000)
@@ -273,8 +277,8 @@ class Reserve(commands.Cog):
                                             "or MM-DD format, or nothing to set to the earliest option")
             return
         if start_date - date.today() < timedelta(days=min_advance_days):
-           await utility.deny_command(ctx, "Start date must be at least two weeks away")
-           return
+            await utility.deny_command(ctx, "Start date must be at least two weeks away")
+            return
         if isinstance(ctx.channel, nextcord.Thread) and ctx.channel.parent == self.helper.ReservingForum \
                 and ctx.author == ctx.channel.owner:
             await utility.start_processing(ctx)
@@ -357,8 +361,8 @@ class Reserve(commands.Cog):
                 continue
             co_sts = [get(self.helper.Guild.members, id=co_st) for co_st in entry.co_sts]
             co_st_names = [co_st.display_name for co_st in co_sts if co_st is not None]
-            name = f"{owner.display_name} running {entry.script}" if entry.script != "TBA" else f"{owner.mention}"
-            description = f"{len(entry.players)}/{entry.min_players} players signed up"
+            name = f"{owner.display_name} running {entry.script}" if entry.script != "TBA" else f"{owner.display_name}"
+            description = f"Starting {entry.date}\n{len(entry.players)}/{entry.min_players} players signed up"
             if entry.max_players != 0:
                 description += f" (max {entry.max_players} players)"
             description += f"\n{get(self.helper.ReservingForum.threads, id=entry.thread).mention}"
@@ -449,7 +453,8 @@ class Reserve(commands.Cog):
                 self.update_storage()
             elif st.id in self.announced:
                 entry = self.announced[st.id]
-                if new_min > len(entry.players) >= entry.min_players or new_min <= len(entry.players) < entry.min_players:
+                if new_min > len(entry.players) >= entry.min_players \
+                        or new_min <= len(entry.players) < entry.min_players:
                     entry.min_players = new_min
                     self.entries[st.id] = entry
                     self.remove_announced(st.id)

@@ -52,10 +52,9 @@ def default_game_channel_overwrites(game_role: nextcord.Role, st_role: nextcord.
     permissions[game_role] = nextcord.PermissionOverwrite(send_messages_in_threads=True, create_public_threads=False,
                                                           create_private_threads=True, manage_messages=True,
                                                           manage_threads=False)
-    permissions[st_role] = nextcord.PermissionOverwrite(manage_channels=True, manage_permissions=True,
-                                                        send_messages_in_threads=True, create_public_threads=True,
-                                                        create_private_threads=True, manage_messages=True,
-                                                        manage_threads=True)
+    permissions[st_role] = nextcord.PermissionOverwrite(manage_channels=True, send_messages_in_threads=True,
+                                                        create_public_threads=True, create_private_threads=True,
+                                                        manage_messages=True, manage_threads=True)
     return permissions
 
 
@@ -65,7 +64,7 @@ async def default_kibitz_channel_overwrites(game_role: nextcord.Role,
                                             helper: utility.Helper
                                             ) -> Dict[nextcord.Role, nextcord.PermissionOverwrite]:
     permissions = {}
-    bot_role = get(helper.Guild, name=(await helper.bot.application_info()).name)
+    bot_role = get(helper.Guild.roles, name=(await helper.bot.application_info()).name)
     permissions[bot_role] = nextcord.PermissionOverwrite(view_channel=True)
     total_ban_role = get(helper.Guild.roles, name="tb")
     if total_ban_role is not None:

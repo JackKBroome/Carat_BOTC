@@ -86,15 +86,15 @@ class Helper:
             raise EnvironmentError
 
     def get_game_channel(self, number: str) -> Optional[nextcord.TextChannel]:
-        if number[0] in ["b, r, x"]:
-            # ensure that number occurs without being immediately followed by another digit
-            # (so "x1" doesn't find the x10 channel)
-            pattern = fr"{re.escape(number)}(?![0-9])"
-        else:
+        if number.isdigit():  # no letters in the number
             # ensure that number occurs without being preceded by b, r, x or another digit
             # (so "1" doesn't find the x1 or 11 channel)
             # or followed by another digit (so "1" doesn't find the 10 channel)
             pattern = fr"(?<![0-9brx]){re.escape(number)}(?![0-9])"
+        else:
+            # ensure that number occurs without being immediately followed by another digit
+            # (so "x1" doesn't find the x10 channel)
+            pattern = fr"{re.escape(number)}(?![0-9])"
         matching_channels = [channel for channel in self.TextGamesCategory.text_channels
                              if re.search(pattern, channel.name) is not None]
         if len(matching_channels) == 1:

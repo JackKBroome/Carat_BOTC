@@ -138,7 +138,8 @@ class Grimoire(commands.Cog):
             if not st_role:
                 logging.warning(f"ST role for game {j} not found")
             elif not st_role.members:
-                message += "There is currently no assigned ST for game " + str(j) + "\n"
+                if j[0] != "r":
+                    message += "There is currently no assigned ST for game " + str(j) + "\n"
             else:
                 message += f"Game {j}'s STs are: " + ", ".join([st.display_name for st in st_role.members]) + "\n"
         dm_success = await utility.dm_user(ctx.author, message)

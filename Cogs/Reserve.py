@@ -135,6 +135,32 @@ async def create_channel(owner: int, helper: utility.Helper,
         reason=reason,
         overwrites=default_game_channel_overwrites(game_role, st_role, helper)
     )
+    # move to correct position
+    # the try except probably isn't necessary but channel positions are messy and I don't trust them
+    try:
+        if game_number == "r1":
+            # get highest experimental channel
+            earlier_channels = [helper.get_game_channel(f"x{i}") for i in range(utility.MaxGameNumber, 0, -1)]
+            previous_channel = next(channel for channel in earlier_channels if channel is not None)
+        else:
+            # get previous r channel
+            previous_channel = helper.get_game_channel("r" + str(int(game_number[1:]) - 1))
+        # get next r channel
+        later_channels = [helper.get_game_channel(f"r{i}") for i in
+                          range(int(game_number[1:]) + 1, len(helper.TextGamesCategory.channels))]
+        next_channel = next((channel for channel in later_channels if channel is not None), None)
+        if previous_channel is not None:
+            await game_channel.move(after=previous_channel)
+        elif next_channel is not None:
+            await game_channel.move(before=next_channel)
+        else:
+            raise Exception("Could not find previous or next channel")
+    except Exception as error:
+        traceback_buffer = io.StringIO()
+        traceback.print_exception(type(error), error, error.__traceback__, file=traceback_buffer)
+        traceback_text = traceback_buffer.getvalue()
+        logging.warning(f"Could not move r-game channel to desired position. Exception trace:\n{traceback_text}")
+
     # get/create kibitz channel
     kibitz_channel = helper.get_kibitz_channel(game_number)
     kibitz_overwrites = await default_kibitz_channel_overwrites(game_role, st_role, kibitz_role, helper)
@@ -165,7 +191,7 @@ async def create_channel(owner: int, helper: utility.Helper,
         if player is None:
             game_channel.send(f"Warning: Player with ID {p_id} could not be found")
         else:
-            player.add_roles(game_role)
+            await player.add_roles(game_role)
     await game_channel.send(f"{st_role.mention} Channel is ready. Have fun!")
     logging.info(f"Setup for game {game_number} complete")
 
@@ -307,6 +333,18 @@ class Reserve(commands.Cog):
             await utility.finish_processing(ctx)
 
     @commands.command()
+    async def AddST(self, ctx: commands.Context, co_st: nextcord.Member):
+        """Adds a co-storyteller to your reserved game."""
+        if ctx.author.id not in self.entries:
+            await utility.deny_command(ctx, "You have not reserved a game")
+        else:
+            await utility.start_processing(ctx)
+            entry = self.entries[ctx.author.id]
+            entry.co_sts.append(co_st.id)
+            self.update_storage()
+            await utility.finish_processing(ctx)
+
+    @commands.command()
     async def SwitchToQueue(self, ctx: commands.Context, channel_type: str, availability: Optional[str]):
         """Cancels your reserved game and joins one of the queues.
         You can specify your availability, by default it is the start date that was planned for the reserved game."""
@@ -331,8 +369,8 @@ class Reserve(commands.Cog):
             await thread.send(f"The game has been moved to the {channel_type} queue")
             await utility.finish_processing(ctx)
 
-    @commands.command()
-    async def CancelGame(self, ctx: commands.Context):
+    @commands.command(aliases=["CancelRGame", "CancelGame"])
+    async def CancelReservedGame(self, ctx: commands.Context):
         """Cancels your reserved game."""
         if ctx.author.id not in self.entries:
             await utility.deny_command(ctx, "You have not reserved a game")
@@ -371,8 +409,8 @@ class Reserve(commands.Cog):
         await ctx.message.reply(embed=embed)
         await utility.finish_processing(ctx)
 
-    @commands.command()
-    async def CreateRGame(self, ctx: commands.Context, st: nextcord.Member):
+    @commands.command(aliases=["CreateRGame"])
+    async def CreateReservedGame(self, ctx: commands.Context, st: nextcord.Member):
         """Creates an r-game channel with the given user as ST.
         If they have a game reserved, Carat uses the information from the entry, but it works even if they have not."""
         if self.helper.authorize_mod_command(ctx.author):

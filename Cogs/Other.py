@@ -140,13 +140,17 @@ class Other(commands.Cog):
                                      "that players can use to sign up or leave the game.\n"
                                      "Usage examples: `>PreSignups 12 \"Trouble Brewing\"`, `>PreSignups 7 AllAmnes`",
                                inline=False)
+        anyone_embed.add_field(name=">AddST [user]",
+                               value="Adds a co-storyteller to your reserved game.\n"
+                                     "Usage examples: `AddST @Bob`",
+                               inline=False)
         anyone_embed.add_field(name=">SwitchToQueue [channel_type] [availability (optional)]",
                                value=">Cancels your reserved game and joins one of the queues. You can specify your "
                                      "availability, by default it is the start date that was planned for the reserved "
                                      "game.\n"
                                      "Usage examples: `>SwitchToQueue base asap`, `>SwitchToQueue exp \"After Easter\"`",
                                inline=False)
-        anyone_embed.add_field(name=">CancelGame",
+        anyone_embed.add_field(name=">CancelReservedGame",
                                value="Cancels your reserved game.",
                                inline=False)
         anyone_embed.add_field(name=">ListNextGames [days (optional)]",
@@ -429,7 +433,7 @@ class Other(commands.Cog):
                                   "message by message. Attachments may not be preserved if they are too large. "
                                   "Also creates a discussion thread at the end.",
                             inline=False)
-        mod_embed.add_field(name=">CreateRGame [st]",
+        mod_embed.add_field(name=">CreateReservedGame [st]",
                             value="Creates an r-game channel with the given user as ST. If they have a game reserved, "
                                   "Carat uses the information from the entry, but it works even if they have not.",
                             inline=False)

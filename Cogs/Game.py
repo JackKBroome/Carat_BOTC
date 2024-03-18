@@ -132,8 +132,10 @@ class Game(commands.Cog):
                 await game_channel.send(f"{self.helper.ModRole.mention} The archive category is full, so this channel "
                                         f"cannot be archived")
                 return
+            if game_number[0] != "r":
+                new_channel = await game_channel.clone(reason="New Game")
+                await new_channel.edit(position=game_position, name=f"text-game-{game_number}", topic="")
             # remove manage threads permission so future STs for the game number can't see private threads
-            new_channel = await game_channel.clone(reason="New Game")
             st_permissions = game_channel.overwrites[st_role]
             st_permissions.update(manage_threads=None)
             await game_channel.set_permissions(st_role, overwrite=st_permissions)
@@ -146,8 +148,6 @@ class Game(commands.Cog):
                     await game_channel.set_permissions(st, manage_threads=True)
             await game_channel.edit(category=archive_category, name=str(game_channel_name) + " Archived on " + str(
                 strftime("%a, %d %b %Y %H %M %S ", gmtime())), topic="")
-
-            await new_channel.edit(position=game_position, name=f"text-game-{game_number}", topic="")
 
             kibitz_channel = self.helper.get_kibitz_channel(game_number)
             await kibitz_channel.set_permissions(townsfolk_role, view_channel=False)

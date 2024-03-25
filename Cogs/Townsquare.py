@@ -659,7 +659,7 @@ class Townsquare(commands.Cog):
                                             "somehow impossible, just let the ST know.")
             return
         voter = next((p for p in self.town_squares[game_number].players if p.id == ctx.author.id), None)
-        if self.town_squares[game_number].organ_grinder and (ctx.channel in self.helper.TextGamesCategory or
+        if self.town_squares[game_number].organ_grinder and (ctx.channel in self.helper.TextGamesCategory.channels or
                                                              ctx.channel.type == nextcord.ChannelType.public_thread):
             await ctx.message.delete()
             await utility.dm_user(ctx.author, "Please do not vote in public while the Organ Grinder is active. Your "

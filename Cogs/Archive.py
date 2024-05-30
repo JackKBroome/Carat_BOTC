@@ -145,7 +145,7 @@ class Archive(commands.Cog):
 
     @commands.command()
     async def ClaimRole(self, ctx: commands.Context):
-        Unique_role_name = str(member.id)
+        Unique_role_name = str(ctx.author.id)
         Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
         if Unique_role is None:
             Unique_role = await server.create_role(name=Unique_role_name)

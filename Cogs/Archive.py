@@ -146,7 +146,7 @@ class Archive(commands.Cog):
     @commands.command()
     async def ClaimRole(self, ctx: commands.Context):
         Unique_role_name = str(ctx.author.id)
-        server = ctx.server
+        archive_server = self.helper.bot.get_guild(1203126128693354516)
         try:
             Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
         except:
@@ -174,18 +174,19 @@ class Archive(commands.Cog):
             archive_channel = await archive_server.create_text_channel(name="Temp Channel")
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name) + "" + str(now.strftime("%d-%m-%Y"))
             await archive_channel.edit(name=Channel_name)
-            return
-        
-        Unique_role_name = str(member.id)
-        Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
-        if Unique_role is None:
-            Unique_role = await server.create_role(name=Unique_role_name)
+            return        
         
         access = self.helper.authorize_mod_command(ctx.author)
         # Ivy Access
         if access or ctx.author.id == ivy_id:
             # React on Approval
             await utility.start_processing(ctx)
+
+            Unique_role_name = str(member.id)
+            Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
+            if Unique_role is None:
+                Unique_role = await server.create_role(name=Unique_role_name)
+            
             channel_history = channel_to_archive.history(limit=None, oldest_first=True)
 
             errors = await copy_history(archive_channel, channel_history)

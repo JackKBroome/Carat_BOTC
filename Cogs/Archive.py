@@ -168,14 +168,17 @@ class Archive(commands.Cog):
         if archive_server is None:
             await utility.dm_user(ctx.author, f"Was unable to find server with ID {archive_server_id}")
             return
-
-        
+            
         archive_channel = get(archive_server.channels, id=archive_channel_id)
-        await ctx.send(str(archive_channel))
+        await ctx.send(archive_channel)
         if archive_channel is None:
+            await ctx.send("1")
             archive_channel = await archive_server.create_text_channel(name="Temp Channel")
+            await ctx.send("1")
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name) + "" + str(now.strftime("%d-%m-%Y"))
+            await ctx.send("1")
             await archive_channel.edit(name=Channel_name)
+            await ctx.send("1")
             return        
         
         access = self.helper.authorize_mod_command(ctx.author)

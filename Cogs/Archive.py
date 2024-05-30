@@ -169,19 +169,13 @@ class Archive(commands.Cog):
             await utility.dm_user(ctx.author, f"Was unable to find server with ID {archive_server_id}")
             return
 
-        await ctx.send("1")
         archive_channel = get(archive_server.channels, id=archive_channel_id)
-        await ctx.send("2")
         if archive_channel is None:
-            await ctx.send("3")
             archive_channel = await archive_server.create_text_channel(name="Temp Channel")
-            await ctx.send("4")
             #date = str(now.strftime("%d-%m-%Y")
             #await ctx.send(date)
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name)
-            await ctx.send("5")
             await archive_channel.edit(name=Channel_name)
-            await ctx.send("6")
             return        
         
         access = self.helper.authorize_mod_command(ctx.author)
@@ -195,6 +189,8 @@ class Archive(commands.Cog):
             Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
             if Unique_role is None:
                 Unique_role = await archive_server.create_role(name=Unique_role_name)
+
+            await ctx.send("1")
             
             channel_history = channel_to_archive.history(limit=None, oldest_first=True)
 

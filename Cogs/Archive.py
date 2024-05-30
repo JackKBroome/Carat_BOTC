@@ -149,7 +149,6 @@ class Archive(commands.Cog):
         await ctx.send("1")
         archive_server = self.helper.bot.get_guild(1203126128693354516)
         await ctx.send("2")
-        
         Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
         await ctx.send("4")
         if Unique_role is None:

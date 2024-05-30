@@ -146,12 +146,19 @@ class Archive(commands.Cog):
     @commands.command()
     async def ClaimRole(self, ctx: commands.Context):
         Unique_role_name = str(ctx.author.id)
+        await ctx.send("1")
         archive_server = self.helper.bot.get_guild(1203126128693354516)
+        await ctx.send("2")
         try:
-            Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
+            await ctx.send("3")
+            Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
+            await ctx.send("4")
         except:
-            Unique_role = await server.create_role(name=Unique_role_name)
+            await ctx.send("5")
+            Unique_role = await archive_server.create_role(name=Unique_role_name)
+            await ctx.send("6")
         await ctx.author.add_roles(Unique_role)
+        await ctx.send("7")
         
 
     @commands.command()

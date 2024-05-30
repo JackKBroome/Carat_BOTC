@@ -177,10 +177,12 @@ class Archive(commands.Cog):
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name)
             await archive_channel.edit(name=Channel_name)
             return        
-        
+        await ctx.send("1")
         access = self.helper.authorize_mod_command(ctx.author)
+        await ctx.send("2")
         # Ivy Access
         if access or ctx.author.id == ivy_id:
+            await ctx.send("3")
             # React on Approval
             await utility.start_processing(ctx)
 
@@ -189,7 +191,7 @@ class Archive(commands.Cog):
             if Unique_role is None:
                 Unique_role = await archive_server.create_role(name=Unique_role_name)
 
-            await ctx.send("1")
+            await ctx.send("4")
             
             channel_history = channel_to_archive.history(limit=None, oldest_first=True)
 

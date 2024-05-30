@@ -168,8 +168,10 @@ class Archive(commands.Cog):
         if archive_server is None:
             await utility.dm_user(ctx.author, f"Was unable to find server with ID {archive_server_id}")
             return
-        
+
+        await ctx.send("1")
         archive_channel = get(archive_server.channels, id=archive_channel_id)
+        await ctx.send("1")
         if archive_channel is None:
             archive_channel = await archive_server.create_text_channel(name="Temp Channel")
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name) + "" + str(now.strftime("%d-%m-%Y"))

@@ -146,10 +146,15 @@ class Archive(commands.Cog):
     @commands.command()
     async def ClaimRole(self, ctx: commands.Context):
         Unique_role_name = str(ctx.author.id)
+        await ctx.send("1")
         Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
+        await ctx.send("2")
         if Unique_role is None:
+            await ctx.send("3")
             Unique_role = await server.create_role(name=Unique_role_name)
+            await ctx.send("4")
         await ctx.author.add_roles(Unique_role)
+        await ctx.send("5")
 
     @commands.command()
     async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, member: nextcord.Member, archive_channel_id: int =0):

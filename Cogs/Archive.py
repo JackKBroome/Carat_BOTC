@@ -152,7 +152,7 @@ class Archive(commands.Cog):
         await ctx.author.add_roles(Unique_role)
 
     @commands.command()
-    async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, member: nextcord.Member, archive_channel_id: int =0):
+    async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, member: nextcord.Member):
         """Copies the channel the message was sent in to the provided server and channel, message by message.
         Attachments may not be preserved if they are too large. Also creates a discussion thread at the end.
         Public threads are also copied, private threads are not, except where someone specifically excluded or

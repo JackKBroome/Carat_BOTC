@@ -193,7 +193,6 @@ class Archive(commands.Cog):
             Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
             if Unique_role is None:
                 Unique_role = await archive_server.create_role(name=Unique_role_name)
-            await ctx.author.add_roles(Unique_role)
             
             channel_history = channel_to_archive.history(limit=None, oldest_first=True)
 

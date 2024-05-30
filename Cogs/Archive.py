@@ -144,23 +144,40 @@ class Archive(commands.Cog):
             await utility.deny_command(ctx, "This command can only be used in a thread.")
 
     @commands.command()
-    async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, archive_channel_id: int):
+    async def ClaimRole(self, ctx: commands.Context):
+        Unique_role_name = str(member.id)
+        Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
+        if Unique_role is None:
+            Unique_role = await server.create_role(name=Unique_role_name)
+        await ctx.author.add_roles(Unique_role)
+
+    @commands.command()
+    async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, member: nextcord.Member, archive_channel_id: int =0):
         """Copies the channel the message was sent in to the provided server and channel, message by message.
         Attachments may not be preserved if they are too large. Also creates a discussion thread at the end.
         Public threads are also copied, private threads are not, except where someone specifically excluded or
         included them."""
         # Credit to Ivy for this code, mostly their code
+        
+        channel_to_archive = ctx.message.channel
 
         archive_server = self.helper.bot.get_guild(archive_server_id)
         if archive_server is None:
             await utility.dm_user(ctx.author, f"Was unable to find server with ID {archive_server_id}")
             return
+        
         archive_channel = get(archive_server.channels, id=archive_channel_id)
         if archive_channel is None:
-            await utility.dm_user(ctx.author, f"Was unable to find channel with ID {archive_server_id}")
+            archive_channel = await archive_server.create_text_channel(name="Temp Channel")
+            Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name) + "" + str(now.strftime("%d-%m-%Y"))
+            await archive_channel.edit(name=Channel_name)
             return
-        channel_to_archive = ctx.message.channel
-
+        
+        Unique_role_name = str(member.id)
+        Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
+        if Unique_role is None:
+            Unique_role = await server.create_role(name=Unique_role_name)
+        
         access = self.helper.authorize_mod_command(ctx.author)
         # Ivy Access
         if access or ctx.author.id == ivy_id:
@@ -174,10 +191,31 @@ class Archive(commands.Cog):
                 if thread.is_private() and (thread.parent.id not in self.threads_by_channel or
                                             thread.id not in self.threads_by_channel[
                                                 channel_to_archive.id].private_to_archive):
-                    continue
+                    try:
+                        archive_thread = await archive_channel.create_thread(name=thread.name,
+                                                                            type=nextcord.ChannelType.private_thread)
+    
+                        #Set thread permissions to make it private except for the Unique_role
+                        await archive_thread.edit(reason="Private thread for only the ST", 
+                                        permission_overwrites=[
+                                            nextcord.PermissionOverwrite(
+                                                id=server.default_role.id, view_channel=False
+                                            ),
+                                            nextcord.PermissionOverwrite(
+                                                id=Unique_role.id, view_channel=True
+                                            ),
+                                        ])
+                        
+                        thread_history = thread.history(limit=None, oldest_first=True)
+                        errors += await copy_history(archive_thread, thread_history)
+                    except HTTPException:
+                        await archive_channel.send(f"Failed to create thread '{thread.name}'")
+                        continue
+
                 elif (not thread.is_private()) and thread.parent.id in self.threads_by_channel and \
                         thread.id in self.threads_by_channel[channel_to_archive.id].public_to_not_archive:
                     continue
+
                 try:
                     archive_thread = await archive_channel.create_thread(name=thread.name,
                                                                          type=nextcord.ChannelType.public_thread)
@@ -202,5 +240,7 @@ class Archive(commands.Cog):
             await utility.deny_command(ctx, "You do not have permission to use this command")
 
 
+
 def setup(bot: commands.Bot):
     bot.add_cog(Archive(bot, utility.Helper(bot)))
+

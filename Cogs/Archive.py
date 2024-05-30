@@ -177,7 +177,7 @@ class Archive(commands.Cog):
             archive_channel = await archive_server.create_text_channel(name="Temp Channel")
             await ctx.send("4")
             date = str(now.strftime("%d-%m-%Y")
-            await ctx.send("4.5")
+            await ctx.send(date)
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name)
             await ctx.send("5")
             await archive_channel.edit(name=Channel_name)

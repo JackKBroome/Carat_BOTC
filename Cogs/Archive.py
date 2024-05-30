@@ -145,19 +145,14 @@ class Archive(commands.Cog):
 
     @commands.command()
     async def ClaimRole(self, ctx: commands.Context):
+        await utility.start_processing(ctx)
         Unique_role_name = str(ctx.author.id)
-        await ctx.send("1")
         archive_server = self.helper.bot.get_guild(1203126128693354516)
-        await ctx.send("2")
         Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
-        await ctx.send("4")
         if Unique_role is None:
-            await ctx.send("5")
             Unique_role = await archive_server.create_role(name=Unique_role_name)
-            await ctx.send("6")
         await ctx.author.add_roles(Unique_role)
-        await ctx.send("7")
-        
+        await utility.finish_processing(ctx)
 
     @commands.command()
     async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, member: nextcord.Member, archive_channel_id: int =0):
@@ -187,10 +182,12 @@ class Archive(commands.Cog):
             # React on Approval
             await utility.start_processing(ctx)
 
-            Unique_role_name = str(member.id)
-            Unique_role = nextcord.utils.get(server.roles, name=Unique_role_name)
+            Unique_role_name = str(ctx.author.id)
+            archive_server = self.helper.bot.get_guild(1203126128693354516)
+            Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
             if Unique_role is None:
-                Unique_role = await server.create_role(name=Unique_role_name)
+                Unique_role = await archive_server.create_role(name=Unique_role_name)
+            await ctx.author.add_roles(Unique_role)
             
             channel_history = channel_to_archive.history(limit=None, oldest_first=True)
 

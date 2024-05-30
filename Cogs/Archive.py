@@ -176,7 +176,7 @@ class Archive(commands.Cog):
             #await ctx.send(date)
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name)
             await archive_channel.edit(name=Channel_name)
-            return        
+                
         await ctx.send("1")
         access = self.helper.authorize_mod_command(ctx.author)
         await ctx.send("2")

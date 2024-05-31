@@ -172,8 +172,6 @@ class Archive(commands.Cog):
         archive_channel = get(archive_server.channels, id=archive_channel_id)
         if archive_channel is None:
             archive_channel = await archive_server.create_text_channel(name="Temp Channel")
-            #date = str(now.strftime("%d-%m-%Y")
-            #await ctx.send(date)
             Channel_name = str(channel_to_archive.name) + "-" + str(member.display_name)
             await archive_channel.edit(name=Channel_name)
                 
@@ -209,7 +207,7 @@ class Archive(commands.Cog):
                         await archive_thread.edit(reason="Private thread for only the ST", 
                                         permission_overwrites=[
                                             nextcord.PermissionOverwrite(
-                                                id=server.default_role.id, view_channel=False
+                                                id=archive_server.default_role.id, view_channel=False
                                             ),
                                             nextcord.PermissionOverwrite(
                                                 id=Unique_role.id, view_channel=True

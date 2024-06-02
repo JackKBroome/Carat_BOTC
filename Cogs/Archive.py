@@ -194,7 +194,7 @@ class Archive(commands.Cog):
                                                 channel_to_archive.id].private_to_archive):
                     try:
                         archive_thread = await archive_channel.create_thread(name=thread.name,
-                                                                         type=private_thread)
+                                                                         type=nextcord.ChannelType.private_thread)
                         thread_history = thread.history(limit=None, oldest_first=True)
                         errors += await copy_history(archive_thread, thread_history)
                     except HTTPException:

@@ -175,9 +175,7 @@ async def ReloadCogs(ctx: commands.Context):
     logging.info("Current cogs: " + ", ".join(bot.cogs.keys()))
     await utility.start_processing(ctx)
     cog_paths = ["Cogs." + os.path.splitext(file)[0] for file in os.listdir("Cogs") if file.endswith(".py")]
-    await ctx.send("1")
     for cog in cog_paths:
-        await ctx.send(str(cog))
         logging.info(f"Unloading {cog}")
         if cog[5:] in bot.cogs:
             bot.unload_extension(cog)

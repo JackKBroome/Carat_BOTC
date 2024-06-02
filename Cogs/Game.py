@@ -181,7 +181,7 @@ class Archive(commands.Cog):
             # React on Approval
             await utility.start_processing(ctx)
 
-            Unique_role_name = str(ctx.author.id)
+            Unique_role_name = str(member.id)
             Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
             if Unique_role is None:
                 Unique_role = await archive_server.create_role(name=Unique_role_name)
@@ -194,7 +194,7 @@ class Archive(commands.Cog):
                 if thread.is_private() and (thread.parent.id not in self.threads_by_channel or
                                             thread.id not in self.threads_by_channel[
                                                 channel_to_archive.id].private_to_archive):
-                    await ctx.send("1 - " + str(thread.name))
+                    #await ctx.send("1 - " + str(thread.name))
                     try:
                         archive_thread = await archive_channel.create_thread(name=thread.name,
                                                                          type=nextcord.ChannelType.private_thread)
@@ -206,11 +206,11 @@ class Archive(commands.Cog):
 
                 elif (not thread.is_private()) and thread.parent.id in self.threads_by_channel and \
                         thread.id in self.threads_by_channel[channel_to_archive.id].public_to_not_archive:
-                    await ctx.send("2 - " + str(thread.name))
+                    #await ctx.send("2 - " + str(thread.name))
                     continue
 
                 try:
-                    await ctx.send("3 - " + str(thread.name))
+                    #await ctx.send("3 - " + str(thread.name))
                     archive_thread = await archive_channel.create_thread(name=thread.name,
                                                                          type=nextcord.ChannelType.public_thread)
                     thread_history = thread.history(limit=None, oldest_first=True)
@@ -239,4 +239,3 @@ class Archive(commands.Cog):
 
 def setup(bot: commands.Bot):
     bot.add_cog(Archive(bot, utility.Helper(bot)))
-

@@ -195,8 +195,8 @@ class Archive(commands.Cog):
                     try:
                         archive_thread = await archive_channel.create_thread(name=thread.name,
                                                                          type=private_thread)
-                        thread_history = thread.history(limit=None, oldest_first=True)
-                        errors += await copy_history(archive_thread, thread_history)
+                        #thread_history = thread.history(limit=None, oldest_first=True)
+                        #errors += await copy_history(archive_thread, thread_history)
                     except HTTPException:
                         await archive_channel.send(f"Failed to create thread '{thread.name}'")
                         continue

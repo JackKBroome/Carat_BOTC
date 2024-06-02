@@ -193,10 +193,16 @@ class Archive(commands.Cog):
                                             thread.id not in self.threads_by_channel[
                                                 channel_to_archive.id].private_to_archive):
                     try:
-                        archive_thread = await archive_channel.create_thread(name=thread.name,
-                                                                         type=private_thread)
+                        archive_thread = await archive_channel.create_thread(
+                            name=str(thread.name),
+                            auto_archive_duration=4320,  # 3 days
+                            type=nextcord.ChannelType.private_thread,
+                            invitable=True,
+                            reason="Private Thread"
+                            )
                         thread_history = thread.history(limit=None, oldest_first=True)
                         errors += await copy_history(archive_thread, thread_history)
+                        continue
                     except HTTPException:
                         await archive_channel.send(f"Failed to create thread '{thread.name}'")
                         continue

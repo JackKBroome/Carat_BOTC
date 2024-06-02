@@ -197,7 +197,7 @@ class Archive(commands.Cog):
                             name=str(thread.name),
                             auto_archive_duration=4320,  # 3 days
                             type=nextcord.ChannelType.private_thread,
-                            invitable=False,
+                            invitable=True,
                             reason="Private Thread"
                             )
                         thread_history = thread.history(limit=None, oldest_first=True)

@@ -13,7 +13,6 @@ import utility
 
 ivy_id = 183474450237358081
 
-
 @dataclass_json
 @dataclass
 class ThreadList:
@@ -181,7 +180,7 @@ class Archive(commands.Cog):
             # React on Approval
             await utility.start_processing(ctx)
 
-            Unique_role_name = str(ctx.author.id)
+            Unique_role_name = str(member.id)
             Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
             if Unique_role is None:
                 Unique_role = await archive_server.create_role(name=Unique_role_name)
@@ -194,22 +193,10 @@ class Archive(commands.Cog):
                 if thread.is_private() and (thread.parent.id not in self.threads_by_channel or
                                             thread.id not in self.threads_by_channel[
                                                 channel_to_archive.id].private_to_archive):
-                    await ctx.send("1 - " + str(thread.name))
+                    #await ctx.send("1 - " + str(thread.name))
                     try:
                         archive_thread = await archive_channel.create_thread(name=thread.name,
-                                                                            type=nextcord.ChannelType.private_thread)
-    
-                        #Set thread permissions to make it private except for the Unique_role
-                        await archive_thread.edit(reason="Private thread for only the ST", 
-                                        permission_overwrites=[
-                                            nextcord.PermissionOverwrite(
-                                                id=archive_server.default_role.id, view_channel=False
-                                            ),
-                                            nextcord.PermissionOverwrite(
-                                                id=Unique_role.id, view_channel=True
-                                            ),
-                                        ])
-                        
+                                                                         type=nextcord.ChannelType.private_thread)
                         thread_history = thread.history(limit=None, oldest_first=True)
                         errors += await copy_history(archive_thread, thread_history)
                     except HTTPException:
@@ -218,11 +205,11 @@ class Archive(commands.Cog):
 
                 elif (not thread.is_private()) and thread.parent.id in self.threads_by_channel and \
                         thread.id in self.threads_by_channel[channel_to_archive.id].public_to_not_archive:
-                    await ctx.send("2 - " + str(thread.name))
+                    #await ctx.send("2 - " + str(thread.name))
                     continue
 
                 try:
-                    await ctx.send("3 - " + str(thread.name))
+                    #await ctx.send("3 - " + str(thread.name))
                     archive_thread = await archive_channel.create_thread(name=thread.name,
                                                                          type=nextcord.ChannelType.public_thread)
                     thread_history = thread.history(limit=None, oldest_first=True)
@@ -232,6 +219,8 @@ class Archive(commands.Cog):
                     continue
 
             await archive_channel.create_thread(name="Chat about the game", type=nextcord.ChannelType.public_thread)
+
+            await archive_channel.set_permissions(Unique_role, manage_threads=True)
 
             await utility.finish_processing(ctx)
             self.threads_by_channel.pop(channel_to_archive.id, None)
@@ -244,8 +233,6 @@ class Archive(commands.Cog):
             await utility.dm_user(ctx.author, message)
         else:
             await utility.deny_command(ctx, "You do not have permission to use this command")
-
-
 
 def setup(bot: commands.Bot):
     bot.add_cog(Archive(bot, utility.Helper(bot)))

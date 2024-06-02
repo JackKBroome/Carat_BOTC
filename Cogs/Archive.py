@@ -154,18 +154,11 @@ class Archive(commands.Cog):
         await utility.finish_processing(ctx)
 
     @commands.command()
-    async def Private_Thread(self, ctx: commands.Context):
-        await ctx.channel.create_thread(name=thread.name,
-                                            message=None,
-                                            type=nextcord.ChannelType.private_thread)
-
-    @commands.command()
     async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, member: nextcord.Member, archive_channel_id: int =0):
         """Copies the channel the message was sent in to the provided server and channel, message by message.
         Attachments may not be preserved if they are too large. Also creates a discussion thread at the end.
         Public threads are also copied, private threads are not, except where someone specifically excluded or
         included them."""
-        # Credit to Ivy for this code, mostly their code
         
         channel_to_archive = ctx.message.channel
 
@@ -199,11 +192,9 @@ class Archive(commands.Cog):
                 if thread.is_private() and (thread.parent.id not in self.threads_by_channel or
                                             thread.id not in self.threads_by_channel[
                                                 channel_to_archive.id].private_to_archive):
-                    #await ctx.send("1 - " + str(thread.name))
                     try:
                         archive_thread = await archive_channel.create_thread(name=thread.name,
-                                                                        message=None,
-                                                                         type=nextcord.ChannelType.private_thread)
+                                                                         type=private_thread)
                         thread_history = thread.history(limit=None, oldest_first=True)
                         errors += await copy_history(archive_thread, thread_history)
                     except HTTPException:
@@ -212,11 +203,9 @@ class Archive(commands.Cog):
 
                 elif (not thread.is_private()) and thread.parent.id in self.threads_by_channel and \
                         thread.id in self.threads_by_channel[channel_to_archive.id].public_to_not_archive:
-                    #await ctx.send("2 - " + str(thread.name))
                     continue
 
                 try:
-                    #await ctx.send("3 - " + str(thread.name))
                     archive_thread = await archive_channel.create_thread(name=thread.name,
                                                                          type=nextcord.ChannelType.public_thread)
                     thread_history = thread.history(limit=None, oldest_first=True)

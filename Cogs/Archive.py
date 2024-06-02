@@ -154,6 +154,12 @@ class Archive(commands.Cog):
         await utility.finish_processing(ctx)
 
     @commands.command()
+    async def Private_Thread(self, ctx: commands.Context):
+        await ctx.channel.create_thread(name=thread.name,
+                                            message=None,
+                                            type=nextcord.ChannelType.private_thread)
+
+    @commands.command()
     async def OffServerArchive(self, ctx: commands.Context, archive_server_id: int, member: nextcord.Member, archive_channel_id: int =0):
         """Copies the channel the message was sent in to the provided server and channel, message by message.
         Attachments may not be preserved if they are too large. Also creates a discussion thread at the end.

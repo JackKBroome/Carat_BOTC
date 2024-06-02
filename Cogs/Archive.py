@@ -196,6 +196,7 @@ class Archive(commands.Cog):
                     #await ctx.send("1 - " + str(thread.name))
                     try:
                         archive_thread = await archive_channel.create_thread(name=thread.name,
+                                                                        message=None,
                                                                          type=nextcord.ChannelType.private_thread)
                         thread_history = thread.history(limit=None, oldest_first=True)
                         errors += await copy_history(archive_thread, thread_history)

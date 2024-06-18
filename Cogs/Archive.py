@@ -6,7 +6,7 @@ from typing import List, Dict
 import nextcord
 from dataclasses_json import dataclass_json
 from nextcord import InvalidArgument, HTTPException
-from nextcord.ext import commands
+from nextcord.ext import tasks, commands
 from nextcord.utils import get
 
 import utility
@@ -236,7 +236,27 @@ class Archive(commands.Cog):
         else:
             await utility.deny_command(ctx, "You do not have permission to use this command")
 
+    @tasks.loop(hours=24)
+    async def adjust_thread_archive_time():
 
+        guild = bot.get_guild(569683781800296501)
+        EXCLUDED_CHANNELS = [1218704547585724537, 1218706422297137272, 777660207424733204, 1173738081036283924]
+        ACTIVE_THREAD_CATEGORIES = [569683781846433930, 956566935657676870, 1121197982604329021, 1163527840713670706]
+
+        for current_thread_ID in ACTIVE_THREAD_CATEGORIES:
+            category = nextcord.utils.get(guild.categories, id=current_thread_ID)
+
+            for channel in category.channels:
+                if channel.id in EXCLUDED_CHANNELS:
+                    continue
+            
+                threads = await channel.threads()
+                for thread in threads:
+                    try:
+                        await thread.edit(auto_archive_duration=10080)  # 10080 minutes = 7 days
+                        await thread.edit(auto_archive_duration=4320)  # 4,320 minutes = 3 days
+                    except Exception as e:
+                        print(f"Failed to update thread: {thread.name} in channel: {channel.name}. Error: {e}")
 
 def setup(bot: commands.Bot):
     bot.add_cog(Archive(bot, utility.Helper(bot)))

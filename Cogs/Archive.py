@@ -208,6 +208,7 @@ class Archive(commands.Cog):
             if archive_server is None:
                 await utility.dm_user(ctx.author, f"Was unable to find server with ID {archive_server_id}")
                 return
+            archive_channel_id = 0
             archive_channel = get(archive_server.channels, id=archive_channel_id)
             if archive_channel is None:
                 archive_channel = await archive_server.create_text_channel(name="Temp Channel")

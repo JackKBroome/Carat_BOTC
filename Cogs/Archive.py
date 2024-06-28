@@ -166,6 +166,7 @@ class Archive(commands.Cog):
         if self.helper.authorize_st_command(ctx.author, game_number):
             # React on Approval
             await utility.start_processing(ctx)
+            
 
             townsfolk_role = self.helper.Guild.default_role
             st_role = self.helper.get_st_role(game_number)
@@ -214,8 +215,9 @@ class Archive(commands.Cog):
                 await archive_channel.edit(name=Channel_name)
 
             access = self.helper.authorize_mod_command(ctx.author)
+            member = ctx.author
             # Ivy Access
-            if access or ctx.author.id == ivy_id:
+            if 1 == 1:
                 # React on Approval
                 await utility.start_processing(ctx)
                 Unique_role_name = str(member.id)

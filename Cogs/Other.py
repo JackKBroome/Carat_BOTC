@@ -25,7 +25,6 @@ class Other(commands.Cog):
                 await utility.dm_user(ctx.author, "Thread title too long, will be shortened")
             thread = await channel.create_thread(
                 name=title[:100],
-                auto_archive_duration=4320,  # 3 days
                 type=nextcord.ChannelType.private_thread,
                 reason=f"Starting whisper for {ctx.author.display_name}"
             )

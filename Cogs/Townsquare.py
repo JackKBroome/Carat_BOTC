@@ -943,7 +943,7 @@ class Townsquare(commands.Cog):
         else:
             await utility.deny_command(ctx, "You must be the Storyteller to toggle player nominations")
 
-    @commands.command(aliases=["TMarkedDead"])
+    @commands.command(aliases=["TMarkedDead","togglemarkdead"])
     async def ToggleMarkedDead(self, ctx: commands.Context, game_number: str, player_identifier: str):
         """Marks the given player as dead or alive for display on nominations.
         You must be a storyteller for this."""

@@ -146,7 +146,7 @@ class Archive(commands.Cog):
     async def ClaimRole(self, ctx: commands.Context):
         await utility.start_processing(ctx)
         Unique_role_name = str(ctx.author.id)
-        archive_server = self.helper.bot.get_guild(1203126128693354516)
+        archive_server = self.helper.bot.get_guild(1317487976309329920)
         Unique_role = nextcord.utils.get(archive_server.roles, name=Unique_role_name)
         if Unique_role is None:
             Unique_role = await archive_server.create_role(name=Unique_role_name)

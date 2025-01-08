@@ -374,7 +374,7 @@ class Other(commands.Cog):
         ts_embed.add_field(name=">SetVote [game_number] [nominee_identifier] [voter_identifier] [vote]",
                            value='Sets the vote on the given nominee for the given voter to the given vote. You must '
                                  'be a storyteller for this. . Note that you cannot lock a vote in this way.\n'
-                                 'Usage examples: `>ResetVote x1 Alex Ben`, `>ResetVote 3 Alex Ben`',
+                                 'Usage examples: `>SetVote x1 Alex Ben Yes`, `>SetVote 3 Alex Ben No`',
                            inline=False)
         ts_embed.add_field(name=">CountVotes [game_number] [nominee_identifier]",
                            value='Begins counting the votes for the given nominee. You must be a storyteller for this.\n'

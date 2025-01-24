@@ -394,6 +394,9 @@ class FreeChannelNotificationView(nextcord.ui.View):
             await self.helper.log(
                 f"{interaction.user.mention} has claimed grimoire {self.game_number} "
                 f"through the queue announcement button")
+            minions_channel_id = 1199438203627773952
+            Secondary_output_channel = bot.get_channel(minions_channel_id)
+            await Secondary_output_channel.send(f"{interaction.user.mention} has run the ClaimGrimoire Command  for game {self.game_number}")
             self.clear_items()
             self.stop()
             await interaction.message.edit(view=self)

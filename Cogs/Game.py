@@ -134,7 +134,7 @@ class Game(commands.Cog):
                 return
             if game_number[0] != "r":
                 new_channel = await game_channel.clone(reason="New Game")
-                await new_channel.edit(position=game_position, name=f"text-game-{game_number}", topic="")
+                await new_channel.edit(position=game_position, name=f"{game_number}-text-game", topic="")
             # remove manage threads permission so future STs for the game number can't see private threads
             st_permissions = game_channel.overwrites[st_role]
             st_permissions.update(manage_threads=None)

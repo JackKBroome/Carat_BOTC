@@ -263,6 +263,11 @@ class Archive(commands.Cog):
                 self.threads_by_channel.pop(channel_to_archive.id, None)
                 self.update_storage()
                 #await self.helper.log(f"{ctx.author.display_name} has run the OffServerArchive Command")
+                await ctx.channel.send(
+                f"{game_role.mention} Kibitz is now being opened. "
+                f"Remember to give your ST(s) any feedback you may have!\n" +
+                f"Feedback form: https://forms.gle/3PsSPs4TznRkMhY8A"
+                )
 
             # React for completion
             await utility.finish_processing(ctx)
